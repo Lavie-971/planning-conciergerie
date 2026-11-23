@@ -674,36 +674,69 @@ body.printing-doc #printPanel{
       <!-- rendu par JS -->
     </div>
   </div>
-  <div class="calendar-card" id="agendaPanel" hidden style="padding:16px;">
-    <h2>📅 Mon agenda</h2>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-      <button id="agendaAddBtn" type="button" onclick="document.getElementById('agendaForm').hidden=false">＋ Nouveau rendez-vous</button>
-      <button id="agendaTodayBtn">Aujourd'hui</button>
+ <div class="modal-backdrop" id="agendaPanel" hidden>
+  <div class="modal" style="max-width:650px;">
+    <div class="modal-head">
+      <h2>📅 Mon agenda</h2>
+      <button class="modal-close" id="agendaCloseBtn" type="button">✕</button>
     </div>
-    <div id="agendaForm" hidden style="margin-bottom:16px;">
-      <input id="agendaTitle" type="text" placeholder="Titre du rendez-vous" style="width:100%;margin-bottom:8px;">
-      <textarea id="agendaDescription" placeholder="Description" style="width:100%;margin-bottom:8px;"></textarea>
-      <label>Date et heure de début</label>
-      <input id="agendaStart" type="datetime-local" style="width:100%;margin-bottom:8px;">
-      <label>Date et heure de fin</label>
-      <input id="agendaEnd" type="datetime-local" style="width:100%;margin-bottom:8px;">
-      <label>Catégorie</label>
-      <select id="agendaCategory" style="width:100%;margin-bottom:8px;">
-        <option value="personnel">Personnel</option>
-        <option value="menage">Ménage</option>
-        <option value="maintenance">Maintenance</option>
-        <option value="proprietaire">Propriétaire</option>
-        <option value="administratif">Administratif</option>
-      </select>
-      <label>Logement</label>
-      <select id="agendaApartment" style="width:100%;margin-bottom:8px;">
-        <option value="">Aucun logement</option>
-      </select>
-      <button id="agendaSaveBtn">Enregistrer</button>
-      <button id="agendaCancelBtn">Annuler</button>
+
+    <div class="modal-content">
+      <button id="agendaAddBtn" class="primary" type="button">
+        ＋ Nouveau rendez-vous
+      </button>
+
+      <div id="agendaForm" hidden style="margin-top:20px;">
+        <div class="field">
+          <label for="agendaTitle">Titre du rendez-vous</label>
+          <input id="agendaTitle" type="text" placeholder="Titre du rendez-vous">
+        </div>
+
+        <div class="field">
+          <label for="agendaDescription">Description</label>
+          <textarea id="agendaDescription" placeholder="Description"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="agendaStart">Date et heure de début</label>
+          <input id="agendaStart" type="datetime-local">
+        </div>
+
+        <div class="field">
+          <label for="agendaEnd">Date et heure de fin</label>
+          <input id="agendaEnd" type="datetime-local">
+        </div>
+
+        <div class="field">
+          <label for="agendaCategory">Catégorie</label>
+          <select id="agendaCategory">
+            <option value="personnel">Personnel</option>
+            <option value="menage">Ménage</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="proprietaire">Propriétaire</option>
+            <option value="administratif">Administratif</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="agendaApartment">Logement</label>
+          <select id="agendaApartment">
+            <option value="">Aucun logement</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button id="agendaCancelBtn" type="button">Annuler</button>
+          <button id="agendaSaveBtn" class="primary" type="button">Enregistrer</button>
+        </div>
+      </div>
+
+      <div id="agendaEventsList" style="margin-top:18px;">
+        Chargement de l'agenda…
+      </div>
     </div>
-    <div id="agendaEventsList">Chargement de l'agenda…</div>
   </div>
+</div>
   <div class="list-toggle">
     <button id="toggleListBtn">▸ Afficher la liste complète des réservations</button>
   </div>
@@ -6336,18 +6369,20 @@ function initAgenda(){
     apartments.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
 
   const panel = document.getElementById('agendaPanel');
-  panel.hidden = true;
+ panel.hidden = true;
 
 document.getElementById('agendaBtn').addEventListener('click',()=>{
-  const opening = panel.hidden;
-  panel.hidden = !opening;
-  document.querySelector('.list-toggle').hidden = opening;
-  document.getElementById('listPanel').hidden = true;
-  document.querySelector('.today-tomorrow-grid').hidden = opening;
-  document.getElementById('legendBar').hidden = opening;
-  if(opening) renderAgenda();
+  panel.hidden = false;
+  renderAgenda();
 });
-  const agendaBtn = document.getElementById('agendaBtn');
+
+document.getElementById('agendaCloseBtn').addEventListener('click',()=>{
+  panel.hidden = true;
+});
+
+panel.addEventListener('click',(e)=>{
+  if(e.target === panel) panel.hidden = true;
+});
 
   document.getElementById('agendaAddBtn').addEventListener('click',()=>{
     editingAgendaId = null;
