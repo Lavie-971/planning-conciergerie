@@ -6336,7 +6336,17 @@ function initAgenda(){
     apartments.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
 
   const panel = document.getElementById('agendaPanel');
-  panel.hidden = false;
+  panel.hidden = true;
+
+document.getElementById('agendaBtn').addEventListener('click',()=>{
+  const opening = panel.hidden;
+  panel.hidden = !opening;
+  document.querySelector('.list-toggle').hidden = opening;
+  document.getElementById('listPanel').hidden = true;
+  document.querySelector('.today-tomorrow-grid').hidden = opening;
+  document.getElementById('legendBar').hidden = opening;
+  if(opening) renderAgenda();
+});
   const agendaBtn = document.getElementById('agendaBtn');
 
   document.getElementById('agendaAddBtn').addEventListener('click',()=>{
