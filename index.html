@@ -4304,9 +4304,12 @@ function renderApartmentStats(){
     <button class="btn" id="ownerTaxRecapBtn" style="flex:1;">📄 Récap annuel propriétaire</button>
     <button class="btn primary" id="ownerMonthlyInvoiceBtn" style="flex:1;">🧾 Facture mensuelle</button>
   </div>`;
-  if(syncUrl){
-    html += `<button class="btn" id="ownerLinkBtn" style="width:100%;margin-top:8px;">🔗 Copier le lien à envoyer au propriétaire</button>`;
-  }
+if(syncUrl){
+  html += `
+    <button class="btn" id="ownerLinkBtn" style="width:100%;margin-top:8px;">🔗 Copier le lien à envoyer au propriétaire</button>
+    <button class="btn" id="ownerRevokeLinkBtn" style="width:100%;margin-top:8px;background:#a83232;color:white;">🔒 Révoquer le lien propriétaire</button>
+  `;
+}
   content.innerHTML = html;
   const btn = document.getElementById('ownerTaxRecapBtn');
   if(btn) btn.addEventListener('click', ()=>{
@@ -4365,6 +4368,30 @@ if(linkBtn) linkBtn.addEventListener('click', async ()=>{
   }finally{
     linkBtn.disabled = false;
     linkBtn.textContent = originalText;
+  }
+});
+
+const revokeBtn = document.getElementById('ownerRevokeLinkBtn');
+
+if(revokeBtn) revokeBtn.addEventListener('click', async ()=>{
+  const a = apartments.find(x=>String(x.id)===String(statsApartmentId));
+  if(!a) return;
+
+  if(!confirm('Veux-tu vraiment révoquer le lien propriétaire de ce logement ?')) return;
+
+  revokeBtn.disabled = true;
+  revokeBtn.textContent = 'Révocation…';
+
+  try{
+    await sbRest('POST','rpc/owner_portal_revoke_link',{
+      target_apartment_id:String(a.id)
+    });
+    alert('Lien propriétaire révoqué. L’ancien lien ne fonctionne plus.');
+  }catch(e){
+    alert('Impossible de révoquer le lien : '+(e.message||e));
+  }finally{
+    revokeBtn.disabled = false;
+    revokeBtn.textContent = '🔒 Révoquer le lien propriétaire';
   }
 });
 }
