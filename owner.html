@@ -135,7 +135,24 @@ function formatDate(value){
   const d=new Date(value+'T12:00:00');
   return isNaN(d.getTime())?value:d.toLocaleDateString('fr-FR');
 }
+function getCommission(booking){
+  const amount = Number(booking.total || 0);
 
+  const fixed = booking.commissionAmount;
+  const percent = booking.commissionPercent;
+
+  // Le montant en euros déjà enregistré est prioritaire.
+  if(fixed !== null && fixed !== undefined && fixed !== ''){
+    return Math.max(0, Number(fixed) || 0);
+  }
+
+  // Sinon, calcul avec le pourcentage propre à cette réservation.
+  if(percent !== null && percent !== undefined && percent !== ''){
+    return Math.max(0, amount * (Number(percent) || 0) / 100);
+  }
+
+  return 0;
+}
 function getNights(booking){
   if(!booking.checkin||!booking.checkout)return 0;
   const start=new Date(booking.checkin+'T00:00:00Z');
