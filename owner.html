@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace propriétaire — Conciergerie</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f7f4ef;color:#39352f;font-family:Arial,sans-serif}
+header{background:#fff;padding:25px 18px;text-align:center;border-bottom:1px solid #e8e1d7}
+h1{font-family:Georgia,serif;font-style:italic;color:#927653;font-weight:normal;margin:0}
+header p{font-size:13px;color:#8b8175}
+main{max-width:850px;margin:28px auto;padding:0 15px}
+#message{text-align:center;padding:35px;background:white;border-radius:12px}
+.card{background:white;border:1px solid #e8e1d7;border-radius:12px;padding:18px;margin-bottom:16px}
+.card h2{font-family:Georgia,serif;color:#927653;font-weight:normal;margin:0 0 8px}
+.address{font-size:13px;color:#82796f;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 6px;border-bottom:1px solid #eee}
+th{color:#927653}
+.amount{text-align:right;white-space:nowrap}
+select,button{padding:10px 14px;border:1px solid #d8cbbb;border-radius:7px;background:white;color:#51483d}
+button{background:#927653;color:white;border:0;cursor:pointer}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.small{font-size:12px;color:#8b8175}
+@media(max-width:550px){table{font-size:11px}th,td{padding:8px 3px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Espace propriétaire</h1>
+<p>Votre logement et vos réservations</p>
+</header>
+<main>
+<div class="toolbar">
+<span class="small">Consultation de votre espace privé</span>
+<select id="year"></select>
+</div>
+<div id="message">Chargement de votre espace…</div>
+<div id="apartments"></div>
+</main>
+<script>
+const SUPABASE_URL='https://pezxvjollptmwmadykfk.supabase.co';
+const SUPABASE_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
+
+const token=new URLSearchParams(location.search).get('token');
+const message=document.getElementById('message');
+const container=document.getElementById('apartments');
+const yearSelect=document.getElementById('year');
+
+const currentYear=new Date().getFullYear();
+for(let y=currentYear-2;y<=currentYear+2;y++){
+  const option=document.createElement('option');
+  option.value=y;
+  option.textContent=y;
+  if(y===currentYear) option.selected=true;
+  yearSelect.appendChild(option);
+}
+
+function addText(parent,tag,value,className){
+  const el=document.createElement(tag);
+  el.textContent=value==null?'':String(value);
+  if(className) el.className=className;
+  parent.appendChild(el);
+  return el;
+}
+
+function formatDate(value){
+  if(!value)return '—';
+  const d=new Date(value+'T12:00:00');
+  return isNaN(d)?value:d.toLocaleDateString('fr-FR');
+}
+
+function money(value){
+  return Number(value||0).toLocaleString('fr-FR',{
+    style:'currency',currency:'EUR'
+  });
+}
+
+async function loadOwner(){
+  if(!token){
+    message.textContent='Lien incomplet. Demandez un nouveau lien à votre gestionnaire.';
+    return;
+  }
+  message.textContent='Chargement…';
+  container.replaceChildren();
+
+  try{
+    const response=await fetch(
+      SUPABASE_URL+'/rest/v1/rpc/owner_portal_get',
+      {
+        method:'POST',
+        headers:{
+          'apikey':SUPABASE_KEY,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          target_token:token,
+          target_year:Number(yearSelect.value)
+        })
+      }
+    );
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(result.message||result.details||'Lien invalide ou expiré.');
+    }
+
+    if(!result.apartments||!result.apartments.length){
+      throw new Error('Aucun logement associé à ce lien.');
+    }
+
+    message.hidden=true;
+
+    result.apartments.forEach(apartment=>{
+      const card=document.createElement('section');
+      card.className='card';
+
+      addText(card,'h2',apartment.name||'Logement');
+      if(apartment.propertyAddress){
+        addText(card,'p',apartment.propertyAddress,'address');
+      }
+
+      const bookings=apartment.bookings||[];
+
+      if(!bookings.length){
+        addText(card,'p','Aucune réservation pour cette année.','small');
+      }else{
+        const table=document.createElement('table');
+        const thead=document.createElement('thead');
+        const header=document.createElement('tr');
+
+        ['Arrivée','Départ','Statut','Voyageurs','Montant'].forEach(label=>{
+          addText(header,'th',label);
+        });
+
+        thead.appendChild(header);
+        table.appendChild(thead);
+
+        const tbody=document.createElement('tbody');
+
+        bookings.forEach(booking=>{
+          const row=document.createElement('tr');
+          addText(row,'td',formatDate(booking.checkin));
+          addText(row,'td',formatDate(booking.checkout));
+          addText(row,'td',booking.status||'—');
+          addText(row,'td',Number(booking.adults||0)+Number(booking.children||0));
+          addText(row,'td',money(booking.total),'amount');
+          tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        card.appendChild(table);
+      }
+
+      container.appendChild(card);
+    });
+
+    message.hidden=true;
+
+  }catch(error){
+    message.hidden=false;
+    message.textContent=error.message||'Impossible de charger votre espace.';
+    container.replaceChildren();
+  }
+}
+
+yearSelect.addEventListener('change',loadOwner);
+loadOwner();
+</script>
+</body>
+</html>
