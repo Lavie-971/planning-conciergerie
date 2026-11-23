@@ -3277,7 +3277,8 @@ function startVoiceCommand(){
 
   alert("Réservation préremplie. Vérifie les informations puis enregistre-la manuellement.");
 }
-  async function interpretVoiceCommandWithAI(phrase){
+  
+async function interpretVoiceCommandWithAI(phrase){
   try{
     const token = await sbToken();
 
@@ -3331,16 +3332,53 @@ function startVoiceCommand(){
 
     const result = data.result;
 
-    alert(
-      result.clarification ||
-      result.summary ||
-      'Je n’ai pas réussi à comprendre la demande.'
+    if(result.clarification){
+      alert(result.clarification);
+      return;
+    }
+
+    if(result.action !== 'create' || result.objectType !== 'reservation'){
+      alert('Pour le moment, seules les nouvelles réservations sont prises en charge.');
+      return;
+    }
+
+    const apartment = apartments.find(a =>
+      a.name.trim().toLowerCase() ===
+      String(result.apartmentName || '').trim().toLowerCase()
     );
+
+    if(!apartment || !result.client || !result.startDate || !result.endDate){
+      alert('Il manque le logement, le client ou une date. Merci de préciser la demande.');
+      return;
+    }
+
+    if(result.endDate <= result.startDate){
+      alert('La date de départ doit être après la date d’arrivée.');
+      return;
+    }
+
+    const message =
+      'Confirmer cette nouvelle réservation ?\n\n' +
+      'Client : ' + result.client + '\n' +
+      'Logement : ' + apartment.name + '\n' +
+      'Arrivée : ' + isoToFR(result.startDate) + '\n' +
+      'Départ : ' + isoToFR(result.endDate);
+
+    showConfirm(message, ()=>{
+      openNewBookingForCell(apartment.id, result.startDate);
+
+      document.getElementById('bkClient').value = result.client;
+      document.getElementById('bkCheckout').value = isoToFR(result.endDate);
+
+      updateNightsBadge();
+      recalcPriceTotal();
+    });
 
   }catch(error){
     alert('Erreur : ' + error.message);
   }
 }
+
 /* ---------------- init ---------------- */
 async function init(){
   const now = new Date();
