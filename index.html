@@ -654,7 +654,7 @@ body.printing-doc #printPanel{
         <button id="myProfileBtn">👤 Mon profil</button>
         <button id="syncBtn">☁️ Synchro</button>
         <button id="annualRecapBtn">📊 Récap annuel</button>
-        <button id="agendaBtn">📅 Agenda</button>
+        
         <button id="backupBtn">💾 Sauvegarde</button>
         <button id="printBtn">🖨️ Imprimer</button>
       </div>
@@ -667,7 +667,9 @@ body.printing-doc #printPanel{
     <div id="todayPanel"></div>
     <div id="tomorrowPanel"></div>
   </div>
-
+<div style="margin-bottom:10px;">
+  <button id="agendaBtn" class="btn primary">📅 Mon agenda</button>
+</div>
   <div class="calendar-card">
     <div class="calendar-scroll" id="calendarScroll">
       <!-- rendu par JS -->
@@ -3504,7 +3506,7 @@ function renderCalendar(){
     bar.style.cursor = 'pointer';
     bar.innerHTML = `<span class="bname">📌 ${escapeHtml(ev.title||'Rendez-vous')}</span>`;
     bar.title = `${ev.title||'Rendez-vous'} — ${new Date(ev.start_at).toLocaleString('fr-FR')}`;
-    bar.addEventListener('click',()=>editAgendaEvent(ev.id));
+    bar.addEventListener('click',()=>openAgendaDetail(ev.id));
     agendaDays.appendChild(bar);
   });
 
