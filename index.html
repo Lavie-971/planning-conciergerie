@@ -4322,10 +4322,51 @@ function renderApartmentStats(){
       openPrintDocument(buildOwnerMonthlyInvoiceHtml(a, year, month));
     }
   });
-  const linkBtn = document.getElementById('ownerLinkBtn');
-  if(linkBtn) linkBtn.addEventListener('click', ()=>{
-    alert('Les liens propriétaires ne sont pas encore disponibles avec la nouvelle synchronisation. Utilise le récapitulatif ou la facture imprimable.');
-  });
+ 
+const linkBtn = document.getElementById('ownerLinkBtn');
+
+if(linkBtn) linkBtn.addEventListener('click', async ()=>{
+  const a = apartments.find(x=>String(x.id)===String(statsApartmentId));
+
+  if(!a){
+    alert('Logement introuvable.');
+    return;
+  }
+
+  const originalText = linkBtn.textContent;
+  linkBtn.disabled = true;
+  linkBtn.textContent = 'Création du lien…';
+
+  try{
+    const result = await sbRest(
+      'POST',
+      'rpc/owner_portal_create_link',
+      {target_apartment_id:String(a.id)}
+    );
+
+    const token = typeof result === 'string' ? result : result?.owner_portal_create_link;
+
+    if(!token || !/^[0-9a-f]{64}$/.test(token)){
+      throw new Error('Supabase n’a pas retourné un lien valide.');
+    }
+
+    const url = new URL('owner.html', window.location.href);
+    url.searchParams.set('token', token);
+
+    try{
+      await navigator.clipboard.writeText(url.href);
+      alert('Lien propriétaire créé et copié ! Tu peux maintenant l’envoyer au propriétaire.');
+    }catch(copyError){
+      window.prompt('Copie ce lien et envoie-le au propriétaire :',url.href);
+    }
+
+  }catch(e){
+    alert('Impossible de créer le lien : '+(e.message||e));
+  }finally{
+    linkBtn.disabled = false;
+    linkBtn.textContent = originalText;
+  }
+});
 }
 
 /* ---------------- récap annuel (tous logements) ---------------- */
