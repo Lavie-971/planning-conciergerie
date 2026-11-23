@@ -3431,6 +3431,86 @@ function renderCalendar(){
   scroll.appendChild(header);
 
   // apartment rows
+    // Ligne Agenda intégrée au calendrier
+  const agendaRow = document.createElement('div');
+  agendaRow.className = 'apartment-row';
+  agendaRow.style.minHeight = '36px';
+
+  const agendaInfo = document.createElement('div');
+  agendaInfo.className = 'apt-info';
+  agendaInfo.innerHTML = '<div class="apt-name">📅 Agenda</div><div class="apt-owner">Rendez-vous</div>';
+  agendaRow.appendChild(agendaInfo);
+
+  const agendaDays = document.createElement('div');
+  agendaDays.className = 'apt-days';
+  agendaDays.style.gridTemplateColumns = `repeat(${nDays*2}, ${dayWidth/2}px)`;
+  agendaDays.style.gridTemplateRows = 'repeat(3, 28px)';
+
+  for(let d=1; d<=nDays; d++){
+    const dISO = addDaysISO(monthStartISO, d-1);
+    const p = parseISO(dISO);
+    const dow = new Date(Date.UTC(p.y,p.m,p.d)).getUTCDay();
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + ((dow===0||dow===6)?' weekend':'') + (dISO===todayISO()?' today':'');
+    cell.style.gridColumn = `${(d-1)*2+1} / span 2`;
+    cell.style.gridRow = '1 / span 3';
+    agendaDays.appendChild(cell);
+  }
+
+  const agendaColors = {
+    personnel:'#8064A2',
+    menage:'#26966D',
+    maintenance:'#D17A27',
+    proprietaire:'#3478B8',
+    administratif:'#777777'
+  };
+
+  const visibleAgenda = (agendaEvents||[]).filter(ev=>{
+    if(!ev.start_at) return false;
+    const start = new Date(ev.start_at).toLocaleDateString('sv-SE');
+    const end = ev.end_at
+      ? new Date(ev.end_at).toLocaleDateString('sv-SE')
+      : start;
+    return start < monthEndExclISO && end >= monthStartISO;
+  });
+
+  const agendaLanes = [];
+
+  visibleAgenda.sort((a,b)=>new Date(a.start_at)-new Date(b.start_at));
+
+  visibleAgenda.forEach(ev=>{
+    const startISO = new Date(ev.start_at).toLocaleDateString('sv-SE');
+    const endISO = ev.end_at
+      ? new Date(ev.end_at).toLocaleDateString('sv-SE')
+      : startISO;
+
+    const clipStart = startISO < monthStartISO ? monthStartISO : startISO;
+    const lastDay = addDaysISO(endISO,1);
+    const clipEnd = lastDay > monthEndExclISO ? monthEndExclISO : lastDay;
+
+    const startCol = Math.round((utcVal(clipStart)-utcVal(monthStartISO))/86400000)+1;
+    const endCol = Math.round((utcVal(clipEnd)-utcVal(monthStartISO))/86400000)+1;
+
+    let lane = agendaLanes.findIndex(end=>startCol>=end);
+    if(lane<0) lane=agendaLanes.length;
+    agendaLanes[lane]=endCol;
+
+    const bar = document.createElement('div');
+    bar.className = 'booking-bar';
+    bar.style.gridColumn = `${startCol*2} / ${endCol*2}`;
+    bar.style.gridRow = String((lane%3)+1);
+    bar.style.background = agendaColors[ev.category] || '#8064A2';
+    bar.style.color = '#fff';
+    bar.style.cursor = 'pointer';
+    bar.innerHTML = `<span class="bname">📌 ${escapeHtml(ev.title||'Rendez-vous')}</span>`;
+    bar.title = `${ev.title||'Rendez-vous'} — ${new Date(ev.start_at).toLocaleString('fr-FR')}`;
+    bar.addEventListener('click',()=>editAgendaEvent(ev.id));
+    agendaDays.appendChild(bar);
+  });
+
+  agendaRow.style.minHeight = (Math.max(1,Math.min(3,agendaLanes.length))*28+8)+'px';
+  agendaRow.appendChild(agendaDays);
+  scroll.appendChild(agendaRow);
   apartments.forEach(apt=>{
     let aptBookings = bookings.filter(b=>b.apartmentId===apt.id && b.checkin < monthEndExclISO && b.checkout > monthStartISO);
     if(hideNeMeConcerne) aptBookings = aptBookings.filter(b=>b.status!=='nemeconcerne');
@@ -6198,7 +6278,6 @@ function initAgenda(){
   agendaBtn.addEventListener('click',()=>{
     const opening = panel.hidden;
     panel.hidden = !opening;
-    document.querySelector('.calendar-card').hidden = opening;
     document.querySelector('.list-toggle').hidden = opening;
     document.getElementById('listPanel').hidden = true;
     document.querySelector('.today-tomorrow-grid').hidden = opening;
