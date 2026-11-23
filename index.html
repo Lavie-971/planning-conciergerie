@@ -3158,7 +3158,7 @@ function startVoiceCommand(){
 
   recognition.onresult = (event)=>{
     const phrase = event.results[0][0].transcript;
-    alert("J'ai entendu : " + phrase);
+    handleVoiceCommand(phrase);
   };
 
   recognition.onerror = ()=>{
@@ -3170,6 +3170,112 @@ function startVoiceCommand(){
   };
 
   recognition.start();
+}
+  function handleVoiceCommand(phrase){
+  const normaliser = texte => texte
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .trim();
+
+  const texte = normaliser(phrase);
+
+  // Recherche du logement
+  const apartment = apartments.find(a =>
+    a.name && texte.includes(normaliser(a.name))
+  );
+
+  if(!apartment){
+    alert("Je n'ai pas reconnu le logement. Logements disponibles : " +
+      apartments.map(a=>a.name).join(', '));
+    return;
+  }
+
+  // Recherche du nom du client
+  const clientMatch = phrase.match(
+    /client\s+(.+?)(?=\s*(?:,|;|arrivée|arrivee|départ|depart|$))/i
+  );
+
+  if(!clientMatch){
+    alert("Je n'ai pas reconnu le nom du client.");
+    return;
+  }
+
+  const client = clientMatch[1].trim();
+
+  // Recherche des dates
+  const mois = {
+    janvier:1, fevrier:2, mars:3, avril:4,
+    mai:5, juin:6, juillet:7, aout:8,
+    septembre:9, octobre:10, novembre:11, decembre:12
+  };
+
+  const dates = [];
+
+  const numeriques = [...phrase.matchAll(
+    /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g
+  )];
+
+  numeriques.forEach(m=>{
+    dates.push({
+      position:m.index,
+      jour:Number(m[1]),
+      mois:Number(m[2]),
+      annee:Number(m[3])
+    });
+  });
+
+  const ecrites = [...phrase.matchAll(
+    /\b(\d{1,2})\s+([a-zàâçéèêëîïôûùüÿñæœ]+)\s+(\d{4})\b/gi
+  )];
+
+  ecrites.forEach(m=>{
+    const nomMois = normaliser(m[2]);
+    if(mois[nomMois]){
+      dates.push({
+        position:m.index,
+        jour:Number(m[1]),
+        mois:mois[nomMois],
+        annee:Number(m[3])
+      });
+    }
+  });
+
+  dates.sort((a,b)=>a.position-b.position);
+
+  if(dates.length < 2){
+    alert("Je n'ai pas reconnu les deux dates. Indique l'arrivée et le départ avec leur année.");
+    return;
+  }
+
+  const convertirDate = d=>{
+    const date = new Date(d.annee,d.mois-1,d.jour);
+    if(date.getFullYear()!==d.annee ||
+       date.getMonth()!==d.mois-1 ||
+       date.getDate()!==d.jour) return null;
+
+    return d.annee+'-'+
+      String(d.mois).padStart(2,'0')+'-'+
+      String(d.jour).padStart(2,'0');
+  };
+
+  const arrivee = convertirDate(dates[0]);
+  const depart = convertirDate(dates[1]);
+
+  if(!arrivee || !depart || depart <= arrivee){
+    alert("Les dates dictées ne sont pas valides.");
+    return;
+  }
+
+  // Ouverture du formulaire prérempli
+  openNewBookingForCell(apartment.id, arrivee);
+
+  document.getElementById('bkClient').value = client;
+  document.getElementById('bkCheckout').value = isoToFR(depart);
+
+  updateNightsBadge();
+
+  alert("Réservation préremplie. Vérifie les informations puis enregistre-la manuellement.");
 }
 /* ---------------- init ---------------- */
 async function init(){
