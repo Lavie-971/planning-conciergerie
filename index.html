@@ -697,9 +697,13 @@ body.printing-doc #printPanel{
           <textarea id="agendaDescription" placeholder="Description"></textarea>
         </div>
 
-        <div class="field">
+      <div class="field">
   <label for="agendaStartDate">Date de début</label>
-  <input id="agendaStartDate" type="date">
+  <div class="date-input-wrap">
+    <input type="text" id="agendaStartDate" placeholder="jj/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+    <button type="button" class="date-picker-btn" data-target="agendaStartDate" aria-label="Choisir la date">📅</button>
+    <div class="mini-calendar" id="miniCal_agendaStartDate" hidden></div>
+  </div>
 </div>
 <div class="field">
   <label for="agendaStartTime">Heure de début</label>
@@ -708,7 +712,11 @@ body.printing-doc #printPanel{
 
         <div class="field">
   <label for="agendaEndDate">Date de fin</label>
-  <input id="agendaEndDate" type="date">
+  <div class="date-input-wrap">
+    <input type="text" id="agendaEndDate" placeholder="jj/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+    <button type="button" class="date-picker-btn" data-target="agendaEndDate" aria-label="Choisir la date">📅</button>
+    <div class="mini-calendar" id="miniCal_agendaEndDate" hidden></div>
+  </div>
 </div>
 <div class="field">
   <label for="agendaEndTime">Heure de fin</label>
@@ -6438,13 +6446,20 @@ document.getElementById('agendaEventsList').hidden = true;
   editingAgendaId = id;
   document.getElementById('agendaTitle').value = ev.title||'';
   document.getElementById('agendaDescription').value = ev.description||'';
-  const startValue = agendaDateValue(ev.start_at);
-document.getElementById('agendaStartDate').value = startValue.slice(0,10);
+ const startValue = agendaDateValue(ev.start_at);
+const startParts = startValue.slice(0,10).split('-');
+document.getElementById('agendaStartDate').value = `${startParts[2]}/${startParts[1]}/${startParts[0]}`;
 document.getElementById('agendaStartTime').value = startValue.slice(11,16);
 
 const endValue = ev.end_at ? agendaDateValue(ev.end_at) : '';
-document.getElementById('agendaEndDate').value = endValue ? endValue.slice(0,10) : '';
-document.getElementById('agendaEndTime').value = endValue ? endValue.slice(11,16) : '';
+if(endValue){
+  const endParts = endValue.slice(0,10).split('-');
+  document.getElementById('agendaEndDate').value = `${endParts[2]}/${endParts[1]}/${endParts[0]}`;
+  document.getElementById('agendaEndTime').value = endValue.slice(11,16);
+}else{
+  document.getElementById('agendaEndDate').value = '';
+  document.getElementById('agendaEndTime').value = '';
+}
   document.getElementById('agendaCategory').value = ev.category||'personnel';
   document.getElementById('agendaApartment').value = ev.apartment_id||'';
   document.getElementById('agendaForm').hidden = false;
@@ -6482,7 +6497,8 @@ panel.addEventListener('click',(e)=>{
     document.getElementById('agendaTitle').value = '';
     document.getElementById('agendaDescription').value = '';
     const now = agendaDateValue(new Date());
-document.getElementById('agendaStartDate').value = now.slice(0,10);
+const [year, month, day] = now.slice(0,10).split('-');
+document.getElementById('agendaStartDate').value = `${day}/${month}/${year}`;
 document.getElementById('agendaStartTime').value = now.slice(11,16);
     document.getElementById('agendaEndDate').value = '';
 document.getElementById('agendaEndTime').value = '';
@@ -6503,8 +6519,15 @@ const startTime = document.getElementById('agendaStartTime').value;
 const endDate = document.getElementById('agendaEndDate').value;
 const endTime = document.getElementById('agendaEndTime').value;
 
-const start = startDate && startTime ? `${startDate}T${startTime}` : '';
-const end = endDate && endTime ? `${endDate}T${endTime}` : '';
+const toDateTime = (date, time) => {
+  if(!date || !time) return '';
+  const m = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return '';
+  return `${m[3]}-${m[2]}-${m[1]}T${time}`;
+};
+
+const start = toDateTime(startDate, startTime);
+const end = toDateTime(endDate, endTime);
 
     if(!title || !start){
       alert('Indique au minimum un titre et une date de début.');
