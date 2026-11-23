@@ -5956,26 +5956,46 @@ function bindEvents(){
   if(syncUrl) setTimeout(flushPendingSync, 250);
 
   document.getElementById('closeDetailXBtn').addEventListener('click', closeDetailModal);
-  document.getElementById('detailEditBtn').addEventListener('click', ()=>{
-    const id = detailBookingId;
+ document.getElementById('detailEditBtn').addEventListener('click', ()=>{
+  if(agendaDetailId){
+    const id = agendaDetailId;
+    agendaDetailId = null;
     closeDetailModal();
-    if(id) openEditBooking(id);
-  });
-  document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
-    const id = detailBookingId;
-    if(!id) return;
-    showConfirm('Supprimer cette réservation ?', ()=>{
-      bookings = bookings.filter(b=>b.id!==id);
-      saveBookings();
+    editAgendaEvent(id);
+    return;
+  }
+
+  const id = detailBookingId;
+  closeDetailModal();
+  if(id) openEditBooking(id);
+});
+document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
+  if(agendaDetailId){
+    const id = agendaDetailId;
+    showConfirm('Supprimer ce rendez-vous ?', async ()=>{
+      await deleteAgendaEvent(id);
+      agendaDetailId = null;
       closeDetailModal();
-      renderAll();
-      if(syncUrl){
-        queueBookingDelete(id);
-        setSyncStatus('syncing');
-        flushPendingSync();
-      }
+      renderAgenda();
+      renderCalendar();
     });
+    return;
+  }
+
+  const id = detailBookingId;
+  if(!id) return;
+  showConfirm('Supprimer cette réservation ?', ()=>{
+    bookings = bookings.filter(b=>b.id!==id);
+    saveBookings();
+    closeDetailModal();
+    renderAll();
+    if(syncUrl){
+      queueBookingDelete(id);
+      setSyncStatus('syncing');
+      flushPendingSync();
+    }
   });
+});
   document.getElementById('detailBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='detailBackdrop') closeDetailModal(); });
 
   document.getElementById('closeStatsXBtn').addEventListener('click', closeStatsModal);
@@ -6251,7 +6271,49 @@ function renderAgenda(){
     });
   });
 }
+let agendaDetailId = null;
 
+function openAgendaDetail(id){
+  const ev = agendaEvents.find(e=>e.id===id);
+  if(!ev) return;
+
+  agendaDetailId = id;
+  detailBookingId = null;
+
+  const apt = apartments.find(a=>a.id===ev.apartment_id);
+  const start = new Date(ev.start_at);
+  const end = ev.end_at ? new Date(ev.end_at) : null;
+
+  const date = start.toLocaleDateString('fr-FR',{
+    weekday:'long',day:'numeric',month:'long',year:'numeric'
+  });
+
+  const heure = start.toLocaleTimeString('fr-FR',{
+    hour:'2-digit',minute:'2-digit'
+  });
+
+  const fin = end ? end.toLocaleTimeString('fr-FR',{
+    hour:'2-digit',minute:'2-digit'
+  }) : '';
+
+  document.getElementById('detailTitle').textContent = 'Rendez-vous';
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-center-header">
+      <div class="detail-client-name">${escapeHtml(ev.title||'Rendez-vous')}</div>
+      <div class="detail-travelers">📅 ${escapeHtml(date)}</div>
+    </div>
+    <div class="detail-row"><span class="k">Début</span><span class="v">${heure}</span></div>
+    ${fin ? `<div class="detail-row"><span class="k">Fin</span><span class="v">${fin}</span></div>` : ''}
+    <div class="detail-row"><span class="k">Catégorie</span><span class="v">${escapeHtml(ev.category||'Personnel')}</span></div>
+    <div class="detail-row"><span class="k">Logement</span><span class="v">${escapeHtml(apt?apt.name:'Aucun logement')}</span></div>
+    <div class="detail-row"><span class="k">Lieu</span><span class="v">${escapeHtml(ev.location||'—')}</span></div>
+    <div class="detail-section-title">Description</div>
+    <div style="white-space:pre-wrap;font-size:14px;">${escapeHtml(ev.description||'Aucune description')}</div>
+  `;
+
+  openModal('detailBackdrop');
+}
 function editAgendaEvent(id){
   const ev = agendaEvents.find(e=>e.id===id);
   if(!ev) return;
