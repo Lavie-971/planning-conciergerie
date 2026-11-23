@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+f<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -667,9 +667,7 @@ body.printing-doc #printPanel{
     <div id="todayPanel"></div>
     <div id="tomorrowPanel"></div>
   </div>
-<div style="margin-bottom:10px;">
-  <button id="agendaBtn" class="btn primary">📅 Mon agenda</button>
-</div>
+  
   <div class="calendar-card">
     <div class="calendar-scroll" id="calendarScroll">
       <!-- rendu par JS -->
@@ -6337,18 +6335,8 @@ function initAgenda(){
     apartments.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
 
   const panel = document.getElementById('agendaPanel');
+  panel.hidden = false;
   const agendaBtn = document.getElementById('agendaBtn');
-
-  agendaBtn.addEventListener('click',()=>{
-    const opening = panel.hidden;
-    panel.hidden = !opening;
-    document.querySelector('.list-toggle').hidden = opening;
-    document.getElementById('listPanel').hidden = true;
-    document.querySelector('.today-tomorrow-grid').hidden = opening;
-    document.getElementById('legendBar').hidden = opening;
-    agendaBtn.textContent = opening ? '📅 Retour au planning' : '📅 Agenda';
-    if(opening) renderAgenda();
-  });
 
   document.getElementById('agendaAddBtn').addEventListener('click',()=>{
     editingAgendaId = null;
