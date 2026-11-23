@@ -698,14 +698,22 @@ body.printing-doc #printPanel{
         </div>
 
         <div class="field">
-          <label for="agendaStart">Date et heure de début</label>
-          <input id="agendaStart" type="datetime-local">
-        </div>
+  <label for="agendaStartDate">Date de début</label>
+  <input id="agendaStartDate" type="date">
+</div>
+<div class="field">
+  <label for="agendaStartTime">Heure de début</label>
+  <input id="agendaStartTime" type="time">
+</div>
 
         <div class="field">
-          <label for="agendaEnd">Date et heure de fin</label>
-          <input id="agendaEnd" type="datetime-local">
-        </div>
+  <label for="agendaEndDate">Date de fin</label>
+  <input id="agendaEndDate" type="date">
+</div>
+<div class="field">
+  <label for="agendaEndTime">Heure de fin</label>
+  <input id="agendaEndTime" type="time">
+</div>
 
         <div class="field">
           <label for="agendaCategory">Catégorie</label>
@@ -6430,8 +6438,13 @@ document.getElementById('agendaEventsList').hidden = true;
   editingAgendaId = id;
   document.getElementById('agendaTitle').value = ev.title||'';
   document.getElementById('agendaDescription').value = ev.description||'';
-  document.getElementById('agendaStart').value = agendaDateValue(ev.start_at);
-  document.getElementById('agendaEnd').value = ev.end_at ? agendaDateValue(ev.end_at) : '';
+  const startValue = agendaDateValue(ev.start_at);
+document.getElementById('agendaStartDate').value = startValue.slice(0,10);
+document.getElementById('agendaStartTime').value = startValue.slice(11,16);
+
+const endValue = ev.end_at ? agendaDateValue(ev.end_at) : '';
+document.getElementById('agendaEndDate').value = endValue ? endValue.slice(0,10) : '';
+document.getElementById('agendaEndTime').value = endValue ? endValue.slice(11,16) : '';
   document.getElementById('agendaCategory').value = ev.category||'personnel';
   document.getElementById('agendaApartment').value = ev.apartment_id||'';
   document.getElementById('agendaForm').hidden = false;
@@ -6468,8 +6481,11 @@ panel.addEventListener('click',(e)=>{
     editingAgendaId = null;
     document.getElementById('agendaTitle').value = '';
     document.getElementById('agendaDescription').value = '';
-    document.getElementById('agendaStart').value = agendaDateValue(new Date());
-    document.getElementById('agendaEnd').value = '';
+    const now = agendaDateValue(new Date());
+document.getElementById('agendaStartDate').value = now.slice(0,10);
+document.getElementById('agendaStartTime').value = now.slice(11,16);
+    document.getElementById('agendaEndDate').value = '';
+document.getElementById('agendaEndTime').value = '';
     document.getElementById('agendaCategory').value = 'personnel';
     document.getElementById('agendaApartment').value = '';
     document.getElementById('agendaForm').hidden = false;
@@ -6482,8 +6498,13 @@ panel.addEventListener('click',(e)=>{
 
   document.getElementById('agendaSaveBtn').addEventListener('click',async()=>{
     const title = document.getElementById('agendaTitle').value.trim();
-    const start = document.getElementById('agendaStart').value;
-    const end = document.getElementById('agendaEnd').value;
+    const startDate = document.getElementById('agendaStartDate').value;
+const startTime = document.getElementById('agendaStartTime').value;
+const endDate = document.getElementById('agendaEndDate').value;
+const endTime = document.getElementById('agendaEndTime').value;
+
+const start = startDate && startTime ? `${startDate}T${startTime}` : '';
+const end = endDate && endTime ? `${endDate}T${endTime}` : '';
 
     if(!title || !start){
       alert('Indique au minimum un titre et une date de début.');
