@@ -6271,41 +6271,77 @@ function renderAgenda(){
   const list = document.getElementById('agendaEventsList');
   if(!list) return;
 
-  const sorted = [...agendaEvents].sort((a,b)=>
-    new Date(a.start_at)-new Date(b.start_at)
-  );
+  const now = new Date();
+
+  const sorted = [...agendaEvents]
+    .filter(ev => ev.start_at && new Date(ev.start_at) >= now)
+    .sort((a,b)=>new Date(a.start_at)-new Date(b.start_at));
 
   if(!sorted.length){
-    list.innerHTML = '<p>Aucun rendez-vous pour le moment.</p>';
+    list.innerHTML = `
+      <div style="text-align:center;padding:30px 15px;color:var(--ink-faint);">
+        <div style="font-size:32px;margin-bottom:10px;">📅</div>
+        <strong>Aucun rendez-vous à venir</strong>
+        <p>Ajoutez votre prochain rendez-vous.</p>
+      </div>`;
     return;
   }
 
+  const categories = {
+    personnel:'#8064A2',
+    menage:'#26966D',
+    maintenance:'#D17A27',
+    proprietaire:'#3478B8',
+    administratif:'#777777'
+  };
+
   list.innerHTML = sorted.map(ev=>{
     const apt = apartments.find(a=>a.id===ev.apartment_id);
-    const date = new Date(ev.start_at).toLocaleString('fr-FR');
-    return `<div style="padding:12px;border-bottom:1px solid var(--line,#ddd);">
-      <strong>${escapeHtml(ev.title||'Sans titre')}</strong>
-      <div>${escapeHtml(date)}</div>
-      <div>${escapeHtml(ev.category||'Personnel')} · ${escapeHtml(apt?apt.name:'Aucun logement')}</div>
-      <div>${escapeHtml(ev.description||'')}</div>
-      <button data-agenda-edit="${escapeHtml(ev.id)}">Modifier</button>
-      <button data-agenda-delete="${escapeHtml(ev.id)}">Supprimer</button>
-    </div>`;
+    const start = new Date(ev.start_at);
+    const date = start.toLocaleDateString('fr-FR',{
+      weekday:'long',day:'numeric',month:'long',year:'numeric'
+    });
+    const heure = start.toLocaleTimeString('fr-FR',{
+      hour:'2-digit',minute:'2-digit'
+    });
+    const couleur = categories[ev.category] || '#8064A2';
+
+    return `
+      <div style="background:var(--surface,#fff);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <strong style="font-size:15px;">${escapeHtml(ev.title||'Sans titre')}</strong>
+          <span style="background:${couleur};color:white;border-radius:20px;padding:4px 10px;font-size:11px;">
+            ${escapeHtml(ev.category||'Personnel')}
+          </span>
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:var(--ink);">
+          📅 ${escapeHtml(date)} à ${heure}
+        </div>
+        <div style="margin-top:6px;font-size:13px;color:var(--ink-faint);">
+          🏠 ${escapeHtml(apt?apt.name:'Aucun logement')}
+        </div>
+        ${ev.description ? `<div style="margin-top:10px;font-size:13px;white-space:pre-wrap;">${escapeHtml(ev.description)}</div>` : ''}
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="btn" data-agenda-edit="${escapeHtml(ev.id)}">✎ Modifier</button>
+          <button class="btn danger" data-agenda-delete="${escapeHtml(ev.id)}">Supprimer</button>
+        </div>
+      </div>`;
   }).join('');
 
   list.querySelectorAll('[data-agenda-edit]').forEach(btn=>{
     btn.addEventListener('click',()=>editAgendaEvent(btn.dataset.agendaEdit));
   });
+
   list.querySelectorAll('[data-agenda-delete]').forEach(btn=>{
     btn.addEventListener('click',async()=>{
       if(confirm('Supprimer ce rendez-vous ?')){
         await deleteAgendaEvent(btn.dataset.agendaDelete);
         renderAgenda();
+        renderCalendar();
       }
     });
   });
 }
-let agendaDetailId = null;
 
 function openAgendaDetail(id){
   const ev = agendaEvents.find(e=>e.id===id);
