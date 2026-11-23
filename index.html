@@ -726,8 +726,8 @@ body.printing-doc #printPanel{
         </div>
 
         <div class="modal-footer">
-          <button id="agendaCancelBtn" type="button">Annuler</button>
-          <button id="agendaSaveBtn" class="primary" type="button">Enregistrer</button>
+          <button id="agendaCancelBtn" class="btn" type="button">Annuler</button>
+<button id="agendaSaveBtn" class="btn primary" type="button">Enregistrer</button>
         </div>
       </div>
 
@@ -3215,11 +3215,20 @@ function renderTodayPanel(){
 }
 
 function renderDayPanel(dateISO, title, containerId){
-  const aptName = id => { const a=apartments.find(x=>x.id===id); return a?a.name:'(logement supprimé)'; };
+  const aptName = id => {
+    const a=apartments.find(x=>x.id===id);
+    return a?a.name:'(logement supprimé)';
+  };
+
   const arrivals = bookings.filter(b=> b.checkin===dateISO && !['annulation','nemeconcerne'].includes(b.status));
   const departures = bookings.filter(b=> b.checkout===dateISO && !['annulation','nemeconcerne'].includes(b.status));
   const turnoverAptIds = new Set(departures.filter(d=> arrivals.some(a=>a.apartmentId===d.apartmentId)).map(d=>d.apartmentId));
   const babiesArriving = arrivals.filter(b=> (b.babies||0)>0);
+
+  const dayEvents = (agendaEvents||[]).filter(ev=>{
+    return ev.start_at &&
+      new Date(ev.start_at).toLocaleDateString('sv-SE')===dateISO;
+  }).sort((a,b)=>new Date(a.start_at)-new Date(b.start_at));
 
   const arrivalLine = b=>{
     let flightInfo = '';
@@ -3230,11 +3239,13 @@ function renderDayPanel(dateISO, title, containerId){
   };
 
   let html = `<div class="today-panel"><div class="today-panel-title">${title} — ${fmtDateShort(dateISO)}</div><div class="today-cols">`;
+
   html += `<div class="today-col"><h4>Arrivées (${arrivals.length})</h4>`;
   html += arrivals.length===0
     ? `<div class="today-empty">Aucune arrivée.</div>`
     : arrivals.map(arrivalLine).join('');
   html += `</div>`;
+
   html += `<div class="today-col"><h4>Départs (${departures.length})</h4>`;
   html += departures.length===0
     ? `<div class="today-empty">Aucun départ.</div>`
@@ -3250,15 +3261,41 @@ function renderDayPanel(dateISO, title, containerId){
       html += `<div class="cleaning-alert">🧹 Ménage à prévoir : ${names.join(', ')}.</div>`;
     }
   }
+
   if(babiesArriving.length>0){
     const babyNames = babiesArriving.map(b=>escapeHtml(aptName(b.apartmentId))+' ('+escapeHtml(b.client||'')+')');
     html += `<div class="baby-alert">👶 <strong>Lit parapluie</strong> à prévoir — ${babyNames.join(', ')}.</div>`;
   }
-  html += `</div>`;
+
+  html += `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px;">
+    <h4 style="margin:0 0 8px;">📅 Agenda (${dayEvents.length})</h4>`;
+
+  html += dayEvents.length===0
+    ? `<div class="today-empty">Aucun rendez-vous.</div>`
+    : dayEvents.map(ev=>{
+        const heure = new Date(ev.start_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        const apt = apartments.find(a=>a.id===ev.apartment_id);
+        return `<div class="today-item" data-agenda-id="${escapeHtml(ev.id)}" style="cursor:pointer;">
+          📌 <strong>${heure}</strong> — ${escapeHtml(ev.title||'Rendez-vous')}
+          ${apt?' · '+escapeHtml(apt.name):''}
+        </div>`;
+      }).join('');
+
+  html += `</div></div>`;
+
   const container = document.getElementById(containerId);
   container.innerHTML = html;
+
   container.querySelectorAll('.today-item[data-id]').forEach(el=>{
-    el.addEventListener('click', ()=> openBookingDetail(el.getAttribute('data-id')));
+    el.addEventListener('click',()=>{
+      openBookingDetail(el.getAttribute('data-id'));
+    });
+  });
+
+  container.querySelectorAll('.today-item[data-agenda-id]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      openAgendaDetail(el.getAttribute('data-agenda-id'));
+    });
   });
 }
 
@@ -6387,6 +6424,9 @@ function openAgendaDetail(id){
 function editAgendaEvent(id){
   const ev = agendaEvents.find(e=>e.id===id);
   if(!ev) return;
+  document.getElementById('agendaPanel').hidden = false;
+document.getElementById('agendaAddBtn').hidden = true;
+document.getElementById('agendaEventsList').hidden = true;
   editingAgendaId = id;
   document.getElementById('agendaTitle').value = ev.title||'';
   document.getElementById('agendaDescription').value = ev.description||'';
@@ -6470,9 +6510,10 @@ panel.addEventListener('click',(e)=>{
     btn.disabled = true;
     try{
       await saveAgendaEvent(event);
-      document.getElementById('agendaForm').hidden = true;
-      editingAgendaId = null;
-      renderAgenda();
+document.getElementById('agendaForm').hidden = true;
+editingAgendaId = null;
+document.getElementById('agendaPanel').hidden = true;
+renderCalendar();
     }catch(e){
       alert('Impossible d’enregistrer le rendez-vous : '+e.message);
     }finally{
