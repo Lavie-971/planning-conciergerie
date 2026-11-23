@@ -6409,7 +6409,11 @@ function initAgenda(){
 
 document.getElementById('agendaBtn').addEventListener('click',()=>{
   panel.hidden = false;
-  renderAgenda();
+
+  document.getElementById('agendaAddBtn').hidden = true;
+  document.getElementById('agendaEventsList').hidden = true;
+
+  document.getElementById('agendaAddBtn').click();
 });
 
 document.getElementById('agendaCloseBtn').addEventListener('click',()=>{
