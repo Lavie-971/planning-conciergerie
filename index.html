@@ -5792,27 +5792,27 @@ function saveBooking(){
   const tenantAddress = invoice ? document.getElementById('bkTenantAddress').value.trim() : '';
   const notes = document.getElementById('bkNotes').value.trim();
 
-  if(!apartmentId){
-    errEl.style.display = 'block';
-    errEl.textContent = 'Merci de sélectionner un logement.';
-    return;
-  }
-  if(!checkin || !checkout){
-    errEl.style.display = 'block';
-    errEl.textContent = "Merci d'indiquer des dates valides, au format jj/mm/aaaa.";
-    return;
-  }
-  if(checkout <= checkin){
-    errEl.style.display = 'block';
-    errEl.textContent = "La date de départ doit être après la date d'arrivée.";
-    return;
-  }
+  if(checkinRaw && !checkin){
+  errEl.style.display = 'block';
+  errEl.textContent = "La date d'arrivée est invalide. Format attendu : jj/mm/aaaa.";
+  return;
+}
+if(checkoutRaw && !checkout){
+  errEl.style.display = 'block';
+  errEl.textContent = "La date de départ est invalide. Format attendu : jj/mm/aaaa.";
+  return;
+}
+if(checkin && checkout && checkout <= checkin){
+  errEl.style.display = 'block';
+  errEl.textContent = "La date de départ doit être après la date d'arrivée.";
+  return;
+}
   errEl.style.display = 'none';
 
   const data = {apartmentId, client, phone, checkin, checkout, checkinTime, checkoutTime, flightNumber, flightTime, status:selectedStatus, source:selectedSource, adults, children, babies, pricePerNight, total, priceMode:priceEditMode, commissionPercent, commissionAmount, trackDeposit, depositAmount, invoice, tenantAddress, services: currentServices.filter(s=>s.label.trim()!=='' || (s.price!=null && !isNaN(s.price))), notes};
 
   const blockingStatuses = ['indisponible','option','arrhes','paye'];
-  if(blockingStatuses.includes(selectedStatus)){
+  if(apartmentId && checkin && checkout && blockingStatuses.includes(selectedStatus)){
     const overlaps = findOverlaps(apartmentId, checkin, checkout, editingBookingId);
     if(overlaps.length>0){
       const apt = apartments.find(a=>a.id===apartmentId);
