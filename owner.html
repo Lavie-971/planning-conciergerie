@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -7,46 +6,103 @@
 <title>Espace propriétaire — Conciergerie</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f7f4ef;color:#39352f;font-family:Arial,sans-serif}
+body{margin:0;background:#f5f3ef;color:#39352f;font-family:Arial,sans-serif}
 header{background:#fff;padding:25px 18px;text-align:center;border-bottom:1px solid #e8e1d7}
-h1{font-family:Georgia,serif;font-style:italic;color:#927653;font-weight:normal;margin:0}
-header p{font-size:13px;color:#8b8175}
-main{max-width:850px;margin:28px auto;padding:0 15px}
-#message{text-align:center;padding:35px;background:white;border-radius:12px}
-.card{background:white;border:1px solid #e8e1d7;border-radius:12px;padding:18px;margin-bottom:16px}
-.card h2{font-family:Georgia,serif;color:#927653;font-weight:normal;margin:0 0 8px}
-.address{font-size:13px;color:#82796f;margin-bottom:16px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:10px 6px;border-bottom:1px solid #eee}
-th{color:#927653}
-.amount{text-align:right;white-space:nowrap}
-select,button{padding:10px 14px;border:1px solid #d8cbbb;border-radius:7px;background:white;color:#51483d}
-button{background:#927653;color:white;border:0;cursor:pointer}
-.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-family:Georgia,serif;font-style:italic;color:#927653;font-weight:normal;margin:0;font-size:29px}
+header p{font-size:13px;color:#8b8175;margin:8px 0 0}
+main{max-width:1100px;margin:28px auto;padding:0 16px 45px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .small{font-size:12px;color:#8b8175}
-@media(max-width:550px){table{font-size:11px}th,td{padding:8px 3px}.card{padding:12px}}
+select,button{padding:10px 14px;border:1px solid #d8cbbb;border-radius:7px;background:white;color:#51483d;font-size:14px}
+button{background:#927653;color:white;border:0;cursor:pointer}
+button:hover{background:#7c6345}
+.intro{background:#fff;border:1px solid #e8e1d7;border-radius:12px;padding:22px;margin-bottom:18px}
+.intro h2{font-family:Georgia,serif;font-weight:normal;color:#927653;margin:0 0 6px;font-size:23px}
+.address{font-size:13px;color:#82796f;margin:0}
+.section-title{font-family:Georgia,serif;font-weight:normal;color:#806747;font-size:21px;margin:28px 0 13px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:#fff;border:1px solid #e8e1d7;border-radius:11px;padding:17px;min-width:0}
+.kpi-label{font-size:12px;color:#857b70;margin-bottom:9px}
+.kpi-value{font-size:23px;font-weight:bold;color:#51483d;overflow-wrap:anywhere}
+.kpi-note{font-size:11px;color:#a0978c;margin-top:6px}
+.panel{background:#fff;border:1px solid #e8e1d7;border-radius:12px;padding:19px;margin-bottom:16px}
+.panel h3{font-family:Georgia,serif;font-weight:normal;color:#927653;margin:0 0 15px;font-size:19px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+th,td{text-align:left;padding:11px 9px;border-bottom:1px solid #eee}
+th{color:#927653;font-weight:600;background:#faf9f7}
+td.num,th.num{text-align:right;white-space:nowrap}
+.month-bar{height:7px;background:#eee9e1;border-radius:8px;overflow:hidden;margin-top:5px;min-width:70px}
+.month-bar span{display:block;height:100%;background:#b69a72;border-radius:8px}
+.month-name{font-weight:bold;color:#51483d}
+details{background:#fff;border:1px solid #e8e1d7;border-radius:10px;margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;padding:15px 17px;display:flex;justify-content:space-between;gap:12px;align-items:center;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"＋";color:#927653;font-size:18px}
+details[open] summary:after{content:"−"}
+.summary-title{font-weight:bold;color:#51483d}
+.summary-sub{font-size:12px;color:#8b8175;margin-top:4px}
+.booking-list{padding:0 16px 14px}
+.booking{border-top:1px solid #eee;padding:13px 2px;display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:12px;align-items:center;font-size:13px}
+.booking-label{font-size:11px;color:#948a7e;margin-bottom:4px}
+.booking-value{color:#51483d}
+.booking-total{font-weight:bold;text-align:right;white-space:nowrap}
+.status{display:inline-block;padding:4px 8px;border-radius:20px;background:#f2eee7;color:#77654c;font-size:11px}
+.empty{padding:20px;text-align:center;color:#8b8175;font-size:13px}
+#message{text-align:center;padding:30px;background:white;border-radius:12px;border:1px solid #e8e1d7;margin-bottom:18px}
+.footer{text-align:center;font-size:11px;color:#a0978c;margin-top:28px}
+@media(max-width:750px){
+ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .kpi-value{font-size:20px}
+ .booking{grid-template-columns:1fr 1fr}
+ .booking-total{text-align:left}
+}
+@media(max-width:420px){
+ main{padding-left:10px;padding-right:10px}
+ .kpi{padding:13px}
+ .kpi-value{font-size:18px}
+ .intro,.panel{padding:15px}
+}
+@media print{
+ body{background:white}
+ header{padding:12px}
+ main{max-width:none;margin:12px auto;padding:0}
+ .toolbar button,.toolbar select{display:none}
+ .panel,.intro,.kpi,details{break-inside:avoid;box-shadow:none}
+ details{break-inside:auto}
+ details:not([open]) .booking-list{display:block}
+ summary:after{display:none}
+ .footer{margin-top:15px}
+}
 </style>
 </head>
 <body>
 <header>
 <h1>Espace propriétaire</h1>
-<p>Votre logement et vos réservations</p>
+<p>Suivi de votre logement et de son activité</p>
 </header>
+
 <main>
 <div class="toolbar">
-<span class="small">Consultation de votre espace privé</span>
-<select id="year"></select>
+<span class="small">Votre tableau de bord personnel</span>
+<div style="display:flex;gap:8px;align-items:center">
+<select id="year" aria-label="Choisir l'année"></select>
+<button id="printBtn" type="button">Imprimer le bilan</button>
 </div>
+</div>
+
 <div id="message">Chargement de votre espace…</div>
-<div id="apartments"></div>
+<div id="dashboard"></div>
+<div class="footer">Espace privé de consultation — Informations mises à jour depuis votre gestionnaire</div>
 </main>
+
 <script>
 const SUPABASE_URL='https://pezxvjollptmwmadykfk.supabase.co';
 const SUPABASE_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
 
 const token=new URLSearchParams(location.search).get('token');
 const message=document.getElementById('message');
-const container=document.getElementById('apartments');
+const dashboard=document.getElementById('dashboard');
 const yearSelect=document.getElementById('year');
 
 const currentYear=new Date().getFullYear();
@@ -58,6 +114,8 @@ for(let y=currentYear-2;y<=currentYear+2;y++){
   yearSelect.appendChild(option);
 }
 
+const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
 function addText(parent,tag,value,className){
   const el=document.createElement(tag);
   el.textContent=value==null?'':String(value);
@@ -66,25 +124,200 @@ function addText(parent,tag,value,className){
   return el;
 }
 
-function formatDate(value){
-  if(!value)return '—';
-  const d=new Date(value+'T12:00:00');
-  return isNaN(d)?value:d.toLocaleDateString('fr-FR');
-}
-
 function money(value){
   return Number(value||0).toLocaleString('fr-FR',{
     style:'currency',currency:'EUR'
   });
 }
 
+function formatDate(value){
+  if(!value)return '—';
+  const d=new Date(value+'T12:00:00');
+  return isNaN(d.getTime())?value:d.toLocaleDateString('fr-FR');
+}
+
+function getNights(booking){
+  if(!booking.checkin||!booking.checkout)return 0;
+  const start=new Date(booking.checkin+'T00:00:00Z');
+  const end=new Date(booking.checkout+'T00:00:00Z');
+  const days=Math.round((end-start)/86400000);
+  return days>0?days:0;
+}
+
+function makeKpi(parent,label,value,note){
+  const card=document.createElement('div');
+  card.className='kpi';
+  addText(card,'div',label,'kpi-label');
+  addText(card,'div',value,'kpi-value');
+  if(note)addText(card,'div',note,'kpi-note');
+  parent.appendChild(card);
+}
+
+function renderDashboard(apartments,year){
+  dashboard.replaceChildren();
+
+  const allBookings=[];
+  apartments.forEach(apartment=>{
+    (apartment.bookings||[]).forEach(booking=>{
+      allBookings.push({...booking,apartmentName:apartment.name||'Logement'});
+    });
+  });
+
+  const total=allBookings.reduce((sum,b)=>sum+Number(b.total||0),0);
+  const nights=allBookings.reduce((sum,b)=>sum+getNights(b),0);
+  const count=allBookings.length;
+  const average=count?total/count:0;
+  const averageNight=nights?total/nights:0;
+
+  apartments.forEach(apartment=>{
+    const intro=document.createElement('section');
+    intro.className='intro';
+    addText(intro,'h2',apartment.name||'Votre logement');
+    if(apartment.propertyAddress)addText(intro,'p',apartment.propertyAddress,'address');
+    dashboard.appendChild(intro);
+  });
+
+  const kpis=document.createElement('div');
+  kpis.className='kpis';
+  makeKpi(kpis,'Montant total des réservations',money(total),'Pour '+year);
+  makeKpi(kpis,'Nombre de réservations',String(count),'Sur l’année sélectionnée');
+  makeKpi(kpis,'Nombre de nuitées',String(nights),'Nuitées réservées');
+  makeKpi(kpis,'Montant moyen par réservation',money(average),'Moyenne annuelle');
+  dashboard.appendChild(kpis);
+
+  const monthly=months.map((name,index)=>({
+    name,
+    bookings:allBookings.filter(b=>{
+      if(!b.checkin)return false;
+      const d=new Date(b.checkin+'T12:00:00');
+      return !isNaN(d.getTime())&&d.getFullYear()===year&&d.getMonth()===index;
+    })
+  })).map(m=>({
+    ...m,
+    total:m.bookings.reduce((s,b)=>s+Number(b.total||0),0),
+    nights:m.bookings.reduce((s,b)=>s+getNights(b),0)
+  }));
+
+  const maxMonthly=Math.max(1,...monthly.map(m=>m.total));
+
+  const monthlyPanel=document.createElement('section');
+  monthlyPanel.className='panel';
+  addText(monthlyPanel,'h3','Bilan mois par mois');
+
+  const wrap=document.createElement('div');
+  wrap.className='table-wrap';
+  const table=document.createElement('table');
+  const thead=document.createElement('thead');
+  const head=document.createElement('tr');
+  ['Mois','Réservations','Nuitées','Montant'].forEach((label,i)=>{
+    const th=addText(head,'th',label,i===1||i===2||i===3?'num':'');
+    if(i===0)th.style.width='35%';
+  });
+  thead.appendChild(head);
+  table.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+  monthly.forEach(m=>{
+    const row=document.createElement('tr');
+    const nameCell=document.createElement('td');
+    addText(nameCell,'div',m.name,'month-name');
+    const bar=document.createElement('div');
+    bar.className='month-bar';
+    const fill=document.createElement('span');
+    fill.style.width=(m.total/maxMonthly*100)+'%';
+    bar.appendChild(fill);
+    nameCell.appendChild(bar);
+    row.appendChild(nameCell);
+    addText(row,'td',String(m.bookings.length),'num');
+    addText(row,'td',String(m.nights),'num');
+    addText(row,'td',money(m.total),'num');
+    tbody.appendChild(row);
+  });
+
+  const totalRow=document.createElement('tr');
+  totalRow.style.fontWeight='bold';
+  addText(totalRow,'td','TOTAL');
+  addText(totalRow,'td',String(count),'num');
+  addText(totalRow,'td',String(nights),'num');
+  addText(totalRow,'td',money(total),'num');
+  tbody.appendChild(totalRow);
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  monthlyPanel.appendChild(wrap);
+  dashboard.appendChild(monthlyPanel);
+
+  const detailsTitle=addText(dashboard,'h2','Détail des réservations','section-title');
+
+  if(!allBookings.length){
+    addText(dashboard,'div','Aucune réservation enregistrée pour cette année.','empty');
+  }else{
+    monthly.forEach(m=>{
+      if(!m.bookings.length)return;
+
+      const details=document.createElement('details');
+      const summary=document.createElement('summary');
+      const left=document.createElement('div');
+      addText(left,'div',m.name,'summary-title');
+      addText(left,'div',m.bookings.length+' réservation(s) · '+m.nights+' nuitée(s)','summary-sub');
+      summary.appendChild(left);
+      addText(summary,'strong',money(m.total));
+      details.appendChild(summary);
+
+      const list=document.createElement('div');
+      list.className='booking-list';
+
+      m.bookings.forEach(booking=>{
+        const item=document.createElement('div');
+        item.className='booking';
+
+        const dates=document.createElement('div');
+        addText(dates,'div','Arrivée / Départ','booking-label');
+        addText(dates,'div',formatDate(booking.checkin)+' – '+formatDate(booking.checkout),'booking-value');
+        item.appendChild(dates);
+
+        const people=document.createElement('div');
+        addText(people,'div','Voyageurs','booking-label');
+        const guests=Number(booking.adults||0)+Number(booking.children||0);
+        addText(people,'div',guests+' personne(s)','booking-value');
+        item.appendChild(people);
+
+        const status=document.createElement('div');
+        addText(status,'div','Statut','booking-label');
+        addText(status,'span',booking.status||'Non renseigné','status');
+        item.appendChild(status);
+
+        const amount=document.createElement('div');
+        addText(amount,'div','Montant','booking-label');
+        addText(amount,'div',money(booking.total),'booking-total');
+        item.appendChild(amount);
+
+        list.appendChild(item);
+      });
+
+      details.appendChild(list);
+      dashboard.appendChild(details);
+    });
+  }
+
+  const note=document.createElement('p');
+  note.className='small';
+  note.style.marginTop='18px';
+  note.textContent='Les montants présentés correspondent aux montants enregistrés pour les réservations. Les réservations sont classées selon leur date d’arrivée.';
+  dashboard.appendChild(note);
+}
+
 async function loadOwner(){
   if(!token){
+    message.hidden=false;
     message.textContent='Lien incomplet. Demandez un nouveau lien à votre gestionnaire.';
+    dashboard.replaceChildren();
     return;
   }
-  message.textContent='Chargement…';
-  container.replaceChildren();
+
+  message.hidden=false;
+  message.textContent='Chargement de votre espace…';
+  dashboard.replaceChildren();
 
   try{
     const response=await fetch(
@@ -113,61 +346,17 @@ async function loadOwner(){
     }
 
     message.hidden=true;
-
-    result.apartments.forEach(apartment=>{
-      const card=document.createElement('section');
-      card.className='card';
-
-      addText(card,'h2',apartment.name||'Logement');
-      if(apartment.propertyAddress){
-        addText(card,'p',apartment.propertyAddress,'address');
-      }
-
-      const bookings=apartment.bookings||[];
-
-      if(!bookings.length){
-        addText(card,'p','Aucune réservation pour cette année.','small');
-      }else{
-        const table=document.createElement('table');
-        const thead=document.createElement('thead');
-        const header=document.createElement('tr');
-
-        ['Arrivée','Départ','Statut','Voyageurs','Montant'].forEach(label=>{
-          addText(header,'th',label);
-        });
-
-        thead.appendChild(header);
-        table.appendChild(thead);
-
-        const tbody=document.createElement('tbody');
-
-        bookings.forEach(booking=>{
-          const row=document.createElement('tr');
-          addText(row,'td',formatDate(booking.checkin));
-          addText(row,'td',formatDate(booking.checkout));
-          addText(row,'td',booking.status||'—');
-          addText(row,'td',Number(booking.adults||0)+Number(booking.children||0));
-          addText(row,'td',money(booking.total),'amount');
-          tbody.appendChild(row);
-        });
-
-        table.appendChild(tbody);
-        card.appendChild(table);
-      }
-
-      container.appendChild(card);
-    });
-
-    message.hidden=true;
+    renderDashboard(result.apartments,Number(yearSelect.value));
 
   }catch(error){
     message.hidden=false;
     message.textContent=error.message||'Impossible de charger votre espace.';
-    container.replaceChildren();
+    dashboard.replaceChildren();
   }
 }
 
 yearSelect.addEventListener('change',loadOwner);
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
 loadOwner();
 </script>
 </body>
