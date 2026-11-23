@@ -3158,7 +3158,7 @@ function startVoiceCommand(){
 
   recognition.onresult = (event)=>{
     const phrase = event.results[0][0].transcript;
-    handleVoiceCommand(phrase);
+    interpretVoiceCommandWithAI(phrase);
   };
 
   recognition.onerror = ()=>{
@@ -3276,6 +3276,70 @@ function startVoiceCommand(){
   updateNightsBadge();
 
   alert("Réservation préremplie. Vérifie les informations puis enregistre-la manuellement.");
+}
+  async function interpretVoiceCommandWithAI(phrase){
+  try{
+    const token = await sbToken();
+
+    const now = new Date();
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth()+1).padStart(2,'0'),
+      String(now.getDate()).padStart(2,'0')
+    ].join('-');
+
+    const response = await fetch(
+      SB_URL + '/functions/v1/voice-assistant',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SB_KEY,
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          phrase,
+          today,
+          apartments: apartments.map(a=>({
+            id:a.id,
+            name:a.name
+          })),
+          bookings: bookings.map(b=>({
+            id:b.id,
+            apartmentId:b.apartmentId,
+            client:b.client,
+            checkin:b.checkin,
+            checkout:b.checkout
+          })),
+          agenda: agendaEvents.map(e=>({
+            id:e.id,
+            title:e.title,
+            description:e.description,
+            start_at:e.start_at,
+            end_at:e.end_at,
+            apartment_id:e.apartment_id
+          }))
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if(!response.ok){
+      throw new Error(data.error || 'Erreur du service vocal.');
+    }
+
+    const result = data.result;
+
+    alert(
+      result.clarification ||
+      result.summary ||
+      'Je n’ai pas réussi à comprendre la demande.'
+    );
+
+  }catch(error){
+    alert('Erreur : ' + error.message);
+  }
 }
 /* ---------------- init ---------------- */
 async function init(){
