@@ -654,6 +654,7 @@ body.printing-doc #printPanel{
         <button id="myProfileBtn">👤 Mon profil</button>
         <button id="syncBtn">☁️ Synchro</button>
         <button id="annualRecapBtn">📊 Récap annuel</button>
+        <button id="agendaBtn">📅 Agenda</button>
         <button id="backupBtn">💾 Sauvegarde</button>
         <button id="printBtn">🖨️ Imprimer</button>
       </div>
@@ -672,7 +673,36 @@ body.printing-doc #printPanel{
       <!-- rendu par JS -->
     </div>
   </div>
-
+  <div class="calendar-card" id="agendaPanel" hidden style="padding:16px;">
+    <h2>📅 Mon agenda</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <button id="agendaAddBtn">＋ Nouveau rendez-vous</button>
+      <button id="agendaTodayBtn">Aujourd'hui</button>
+    </div>
+    <div id="agendaForm" hidden style="margin-bottom:16px;">
+      <input id="agendaTitle" type="text" placeholder="Titre du rendez-vous" style="width:100%;margin-bottom:8px;">
+      <textarea id="agendaDescription" placeholder="Description" style="width:100%;margin-bottom:8px;"></textarea>
+      <label>Date et heure de début</label>
+      <input id="agendaStart" type="datetime-local" style="width:100%;margin-bottom:8px;">
+      <label>Date et heure de fin</label>
+      <input id="agendaEnd" type="datetime-local" style="width:100%;margin-bottom:8px;">
+      <label>Catégorie</label>
+      <select id="agendaCategory" style="width:100%;margin-bottom:8px;">
+        <option value="personnel">Personnel</option>
+        <option value="menage">Ménage</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="proprietaire">Propriétaire</option>
+        <option value="administratif">Administratif</option>
+      </select>
+      <label>Logement</label>
+      <select id="agendaApartment" style="width:100%;margin-bottom:8px;">
+        <option value="">Aucun logement</option>
+      </select>
+      <button id="agendaSaveBtn">Enregistrer</button>
+      <button id="agendaCancelBtn">Annuler</button>
+    </div>
+    <div id="agendaEventsList">Chargement de l'agenda…</div>
+  </div>
   <div class="list-toggle">
     <button id="toggleListBtn">▸ Afficher la liste complète des réservations</button>
   </div>
@@ -5951,8 +5981,295 @@ function bindEvents(){
     if(e.key==='Escape'){ closeBookingModal(); closeApartmentsModal(); closeSyncModal(); closeStatsModal(); closeAnnualRecap(); closeAdvancesRecap(); closeMonthlyRecap(); closeMyProfileModal(); closeBackupModal(); closeDrawer(); closeDetailModal(); closeAllMiniCalendars(); }
   });
 }
+// ===== AGENDA : données et synchronisation =====
+let agendaEvents = [];
+let agendaPendingOps = [];
 
+const AGENDA_STORAGE_KEY = LS_PREFIX + 'agendaEvents';
+const AGENDA_QUEUE_KEY = LS_PREFIX + 'agendaPendingOps';
+
+function readAgendaLocal(){
+  try {
+    return JSON.parse(localStorage.getItem(AGENDA_STORAGE_KEY) || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+function saveAgendaLocal(){
+  try {
+    localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(agendaEvents));
+  } catch(e) {}
+}
+
+function readAgendaQueue(){
+  try {
+    return JSON.parse(localStorage.getItem(AGENDA_QUEUE_KEY) || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+function writeAgendaQueue(){
+  try {
+    if(agendaPendingOps.length){
+      localStorage.setItem(AGENDA_QUEUE_KEY, JSON.stringify(agendaPendingOps));
+    } else {
+      localStorage.removeItem(AGENDA_QUEUE_KEY);
+    }
+  } catch(e) {}
+}
+
+async function loadAgendaEvents(){
+  agendaEvents = readAgendaLocal();
+
+  try {
+    const rows = await sbRest(
+      'GET',
+      'agenda_events?select=*&order=start_at.asc'
+    );
+
+    if(Array.isArray(rows)){
+      agendaEvents = rows;
+      saveAgendaLocal();
+    }
+  } catch(e) {
+    console.warn('Agenda disponible hors ligne.', e);
+  }
+
+  return agendaEvents;
+}
+
+async function saveAgendaEvent(event){
+  const item = Object.assign({}, event);
+  if(!item.id){
+    item.id = crypto.randomUUID();
+  }
+
+  const index = agendaEvents.findIndex(e => e.id === item.id);
+  if(index >= 0) agendaEvents[index] = item;
+  else agendaEvents.push(item);
+
+  saveAgendaLocal();
+
+  try {
+    if(index >= 0){
+      await sbRest(
+        'PATCH',
+        'agenda_events?id=eq.' + encodeURIComponent(item.id),
+        item
+      );
+    } else {
+      await sbRest('POST', 'agenda_events', item);
+    }
+
+    agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
+    writeAgendaQueue();
+  } catch(e) {
+    agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
+    agendaPendingOps.push({type:'upsert', id:item.id, event:item});
+    writeAgendaQueue();
+  }
+
+  return item;
+}
+
+async function deleteAgendaEvent(id){
+  agendaEvents = agendaEvents.filter(e => e.id !== id);
+  saveAgendaLocal();
+
+  try {
+    await sbRest(
+      'DELETE',
+      'agenda_events?id=eq.' + encodeURIComponent(id)
+    );
+
+    agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
+    writeAgendaQueue();
+  } catch(e) {
+    agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
+    agendaPendingOps.push({type:'delete', id:id});
+    writeAgendaQueue();
+  }
+}
+
+async function syncAgendaPending(){
+  const queue = readAgendaQueue();
+
+  for(const op of queue){
+    try {
+      if(op.type === 'upsert'){
+        const exists = await sbRest(
+          'GET',
+          'agenda_events?id=eq.' + encodeURIComponent(op.id) + '&select=id'
+        );
+
+        if(Array.isArray(exists) && exists.length){
+          await sbRest('PATCH', 'agenda_events?id=eq.' + encodeURIComponent(op.id), op.event);
+        } else {
+          await sbRest('POST', 'agenda_events', op.event);
+        }
+      } else if(op.type === 'delete'){
+        await sbRest('DELETE', 'agenda_events?id=eq.' + encodeURIComponent(op.id));
+      }
+
+      agendaPendingOps = readAgendaQueue().filter(item => item.id !== op.id);
+      writeAgendaQueue();
+    } catch(e) {
+      console.warn('Synchronisation agenda reportée.', e);
+      break;
+    }
+  }
+
+  await loadAgendaEvents();
+}
+// ===== COMMANDES DE L'AGENDA =====
+let editingAgendaId = null;
+
+function agendaDateValue(value){
+  const d = value ? new Date(value) : new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+
+    'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+
+function renderAgenda(){
+  const list = document.getElementById('agendaEventsList');
+  if(!list) return;
+
+  const sorted = [...agendaEvents].sort((a,b)=>
+    new Date(a.start_at)-new Date(b.start_at)
+  );
+
+  if(!sorted.length){
+    list.innerHTML = '<p>Aucun rendez-vous pour le moment.</p>';
+    return;
+  }
+
+  list.innerHTML = sorted.map(ev=>{
+    const apt = apartments.find(a=>a.id===ev.apartment_id);
+    const date = new Date(ev.start_at).toLocaleString('fr-FR');
+    return `<div style="padding:12px;border-bottom:1px solid var(--line,#ddd);">
+      <strong>${escapeHtml(ev.title||'Sans titre')}</strong>
+      <div>${escapeHtml(date)}</div>
+      <div>${escapeHtml(ev.category||'Personnel')} · ${escapeHtml(apt?apt.name:'Aucun logement')}</div>
+      <div>${escapeHtml(ev.description||'')}</div>
+      <button data-agenda-edit="${escapeHtml(ev.id)}">Modifier</button>
+      <button data-agenda-delete="${escapeHtml(ev.id)}">Supprimer</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-agenda-edit]').forEach(btn=>{
+    btn.addEventListener('click',()=>editAgendaEvent(btn.dataset.agendaEdit));
+  });
+  list.querySelectorAll('[data-agenda-delete]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      if(confirm('Supprimer ce rendez-vous ?')){
+        await deleteAgendaEvent(btn.dataset.agendaDelete);
+        renderAgenda();
+      }
+    });
+  });
+}
+
+function editAgendaEvent(id){
+  const ev = agendaEvents.find(e=>e.id===id);
+  if(!ev) return;
+  editingAgendaId = id;
+  document.getElementById('agendaTitle').value = ev.title||'';
+  document.getElementById('agendaDescription').value = ev.description||'';
+  document.getElementById('agendaStart').value = agendaDateValue(ev.start_at);
+  document.getElementById('agendaEnd').value = ev.end_at ? agendaDateValue(ev.end_at) : '';
+  document.getElementById('agendaCategory').value = ev.category||'personnel';
+  document.getElementById('agendaApartment').value = ev.apartment_id||'';
+  document.getElementById('agendaForm').hidden = false;
+}
+
+function initAgenda(){
+  agendaPendingOps = readAgendaQueue();
+
+  const apartmentSelect = document.getElementById('agendaApartment');
+  apartmentSelect.innerHTML = '<option value="">Aucun logement</option>' +
+    apartments.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
+
+  const panel = document.getElementById('agendaPanel');
+  const agendaBtn = document.getElementById('agendaBtn');
+
+  agendaBtn.addEventListener('click',()=>{
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    document.querySelector('.calendar-card').hidden = opening;
+    document.querySelector('.list-toggle').hidden = opening;
+    document.getElementById('listPanel').hidden = true;
+    document.querySelector('.today-tomorrow-grid').hidden = opening;
+    document.getElementById('legendBar').hidden = opening;
+    agendaBtn.textContent = opening ? '📅 Retour au planning' : '📅 Agenda';
+    if(opening) renderAgenda();
+  });
+
+  document.getElementById('agendaAddBtn').addEventListener('click',()=>{
+    editingAgendaId = null;
+    document.getElementById('agendaTitle').value = '';
+    document.getElementById('agendaDescription').value = '';
+    document.getElementById('agendaStart').value = agendaDateValue(new Date());
+    document.getElementById('agendaEnd').value = '';
+    document.getElementById('agendaCategory').value = 'personnel';
+    document.getElementById('agendaApartment').value = '';
+    document.getElementById('agendaForm').hidden = false;
+  });
+
+  document.getElementById('agendaCancelBtn').addEventListener('click',()=>{
+    document.getElementById('agendaForm').hidden = true;
+    editingAgendaId = null;
+  });
+
+  document.getElementById('agendaSaveBtn').addEventListener('click',async()=>{
+    const title = document.getElementById('agendaTitle').value.trim();
+    const start = document.getElementById('agendaStart').value;
+    const end = document.getElementById('agendaEnd').value;
+
+    if(!title || !start){
+      alert('Indique au minimum un titre et une date de début.');
+      return;
+    }
+    if(end && new Date(end)<new Date(start)){
+      alert('La date de fin doit être après la date de début.');
+      return;
+    }
+
+    const event = {
+      id: editingAgendaId || crypto.randomUUID(),
+      title,
+      description: document.getElementById('agendaDescription').value.trim(),
+      category: document.getElementById('agendaCategory').value,
+      start_at: new Date(start).toISOString(),
+      end_at: end ? new Date(end).toISOString() : null,
+      apartment_id: document.getElementById('agendaApartment').value || null,
+      all_day: false,
+      updated_at: new Date().toISOString()
+    };
+
+    const btn = document.getElementById('agendaSaveBtn');
+    btn.disabled = true;
+    try{
+      await saveAgendaEvent(event);
+      document.getElementById('agendaForm').hidden = true;
+      editingAgendaId = null;
+      renderAgenda();
+    }catch(e){
+      alert('Impossible d’enregistrer le rendez-vous : '+e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  window.addEventListener('online',syncAgendaPending);
+
+  if(navigator.onLine) syncAgendaPending();
+  else loadAgendaEvents().then(renderAgenda);
+}  
 init();
+initAgenda();
 
 })();
 </script>
