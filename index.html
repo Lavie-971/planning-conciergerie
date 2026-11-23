@@ -637,6 +637,7 @@ body.printing-doc #printPanel{
      <button id="manageApartmentsBtn">🏠 Logements</button>
 <button id="addBookingBtn" class="primary">+ Réservation</button>
 <button id="agendaBtn" class="primary">📅 Agenda</button>
+      <button id="voiceCommandBtn" class="primary" type="button">🎙️ Commande vocale</button>
     </div>
   </header>
 
@@ -3138,7 +3139,38 @@ function renderMiniCalendar(inputId){
     });
   });
 }
+function startVoiceCommand(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+  if(!SpeechRecognition){
+    alert("La reconnaissance vocale n'est pas disponible dans ce navigateur. Essaie avec Google Chrome.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'fr-FR';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = ()=>{
+    document.getElementById('voiceCommandBtn').textContent = '🎙️ Je t’écoute...';
+  };
+
+  recognition.onresult = (event)=>{
+    const phrase = event.results[0][0].transcript;
+    alert("J'ai entendu : " + phrase);
+  };
+
+  recognition.onerror = ()=>{
+    alert("Je n'ai pas réussi à comprendre. Réessaie.");
+  };
+
+  recognition.onend = ()=>{
+    document.getElementById('voiceCommandBtn').textContent = '🎙️ Commande vocale';
+  };
+
+  recognition.start();
+}
 /* ---------------- init ---------------- */
 async function init(){
   const now = new Date();
@@ -5844,6 +5876,7 @@ function restoreBackup(){
 /* ---------------- events ---------------- */
 function bindEvents(){
   bindCalendarSwipe();
+  document.getElementById('voiceCommandBtn').addEventListener('click', startVoiceCommand);
   document.getElementById('prevMonth').addEventListener('click', goToPrevPeriod);
   document.getElementById('nextMonth').addEventListener('click', goToNextPeriod);
   document.getElementById('todayBtn').addEventListener('click', ()=>{
