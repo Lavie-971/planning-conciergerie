@@ -5325,11 +5325,18 @@ function startEditApartment(item, id){
     <button data-act="cancel" title="Annuler">✕</button>
   `;
   attachPhoneMask(document.getElementById('editAptOwnerPhone'));
-  item.querySelector('[data-act=save]').addEventListener('click', ()=>{
+  item.querySelector('[data-act=save]').addEventListener('click', async ()=>{
     const newName = document.getElementById('editAptName').value.trim();
     const newOwner = document.getElementById('editAptOwner').value.trim();
     const newCommission = parseFloat(document.getElementById('editAptCommission').value);
-    if(!newName){ return; }
+    const cleaningRaw = document.getElementById('editAptCleaningDuration').value.trim();
+    const cleaningDuration = cleaningRaw==='' ? null : Number(cleaningRaw);
+    if(!newName){ alert('Indique le nom du logement.'); return; }
+    if(cleaningRaw!=='' && (!Number.isInteger(cleaningDuration) || cleaningDuration<=0)){
+      alert('La durée du ménage doit être un nombre entier de minutes supérieur à zéro.');
+      document.getElementById('editAptCleaningDuration').focus();
+      return;
+    }
     apt.name = newName;
     apt.owner = newOwner;
     apt.commissionPercent = isNaN(newCommission) ? 20 : newCommission;
@@ -5338,11 +5345,37 @@ function startEditApartment(item, id){
     apt.ownerEmail = document.getElementById('editAptOwnerEmail').value.trim();
     apt.ownerAddress = document.getElementById('editAptOwnerAddress').value.trim();
     apt.propertyAddress = document.getElementById('editAptPropertyAddress').value.trim();
-    const cleaningDuration = parseInt(document.getElementById('editAptCleaningDuration').value,10);
-    apt.cleaningDurationMinutes = Number.isInteger(cleaningDuration) && cleaningDuration>0 ? cleaningDuration : null;
-    saveApartments();
-    renderApartmentsList();
-    renderAll();
+    apt.cleaningDurationMinutes = cleaningDuration;
+    const saveButton=item.querySelector('[data-act=save]');
+    saveButton.disabled=true;
+    saveButton.textContent='…';
+    try{
+      const saved=await saveApartments();
+      if(!saved){
+        alert('La durée est conservée sur cet appareil, mais Supabase n’a pas confirmé la sauvegarde. Vérifie ta connexion puis réessaie.');
+        saveButton.disabled=false;
+        saveButton.textContent='✔';
+        return;
+      }
+      if(syncUrl){
+        const raw=await storageGetRaw('apartments');
+        const remote=raw?JSON.parse(raw):[];
+        const confirmed=Array.isArray(remote) && remote.some(a=>String(a.id)===String(apt.id) && Number(a.cleaningDurationMinutes||0)===Number(cleaningDuration||0));
+        if(!confirmed){
+          alert('Supabase n’a pas confirmé la nouvelle durée. Le formulaire reste ouvert pour éviter de perdre ta modification.');
+          saveButton.disabled=false;
+          saveButton.textContent='✔';
+          return;
+        }
+      }
+      renderApartmentsList();
+      renderAll();
+    }catch(e){
+      console.error('Enregistrement durée ménage',e);
+      alert('Impossible de confirmer la sauvegarde : '+(e&&e.message?e.message:'erreur inconnue'));
+      saveButton.disabled=false;
+      saveButton.textContent='✔';
+    }
   });
   item.querySelector('[data-act=cancel]').addEventListener('click', renderApartmentsList);
 }
