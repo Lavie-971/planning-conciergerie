@@ -2535,12 +2535,12 @@ function writePendingOps(ops){
 }
 function queueBookingUpsert(booking){
   const ops=readPendingOps().filter(op=>!(op.type==='upsert'&&op.booking&&op.booking.id===booking.id));
-  ops.push({type:'upsert',booking:JSON.parse(JSON.stringify(booking)),savedAt:Date.now()});
+  ops.push({opId:crypto.randomUUID(),type:'upsert',booking:JSON.parse(JSON.stringify(booking)),savedAt:Date.now()});
   writePendingOps(ops); schedulePendingSync();
 }
 function queueBookingDelete(id){
   const ops=readPendingOps().filter(op=>!(op.type==='upsert'&&op.booking&&op.booking.id===id));
-  if(!ops.some(op=>op.type==='delete'&&op.id===id)) ops.push({type:'delete',id,savedAt:Date.now()});
+  if(!ops.some(op=>op.type==='delete'&&op.id===id)) ops.push({opId:crypto.randomUUID(),type:'delete',id,savedAt:Date.now()});
   writePendingOps(ops); schedulePendingSync();
 }
 let _pendingSyncTimer=null;
@@ -2570,10 +2570,13 @@ async function flushPendingSync(){
     if(deletes.length){
       await postSyncPayload({key:'bookings_delete',ids:deletes.map(op=>op.id)});
     }
-    const sentKeys=new Set(effective.map(op=>String(op.id || (op.booking&&op.booking.id) || '')));
+    // Ne retirer que les opérations présentes dans le lot envoyé.
+    // Une modification ajoutée pendant la requête possède un nouvel opId et reste en attente.
+    const sentOperationIds=new Set(snapshot.map(op=>op.opId).filter(Boolean));
+    const sentLegacyOperations=new Set(snapshot.filter(op=>!op.opId).map(op=>JSON.stringify(op)));
     const remaining=readPendingOps().filter(op=>{
-      const id=String(op.id || (op.booking&&op.booking.id) || '');
-      return !sentKeys.has(id);
+      if(op.opId) return !sentOperationIds.has(op.opId);
+      return !sentLegacyOperations.has(JSON.stringify(op));
     });
     writePendingOps(remaining);
     setSyncStatus(remaining.length ? 'syncing' : 'ok');
