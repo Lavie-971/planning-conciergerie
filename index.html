@@ -3232,13 +3232,22 @@ function answerVoiceQuestion(phrase){
   }
 
   // 2) Gains : « combien j'ai gagné ce mois-ci / le mois dernier / cette année »
-  if(/(gagn|rapport|touch|revenus?|chiffre d affaires|benefices?|commissions?)/.test(t) && /(combien|quel|mois|annee)/.test(t)){
+  if(/(gagn|rapport|touch|revenus?|chiffre d affaires|benefices?|commissions?)/.test(t) &&
+     /(combien|quel|mois|annee|de janvier|de fevrier|de mars|d avril|de mai|de juin|de juillet|d aout|de septembre|d octobre|de novembre|de decembre|janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)/.test(t)){
     let start, end, label;
+    const requestedMonth = MOIS.findIndex(m => new RegExp('\\b'+m+'\\b').test(t));
+    const explicitYear = t.match(/\\b(20\\d{2})\\b/);
     if(/mois (dernier|precedent)/.test(t)){
       const pm = tm===0 ? 11 : tm-1, py = tm===0 ? ty-1 : ty;
       start = toISO(py,pm,1); end = addDaysISO(start,daysInMonth(py,pm)); label = MOIS_FR[pm]+' '+py;
     } else if(/(cette annee|sur l annee)/.test(t)){
       start = toISO(ty,0,1); end = toISO(ty+1,0,1); label = 'l’année '+ty;
+    } else if(requestedMonth >= 0){
+      let year = explicitYear ? Number(explicitYear[1]) : ty;
+      if(!explicitYear && requestedMonth < tm) year++;
+      start = toISO(year,requestedMonth,1);
+      end = addDaysISO(start,daysInMonth(year,requestedMonth));
+      label = MOIS_FR[requestedMonth]+' '+year;
     } else {
       start = toISO(ty,tm,1); end = addDaysISO(start,daysInMonth(ty,tm)); label = MOIS_FR[tm]+' '+ty;
     }
