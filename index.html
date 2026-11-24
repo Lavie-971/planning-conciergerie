@@ -6807,7 +6807,22 @@ async function loadAgendaEvents(){
     );
 
     if(Array.isArray(rows)){
-      agendaEvents = rows;
+      // Le distant sert de base, mais les opérations locales non envoyées
+      // restent prioritaires tant qu'elles sont présentes dans la file.
+      const merged = new Map(rows.filter(e=>e && e.id).map(e=>[String(e.id),e]));
+      const pending = readAgendaQueue();
+      pending.forEach(op=>{
+        const id = String(op && op.id || '');
+        if(!id) return;
+        if(op.type === 'delete'){
+          merged.delete(id);
+        } else if(op.type === 'upsert' && op.event){
+          merged.set(id,op.event);
+        }
+      });
+      agendaEvents = Array.from(merged.values()).sort((a,b)=>
+        String(a.start_at||'').localeCompare(String(b.start_at||''))
+      );
       saveAgendaLocal();
     }
   } catch(e) {
