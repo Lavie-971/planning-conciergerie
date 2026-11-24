@@ -3418,7 +3418,9 @@ function answerVoiceQuestion(phrase){
   };
   const matchingBookings = bookings.filter(b => {
     const client = normalizeSearch(b.client);
-    if(!client) return false;
+    // Ignore empty or abnormally short client names to avoid matching common letters
+    // anywhere in a spoken sentence (for example, "e" in "réservation").
+    if(client.replace(/\s/g,'').length < 3) return false;
     if(spokenSearch.includes(client)) return true;
     const clientWords = client.split(' ').filter(w=>w.length>=3 && !ignoredNameWords.has(w));
     return clientWords.some(nameWord =>
