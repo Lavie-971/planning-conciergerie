@@ -6330,6 +6330,24 @@ function showWhatsAppChoiceModal(onChoose){
 
 let _returnToMainAfterWhatsApp=false;
 let _leftSiteForWhatsApp=false;
+let _pendingWhatsAppSend=null;
+function confirmWhatsAppMessageSent(){
+  const pending=_pendingWhatsAppSend;
+  _pendingWhatsAppSend=null;
+  if(!pending)return;
+  const booking=bookings.find(x=>String(x.id)===String(pending.bookingId));
+  if(!booking)return;
+  if(pending.choice==='1'){
+    activateBookingWhatsAppWorkflow(booking);
+    return;
+  }
+  const key=pending.choice==='2'?'reminder':pending.choice==='3'?'afterStay':null;
+  const step=key && booking.whatsappWorkflow && booking.whatsappWorkflow.steps && booking.whatsappWorkflow.steps[key];
+  if(step && !step.sentAt){
+    step.sentAt=new Date().toISOString();
+    saveBookingWhatsAppWorkflow(booking,booking.whatsappWorkflow);
+  }
+}
 function returnToMainAfterWhatsApp(){
   if(!_returnToMainAfterWhatsApp || !_leftSiteForWhatsApp)return;
   _returnToMainAfterWhatsApp=false;
@@ -6341,6 +6359,9 @@ function returnToMainAfterWhatsApp(){
   if(viewMenu)viewMenu.hidden=true;
   detailBookingId=null;
   agendaDetailId=null;
+  if(_pendingWhatsAppSend){
+    showConfirm("As-tu bien envoyé ce message dans WhatsApp ?\n\nLe suivi et les prochains messages ne seront activés que si tu confirmes l’envoi.",confirmWhatsAppMessageSent);
+  }
 }
 window.addEventListener('blur',()=>{
   if(_returnToMainAfterWhatsApp)_leftSiteForWhatsApp=true;
@@ -6438,20 +6459,11 @@ function prepareBookingWhatsApp(choiceOverride){
   }
   const message = templates[choice].filter(line=>line!==null&&line!==undefined).join('\n');
   const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
-  // Ouvre WhatsApp ; au retour, Planning revient automatiquement à l'écran principal.
+  // Prépare le message dans WhatsApp sans considérer son ouverture comme un envoi.
+  _pendingWhatsAppSend={bookingId:b.id,choice};
   _returnToMainAfterWhatsApp=true;
   _leftSiteForWhatsApp=false;
   window.open(url,'_blank','noopener,noreferrer');
-  // Le clic sur la préparation déclenche le suivi : l'envoi final reste manuel dans WhatsApp.
-  if(choice==='1'){
-    activateBookingWhatsAppWorkflow(b);
-  }else{
-    const key=choice==='2'?'reminder':choice==='3'?'afterStay':null;
-    if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
-      b.whatsappWorkflow.steps[key].sentAt=new Date().toISOString();
-      saveBookingWhatsAppWorkflow(b,b.whatsappWorkflow);
-    }
-  }
 }
 
 function saveBookingWhatsAppWorkflow(booking,workflow){
