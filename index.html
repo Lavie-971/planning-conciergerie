@@ -5450,6 +5450,12 @@ function startEditApartment(item, id){
         <input type="text" id="editAptOwnerAddress" value="${escapeHtml(apt.ownerAddress||'')}" placeholder="Adresse du propriétaire" style="flex:1;">
         <input type="number" id="editAptCleaningDuration" value="${apt.cleaningDurationMinutes!=null?escapeHtml(apt.cleaningDurationMinutes):''}" min="1" step="1" placeholder="Durée ménage (min)" style="max-width:170px;">
       </div>
+      <div style="border-top:1px solid var(--line);padding-top:9px;margin-top:5px;">
+        <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Synchronisation des calendriers iCal (facultatif)</div>
+        <input type="url" id="editAptAirbnbIcal" value="${escapeHtml(apt.icalAirbnbUrl||'')}" placeholder="Lien iCal Airbnb (https://…)" autocomplete="off" style="width:100%;margin-bottom:6px;">
+        <input type="url" id="editAptBookingIcal" value="${escapeHtml(apt.icalBookingUrl||'')}" placeholder="Lien iCal Booking.com (https://…)" autocomplete="off" style="width:100%;">
+        <div style="font-size:11px;color:var(--ink-faint);margin-top:5px;">Ces liens sont confidentiels et ne sont visibles que dans les paramètres de ce logement.</div>
+      </div>
     </div>
     <div class="apt-edit-actions">
       <button data-act="save" type="button" title="Enregistrer">✔ Enregistrer</button>
@@ -5496,6 +5502,17 @@ function startEditApartment(item, id){
     apt.ownerAddress = document.getElementById('editAptOwnerAddress').value.trim();
     apt.propertyAddress = document.getElementById('editAptPropertyAddress').value.trim();
     apt.cleaningDurationMinutes = cleaningDuration;
+    const airbnbIcal = document.getElementById('editAptAirbnbIcal').value.trim();
+    const bookingIcal = document.getElementById('editAptBookingIcal').value.trim();
+    for(const [label,value] of [['Airbnb',airbnbIcal],['Booking.com',bookingIcal]]){
+      if(value){
+        let parsed;
+        try{ parsed=new URL(value); }catch(e){ alert('Le lien iCal '+label+' est invalide.'); return; }
+        if(parsed.protocol!=='https:'){ alert('Le lien iCal '+label+' doit commencer par https://.'); return; }
+      }
+    }
+    apt.icalAirbnbUrl = airbnbIcal;
+    apt.icalBookingUrl = bookingIcal;
     const saveButton=item.querySelector('[data-act=save]');
     saveButton.disabled=true;
     saveButton.textContent='…';
