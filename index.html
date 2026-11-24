@@ -6983,6 +6983,8 @@ function openNewAgendaForDate(iso){
 function editAgendaEvent(id){
   const ev = agendaEvents.find(e=>e.id===id);
   if(!ev) return;
+  const apartmentSelect=document.getElementById('agendaApartment');
+  apartmentSelect.innerHTML='<option value="">Aucun logement</option>'+apartments.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
   document.getElementById('agendaPanel').hidden = false;
 document.getElementById('agendaAddBtn').hidden = true;
 document.getElementById('agendaEventsList').hidden = true;
@@ -7040,6 +7042,8 @@ panel.addEventListener('click',(e)=>{
 });
 
   document.getElementById('agendaAddBtn').addEventListener('click',()=>{
+    const apartmentSelect=document.getElementById('agendaApartment');
+    apartmentSelect.innerHTML='<option value="">Aucun logement</option>'+apartments.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
     editingAgendaId = null;
     document.getElementById('agendaTitle').value = '';
     document.getElementById('agendaDescription').value = '';
