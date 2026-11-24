@@ -6977,6 +6977,7 @@ async function deleteAgendaEvent(id){
 async function syncAgendaPending(){
   if(agendaSyncInProgress) return;
   agendaSyncInProgress = true;
+  let syncFailed = false;
   try {
     const queue = readAgendaQueue();
     for(const op of queue){
@@ -7006,6 +7007,7 @@ async function syncAgendaPending(){
         writeAgendaQueue();
       } catch(e) {
         console.warn('Synchronisation agenda reportée.', e);
+        syncFailed = true;
         break;
       }
     }
@@ -7014,6 +7016,11 @@ async function syncAgendaPending(){
   }
 
   await loadAgendaEvents();
+  // Une nouvelle modification peut avoir été ajoutée pendant l'envoi du lot.
+  // On relance uniquement après un lot réussi pour éviter une boucle en cas de panne réseau.
+  if(!syncFailed && readAgendaQueue().length){
+    setTimeout(()=>syncAgendaPending(),150);
+  }
 }
 // ===== COMMANDES DE L'AGENDA =====
 let editingAgendaId = null;
