@@ -3376,6 +3376,29 @@ if(result.action === 'delete' && result.objectType === 'reservation'){
       }
     }
   );
+
+  return;
+}
+
+  showConfirm(
+    'Confirmer la suppression de la réservation de ' +
+    (targetBooking.client || 'client sans nom') + ' ?',
+    ()=>{
+      const id = targetBooking.id;
+      bookings = bookings.filter(b=>b.id !== id);
+      saveBookings();
+
+      if(bookingIsOpen) closeBookingModal();
+
+      requestAnimationFrame(()=>renderAll());
+
+      if(syncUrl){
+        queueBookingDelete(id);
+        setSyncStatus('syncing');
+        flushPendingSync();
+      }
+    }
+  );
   return;
 }
     if(!['create','update','delete'].includes(result.action) ||
