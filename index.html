@@ -5373,8 +5373,17 @@ function renderApartmentStats(){
   </div>`;
 if(syncUrl){
   html += `
-    <button class="btn" id="ownerLinkBtn" style="width:100%;margin-top:8px;">🔗 Copier le lien à envoyer au propriétaire</button>
-    <button class="btn" id="ownerRevokeLinkBtn" style="width:100%;margin-top:8px;background:#a83232;color:white;">🔒 Révoquer le lien propriétaire</button>
+    <div style="margin-top:16px;padding:16px;border:1px solid #C9DED5;border-radius:16px;background:#F1F7F3;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:#DCEDE3;color:#246B4B;display:flex;align-items:center;justify-content:center;font-size:21px;">🔗</div>
+        <div style="min-width:0;">
+          <div style="font-size:14px;font-weight:750;color:#244B39;">Espace propriétaire</div>
+          <div style="font-size:12px;line-height:1.45;color:#557365;margin-top:3px;">Partage un accès personnel pour consulter les informations de ce logement.</div>
+        </div>
+      </div>
+      <button class="btn" id="ownerLinkBtn" style="width:100%;min-height:48px;border:0;border-radius:12px;background:#287A55;color:#fff;font-weight:700;box-shadow:0 3px 8px rgba(36,91,62,.16);">Copier le lien de l’espace propriétaire&nbsp; →</button>
+      <button class="btn" id="ownerRevokeLinkBtn" style="width:100%;margin-top:10px;background:#fff;border:1px solid #E7CACA;color:#A33B3B;border-radius:10px;">🔒 Révoquer l’accès propriétaire</button>
+    </div>
   `;
 }
   content.innerHTML = html;
