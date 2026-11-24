@@ -360,12 +360,12 @@ div.field:has(.checkbox-label){margin-bottom:10px;}
 /* Agenda : barres claires (teinte pastel + liseré coloré) et séparation du 1er logement */
 .apartment-row.agenda-row{border-bottom:8px solid var(--bg);}
 .apartment-row.agenda-row .apt-info{border-bottom:1px solid var(--line);}
-.apartment-row.agenda-row .apt-info .apt-name{color:var(--ink-soft);}
+.apartment-row.agenda-row .apt-info .apt-name{color:var(--ink);}
 .apartment-row.agenda-row .apt-days{border-bottom:1px solid var(--line);}
 .apartment-row.agenda-row + .apartment-row{border-top:1px solid var(--line);}
 .apartment-row.agenda-row .apt-info{cursor:default;}
 .apartment-row.agenda-row .apt-info:hover{background:var(--surface);}
-.apartment-row.agenda-row .apt-info:hover .apt-name{color:var(--ink-soft);}
+.apartment-row.agenda-row .apt-info:hover .apt-name{color:var(--ink);}
 /* Les événements d'agenda restent neutres : la catégorie est indiquée par son libellé, pas par une couleur. */
 .booking-bar.agenda-event-bar{background:#E8EEEA!important;color:#29443B!important;border:1px solid #C9D6CE!important;box-shadow:none;}
 .booking-bar.agenda-event-bar:hover{background:#DDE7E1!important;filter:none;}
@@ -4154,7 +4154,7 @@ function renderDayPanel(dateISO, title, containerId){
   }
 
   html += `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px;">
-    <h4 style="margin:0 0 8px;">📅 Agenda (${dayEvents.length})</h4>`;
+    <h4 style="margin:0 0 8px;color:var(--ink-soft);">📅 Agenda (${dayEvents.length})</h4>`;
 
   html += dayEvents.length===0
     ? `<div class="today-empty">Aucun rendez-vous.</div>`
