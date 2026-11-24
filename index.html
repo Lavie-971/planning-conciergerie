@@ -6361,6 +6361,13 @@ function returnToMainAfterWhatsApp(){
   agendaDetailId=null;
   if(_pendingWhatsAppSend){
     showConfirm("As-tu bien envoyé ce message dans WhatsApp ?\n\nLe suivi et les prochains messages ne seront activés que si tu confirmes l’envoi.",confirmWhatsAppMessageSent);
+    const noBtn=document.getElementById('confirmNoBtn');
+    if(noBtn)noBtn.onclick=()=>{
+      _pendingWhatsAppSend=null;
+      document.getElementById('confirmBackdrop').hidden=true;
+      document.getElementById('confirmYesBtn').onclick=null;
+      noBtn.onclick=null;
+    };
   }
 }
 window.addEventListener('blur',()=>{
