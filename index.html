@@ -1473,7 +1473,7 @@ body.printing-doc #printPanel{
     </p>
     <div id="monthlyBackupStatus" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:0 0 10px;font-size:12px;color:var(--ink-soft);"></div>
     <button class="btn primary" id="exportBackupBtn" style="width:100%;margin-bottom:8px;">⬇️ Télécharger une sauvegarde complète</button>
-    <button class="btn" id="monthlyBackupBtn" type="button" style="width:100%;margin-bottom:18px;">📅 Vérifier / effectuer la sauvegarde mensuelle</button>
+    <p style="font-size:12px;color:var(--ink-soft);margin:0 0 18px;">La sauvegarde mensuelle est déclenchée automatiquement à la première ouverture de cette rubrique chaque mois.</p>
 
     <hr class="divider">
 
@@ -6117,8 +6117,9 @@ function exportCsv(){
 /* ---------------- sauvegarde / restauration complète ---------------- */
 function openBackupModal(){
   document.getElementById('backupFormError').style.display = 'none';
-  refreshMonthlyBackupStatus();
   document.getElementById('restoreFileInput').value = '';
+  runMonthlyBackupAutomatically();
+  refreshMonthlyBackupStatus();
 
   // Calcul de la taille utilisée
   try{
@@ -6252,18 +6253,18 @@ function refreshMonthlyBackupStatus(){
   const current=monthKeyNow();
   const done=confirmed.slice(0,7)===current;
   el.innerHTML=done
-    ? `✅ Sauvegarde mensuelle déclarée vérifiée le <strong>${confirmed}</strong>. Pense à conserver le fichier sur un autre support.`
-    : `⚠️ Aucune sauvegarde mensuelle confirmée pour <strong>${current}</strong>. Le navigateur ne permet pas à l'application de vérifier seul que le fichier a réellement été conservé.`;
+    ? `✅ Téléchargement de la sauvegarde mensuelle déclenché le <strong>${confirmed}</strong>.`
+    : `⏳ La sauvegarde mensuelle sera déclenchée automatiquement à l'ouverture de cette rubrique.`;
 }
-function runMonthlyBackup(){
+function runMonthlyBackupAutomatically(){
+  const current=monthKeyNow();
+  let previous='';
+  try{previous=localStorage.getItem(LS_PREFIX+'monthlyBackupConfirmedAt')||'';}catch(e){}
+  if(previous.slice(0,7)===current) return;
   try{
     downloadBackupFile();
-    showConfirm('Le téléchargement a été demandé. Vérifie dans le dossier Téléchargements que le fichier JSON est bien présent et lisible. Confirmeras-tu ensuite cette vérification ?',()=>{
-      const confirmed=todayISO();
-      try{localStorage.setItem(LS_PREFIX+'monthlyBackupConfirmedAt',confirmed);}catch(e){}
-      refreshMonthlyBackupStatus();
-    });
-    refreshMonthlyBackupStatus();
+    // On mémorise le déclenchement du téléchargement, pas la conservation réelle du fichier.
+    localStorage.setItem(LS_PREFIX+'monthlyBackupConfirmedAt',todayISO());
   }catch(err){
     const errEl=document.getElementById('backupFormError');
     if(errEl){errEl.style.display='block';errEl.textContent='La sauvegarde mensuelle a échoué : '+(err.message||err);}
@@ -6532,8 +6533,7 @@ function bindEvents(){
   document.getElementById('backupBtn').addEventListener('click', ()=>{ closeDrawer(); openBackupModal(); });
   document.getElementById('closeBackupXBtn').addEventListener('click', closeBackupModal);
   document.getElementById('exportBackupBtn').addEventListener('click', exportBackup);
-  const monthlyBackupBtn=document.getElementById('monthlyBackupBtn');
-  if(monthlyBackupBtn) monthlyBackupBtn.addEventListener('click', runMonthlyBackup);
+
   document.getElementById('restoreBackupBtn').addEventListener('click', restoreBackup);
   document.getElementById('backupBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='backupBackdrop') closeBackupModal(); });
 
