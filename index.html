@@ -6381,7 +6381,7 @@ function prepareBookingWhatsApp(choiceOverride){
     alert("Choix invalide. Saisis 0, 1, 2 ou 3.");
     return;
   }
-  const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\\n'));
+  const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\n'));
   if(message===null || !message.trim()) return;
   const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
   showConfirm("Ouvrir WhatsApp avec ce message pour "+(b.client||'ce client')+" ?\\n\\nLe message sera seulement prérempli. Aucun envoi automatique : tu devras appuyer toi-même sur Envoyer dans WhatsApp.", ()=>{
