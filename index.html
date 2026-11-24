@@ -3004,13 +3004,23 @@ function openVoiceChat(){
 }
 
 function closeVoiceChat(){
+  // Fermer le chat coupe immédiatement l'écoute et toute réponse vocale en cours.
   voiceChatOpen = false;
-  if(voiceRecognition){
-    try{ voiceRecognition.stop(); }catch(e){}
+  if('speechSynthesis' in window){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
   }
+  const recognition = voiceRecognition;
   voiceRecognition = null;
   voiceListening = false;
   voiceBusy = false;
+  if(recognition){
+    recognition.onresult = null;
+    recognition.onend = null;
+    recognition.onerror = null;
+    try{ recognition.abort(); }catch(e){
+      try{ recognition.stop(); }catch(_){}
+    }
+  }
   const panel = document.getElementById('voiceChatPanel');
   if(panel) panel.remove();
   const button = document.getElementById('voiceCommandBtn');
