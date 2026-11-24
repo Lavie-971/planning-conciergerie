@@ -6207,7 +6207,8 @@ function buildBackupPayload(){
   Object.keys(storage).forEach(k=>{ try{ parsed[k]=JSON.parse(storage[k]); }catch(e){ parsed[k]=storage[k]; } });
   return {
     type:'planning-conciergerie-backup',
-    version:2,
+    version:3,
+    accountId:activeUserId || null,
     exportedAt:new Date().toISOString(),
     app:'Planning Conciergerie',
     counts:{apartments:apartments.length,bookings:bookings.length,agendaEvents:(typeof agendaEvents!=='undefined'&&Array.isArray(agendaEvents))?agendaEvents.length:0,storageKeys:Object.keys(storage).length},
@@ -6281,7 +6282,18 @@ function restoreBackup(){
     if(!parsed||parsed.type!=='planning-conciergerie-backup'||!Array.isArray(parsed.apartments)||!Array.isArray(parsed.bookings)){
       fail("Ce fichier ne semble pas être une sauvegarde compatible de Planning Conciergerie.");return;
     }
+    // Les sauvegardes récentes sont liées au compte qui les a créées.
+    if(Number(parsed.version)>=3 && (parsed.accountId||null)!==(activeUserId||null)){
+      fail("Cette sauvegarde appartient à un autre compte. Connecte-toi au compte qui l'a créée pour la restaurer.");return;
+    }
     const storage=(parsed.storage&&typeof parsed.storage==='object'&&!Array.isArray(parsed.storage))?parsed.storage:{};
+    const invalidKey=Object.keys(storage).find(key=>!/^[a-zA-Z0-9_-]{1,80}$/.test(key) || /token|password|secret|session|flightApiKey|pending.*ops/i.test(key));
+    if(invalidKey){
+      fail("La sauvegarde contient une entrée de stockage non autorisée. Aucune donnée n'a été modifiée.");return;
+    }
+    if(parsed.agendaEvents!==undefined&&!Array.isArray(parsed.agendaEvents)){
+      fail("La liste des événements de l'agenda est invalide. Aucune donnée n'a été modifiée.");return;
+    }
     errEl.style.display='none';
     const eventCount=Array.isArray(parsed.agendaEvents)?parsed.agendaEvents.length:(Array.isArray(storage.agendaEvents)?storage.agendaEvents.length:0);
     showConfirm(`Restaurer cette sauvegarde (${parsed.apartments.length} logement(s), ${parsed.bookings.length} réservation(s), ${eventCount} événement(s) d’agenda) ? Les données locales correspondantes seront remplacées. Les identifiants de connexion et clés secrètes ne seront pas restaurés.`,async()=>{
