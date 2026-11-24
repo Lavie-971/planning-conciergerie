@@ -893,7 +893,7 @@ body.printing-doc #printPanel{
       </div>
       <div class="field">
         <label for="bkPhone">Téléphone (optionnel)</label>
-        <input type="tel" id="bkPhone" placeholder="0690 12 34 56 ou +590 690 12 34 56">
+        <input type="tel" id="bkPhone" placeholder="Téléphone mobile ou fixe, avec indicatif si international">
       </div>
     </div>
     <div class="field-row">
@@ -1124,7 +1124,7 @@ body.printing-doc #printPanel{
     <div class="field-row">
       <div class="field">
         <label for="newAptOwnerPhone">Téléphone du propriétaire</label>
-        <input type="tel" id="newAptOwnerPhone" placeholder="0690 12 34 56">
+        <input type="tel" id="newAptOwnerPhone" placeholder="Téléphone mobile ou fixe">
       </div>
       <div class="field">
         <label for="newAptOwnerEmail">Email du propriétaire</label>
@@ -1426,7 +1426,7 @@ body.printing-doc #printPanel{
       <div class="field-row">
         <div class="field">
           <label for="profilePhone">Téléphone</label>
-          <input type="tel" id="profilePhone" placeholder="+590 690 xx xx xx">
+          <input type="tel" id="profilePhone" placeholder="+590 690 12 34 56 ou numéro international">
         </div>
         <div class="field">
           <label for="profileEmail">Email</label>
@@ -2872,34 +2872,26 @@ function attachDateMask(input){
 }
 
 function attachPhoneMask(input){
+  if(!input || input.dataset.phoneMaskAttached === '1') return;
+  input.dataset.phoneMaskAttached = '1';
   input.addEventListener('input', ()=>{
     const raw = input.value;
-    // Formatage international correct (s'adapte au pays) via libphonenumber-js si disponible
+    // Les numéros avec indicatif international sont formatés selon leur pays.
+    // Sans indicatif, le format national par défaut est celui de la Guadeloupe.
     if(window.libphonenumber && window.libphonenumber.AsYouType){
       try{
-        const hasPlus = raw.trim().charAt(0) === '+';
-        const formatter = new window.libphonenumber.AsYouType(hasPlus ? undefined : 'FR');
+        const hasPlus = raw.trim().startsWith('+');
+        const formatter = new window.libphonenumber.AsYouType(hasPlus ? undefined : 'GP');
         const cursorAtEnd = input.selectionEnd === raw.length;
         const formatted = formatter.input(raw);
-        input.value = formatted;
-        if(cursorAtEnd) input.setSelectionRange(formatted.length, formatted.length);
-        return;
-      }catch(e){ /* si la librairie échoue, on utilise le repli ci-dessous */ }
+        if(formatted){
+          input.value = formatted;
+          if(cursorAtEnd) input.setSelectionRange(formatted.length, formatted.length);
+        }
+      }catch(e){ /* conserver la saisie d'origine en cas d'échec */ }
     }
-    // Repli simple (hors-ligne / librairie non chargée) : regroupement par paires
-    const hasPlus = raw.trim().charAt(0) === '+';
-    const digits = raw.replace(/\D/g,'').slice(0,15);
-    const groups = hasPlus ? [3,3,2,2,2,2] : [4,2,2,2,2];
-    const parts = [];
-    let idx = 0;
-    groups.forEach(len=>{
-      if(idx < digits.length){
-        parts.push(digits.slice(idx, idx+len));
-        idx += len;
-      }
-    });
-    if(idx < digits.length) parts.push(digits.slice(idx));
-    input.value = (hasPlus?'+':'') + parts.join(' ');
+    // Sans bibliothèque, ne pas imposer un faux format : tous les formats
+    // nationaux et internationaux restent acceptés tels qu'ils sont saisis.
   });
 }
 
@@ -5916,7 +5908,7 @@ function startEditApartment(item, id){
         <input type="text" id="editAptPropertyAddress" value="${escapeHtml(apt.propertyAddress||'')}" placeholder="Adresse du logement (facultative)" style="flex:1;">
       </div>
       <div style="display:flex;gap:6px;">
-        <input type="tel" id="editAptOwnerPhone" value="${escapeHtml(apt.ownerPhone||'')}" placeholder="Téléphone propriétaire" style="flex:1;">
+        <input type="tel" id="editAptOwnerPhone" value="${escapeHtml(apt.ownerPhone||'')}" placeholder="Téléphone mobile ou fixe, avec indicatif si international" style="flex:1;">
         <input type="email" id="editAptOwnerEmail" value="${escapeHtml(apt.ownerEmail||'')}" placeholder="Email propriétaire" style="flex:1;">
       </div>
       <div style="display:flex;gap:6px;">
