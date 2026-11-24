@@ -3414,6 +3414,83 @@ async function interpretVoiceCommandWithAI(phrase){
       voiceNotify(result.clarification);
       return;
     }
+
+    if(result.objectType === 'apartment'){
+      const aptFields = [
+        ['name','Nom'],['owner','Propriétaire'],['commissionPercent','Commission'],
+        ['propertyType','Type'],['commune','Commune'],['bedroomCount','Chambres'],
+        ['maxGuests','Capacité'],['propertyAddress','Adresse du logement'],
+        ['ownerPhone','Téléphone propriétaire'],['ownerEmail','Email propriétaire'],
+        ['ownerAddress','Adresse propriétaire'],['cleaningDurationMinutes','Durée ménage']
+      ];
+      const hasValue = value => value !== null && value !== undefined && value !== '';
+      if(result.action === 'delete'){
+        const apt = apartments.find(a=>String(a.id)===String(result.target));
+        if(!apt){ voiceNotify('Je ne trouve pas ce logement. Précise son nom.'); return; }
+        deleteApartment(apt.id);
+        return;
+      }
+      if(!['create','update'].includes(result.action)){
+        voiceNotify('Je ne peux pas effectuer cette action sur un logement.');
+        return;
+      }
+      const apt = result.action === 'update'
+        ? apartments.find(a=>String(a.id)===String(result.target))
+        : null;
+      if(result.action === 'update' && !apt){
+        voiceNotify('Je ne trouve pas le logement à modifier. Précise son nom.');
+        return;
+      }
+      if(result.action === 'create' && !hasValue(result.name)){
+        voiceNotify('Quel nom veux-tu donner à ce logement ?');
+        return;
+      }
+      const changes = aptFields.filter(([key])=>hasValue(result[key]))
+        .map(([key,label])=>label+' : '+result[key]);
+      if(!changes.length){
+        voiceNotify('Je n’ai reconnu aucun champ à renseigner pour ce logement.');
+        return;
+      }
+      const backdrop = document.getElementById('apartmentsBackdrop');
+      backdrop.hidden = false;
+      renderApartmentsList();
+      showConfirm(
+        (result.action === 'create' ? 'Préparer l’ajout du logement ?' : 'Préparer la modification de '+apt.name+' ?')+
+        '\\n\\n'+changes.join('\\n'),
+        ()=>{
+          if(result.action === 'create'){
+            const fields = {
+              name:'newAptName',owner:'newAptOwner',commissionPercent:'newAptCommission',
+              propertyType:'newAptType',commune:'newAptCommune',bedroomCount:'newAptBedrooms',
+              maxGuests:'newAptMaxGuests',propertyAddress:'newAptPropertyAddress',
+              ownerPhone:'newAptOwnerPhone',ownerEmail:'newAptOwnerEmail',
+              ownerAddress:'newAptOwnerAddress',cleaningDurationMinutes:'newAptCleaningDuration'
+            };
+            Object.entries(fields).forEach(([key,id])=>{
+              if(hasValue(result[key])) document.getElementById(id).value = result[key];
+            });
+            voiceNotify('Le formulaire du logement est prêt. Vérifie les informations puis appuie sur « Ajouter ».');
+          }else{
+            const item = document.querySelector('#apartmentsList [data-apt-id="'+CSS.escape(apt.id)+'"]');
+            if(!item){ voiceNotify('Impossible d’ouvrir le formulaire de modification.'); return; }
+            startEditApartment(item, apt.id);
+            const fields = {
+              name:'editAptName',owner:'editAptOwner',commissionPercent:'editAptCommission',
+              propertyType:'editAptType',commune:'editAptCommune',bedroomCount:'editAptBedrooms',
+              maxGuests:'editAptMaxGuests',propertyAddress:'editAptPropertyAddress',
+              ownerPhone:'editAptOwnerPhone',ownerEmail:'editAptOwnerEmail',
+              ownerAddress:'editAptOwnerAddress',cleaningDurationMinutes:'editAptCleaningDuration'
+            };
+            Object.entries(fields).forEach(([key,id])=>{
+              if(hasValue(result[key])) document.getElementById(id).value = result[key];
+            });
+            voiceNotify('Le formulaire de modification est prêt. Vérifie les informations puis appuie sur « Enregistrer ».');
+          }
+        }
+      );
+      return;
+    }
+
 if(result.action === 'delete' && result.objectType === 'reservation'){
   const targetBooking = bookings.find(
     b => String(b.id) === String(result.target)
