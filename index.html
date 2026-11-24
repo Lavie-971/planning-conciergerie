@@ -6283,6 +6283,17 @@ function openBookingDetail(id){
   document.getElementById('detailContent').innerHTML = html;
   openModal('detailBackdrop');
 }
+function activateBookingWhatsAppWorkflow(b){
+  if(!b || b.whatsappWorkflow)return false;
+  const workflow={activatedAt:new Date().toISOString(),welcomeSentAt:new Date().toISOString(),steps:{
+    reminder:{dueDate:addDaysISO(b.checkin,-3),template:'2',sentAt:null,promptedDate:null},
+    departure:{dueDate:b.checkout,template:'3',sentAt:null,promptedDate:null},
+    afterStay:{dueDate:addDaysISO(b.checkout,1),template:'4',sentAt:null,promptedDate:null}
+  }};
+  saveBookingWhatsAppWorkflow(b,workflow);
+  return true;
+}
+
 function prepareBookingWhatsApp(choiceOverride){
   const b = bookings.find(x=>String(x.id)===String(detailBookingId));
   if(!b) return;
@@ -6299,10 +6310,17 @@ function prepareBookingWhatsApp(choiceOverride){
   const arrival = fmtDateShort(b.checkin)+(b.checkinTime ? ' à '+b.checkinTime : '');
   const departure = fmtDateShort(b.checkout)+(b.checkoutTime ? ' à '+b.checkoutTime : '');
   const choice = choiceOverride || prompt(
-    "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Informations le jour du départ\\n4 - Remerciement et demande d'avis (ensemble)\\n\\nSaisis un chiffre de 1 à 4 :",
+    "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Informations le jour du départ\\n4 - Remerciement et demande d'avis (ensemble)\\n0 - Activer le programme si le message de bienvenue a déjà été envoyé\\n\\nSaisis un chiffre de 0 à 4 :",
     "1"
   );
   if(choice===null) return;
+  if(choice==='0'){
+    showConfirm("Confirmer que le message de bienvenue a déjà été envoyé à ce client ? Le programme sera alors activé sans renvoyer ce message.",()=>{
+      if(activateBookingWhatsAppWorkflow(b)) alert("Programme WhatsApp activé. Les prochains messages seront proposés aux dates prévues, avec validation manuelle de chaque envoi.");
+      else alert("Un programme WhatsApp existe déjà pour cette réservation.");
+    });
+    return;
+  }
   const templates = {
     "1": [
       'Bonjour'+(name ? ' '+name : '')+' !','','Nous sommes ravis de vous accueillir prochainement.',
@@ -6328,7 +6346,7 @@ function prepareBookingWhatsApp(choiceOverride){
     ]
   };
   if(!templates[choice]){
-    alert("Choix invalide. Saisis un chiffre de 1 à 4.");
+    alert("Choix invalide. Saisis un chiffre de 0 à 4.");
     return;
   }
   const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\\n'));
@@ -6338,15 +6356,7 @@ function prepareBookingWhatsApp(choiceOverride){
     window.open(url,'_blank','noopener,noreferrer');
     showConfirm("As-tu bien envoyé ce message dans WhatsApp ? Le programme ne sera activé ou mis à jour qu’après ta confirmation.",()=>{
       if(choice==='1'){
-        if(!b.whatsappWorkflow){
-          const workflow={activatedAt:new Date().toISOString(),welcomeSentAt:new Date().toISOString(),steps:{
-            reminder:{dueDate:addDaysISO(b.checkin,-3),template:'2',sentAt:null,promptedDate:null},
-            departure:{dueDate:b.checkout,template:'3',sentAt:null,promptedDate:null},
-            afterStay:{dueDate:addDaysISO(b.checkout,1),template:'4',sentAt:null,promptedDate:null}
-          }};
-          saveBookingWhatsAppWorkflow(b,workflow);
-          alert("Programme activé : rappel 3 jours avant l’arrivée, informations le jour du départ, puis remerciement et demande d’avis ensemble le lendemain du départ. Chaque envoi restera manuel.");
-        }
+        if(activateBookingWhatsAppWorkflow(b)) alert("Programme activé : rappel 3 jours avant l’arrivée, informations le jour du départ, puis remerciement et demande d’avis ensemble le lendemain du départ. Chaque envoi restera manuel.");
       }else{
         const key=choice==='2'?'reminder':choice==='3'?'departure':choice==='4'?'afterStay':null;
         if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
