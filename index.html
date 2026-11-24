@@ -3370,15 +3370,26 @@ async function interpretVoiceCommandWithAI(phrase){
         body: JSON.stringify({
           phrase,
           today,
-          apartments: apartments.map(a=>({id:a.id,name:a.name})),
-statuses: STATUSES.map(s=>({key:s.key,label:s.label})),
-sources: SOURCES.map(s=>({key:s.key,label:s.label})),
+          apartments: apartments.map(a=>({
+            id:a.id,
+            name:a.name,
+            propertyType:a.propertyType,
+            commune:a.commune,
+            bedroomCount:a.bedroomCount,
+            maxGuests:a.maxGuests,
+            commissionPercent:a.commissionPercent,
+            cleaningDurationMinutes:a.cleaningDurationMinutes
+          })),
+          statuses: STATUSES.map(s=>({key:s.key,label:s.label})),
+          sources: SOURCES.map(s=>({key:s.key,label:s.label})),
           bookings: bookings.map(b=>({
             id:b.id,
             apartmentId:b.apartmentId,
             client:b.client,
             checkin:b.checkin,
-            checkout:b.checkout
+            checkout:b.checkout,
+            status:b.status,
+            source:b.source
           })),
           agenda: agendaEvents.map(e=>({
             id:e.id,
@@ -3386,7 +3397,9 @@ sources: SOURCES.map(s=>({key:s.key,label:s.label})),
             description:e.description,
             start_at:e.start_at,
             end_at:e.end_at,
-            apartment_id:e.apartment_id
+            apartment_id:e.apartment_id,
+            category:e.category,
+            location:e.location
           }))
         })
       }
