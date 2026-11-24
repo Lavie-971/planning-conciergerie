@@ -6252,8 +6252,11 @@ function refreshMonthlyBackupStatus(){
   try{confirmed=localStorage.getItem(LS_PREFIX+'monthlyBackupConfirmedAt')||'';}catch(e){}
   const current=monthKeyNow();
   const done=confirmed.slice(0,7)===current;
+  const displayDate=done && /^\d{4}-\d{2}-\d{2}$/.test(confirmed)
+    ? confirmed.split('-').reverse().join('/')
+    : confirmed;
   el.innerHTML=done
-    ? `✅ Téléchargement de la sauvegarde mensuelle déclenché le <strong>${confirmed}</strong>.`
+    ? `✅ Téléchargement de la sauvegarde mensuelle déclenché le <strong>${displayDate}</strong>.`
     : `⏳ La sauvegarde mensuelle sera déclenchée automatiquement à l'ouverture de cette rubrique.`;
 }
 function runMonthlyBackupAutomatically(){
