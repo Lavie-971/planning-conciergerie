@@ -1196,8 +1196,9 @@ body.printing-doc #printPanel{
     <div id="detailContent"></div>
     </div>
     <div class="modal-footer">
-      <div class="left">
+      <div class="left" style="display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn danger" id="detailDeleteBtn">Supprimer</button>
+        <button class="btn" id="detailWhatsAppBtn" type="button">Préparer WhatsApp</button>
       </div>
       <div class="right">
         <button class="btn primary" id="detailEditBtn">✎ Modifier</button>
@@ -6258,6 +6259,38 @@ function openBookingDetail(id){
   document.getElementById('detailContent').innerHTML = html;
   openModal('detailBackdrop');
 }
+function prepareBookingWhatsApp(){
+  const b = bookings.find(x=>x.id===detailBookingId);
+  if(!b) return;
+  let phone = String(b.phone||'').replace(/[^0-9]/g,'');
+  if(phone.startsWith('00')) phone = phone.slice(2);
+  if(phone.length===10 && /^(0690|0691|0590|0591)/.test(phone)) phone = '590'+phone.slice(1);
+  if(phone.length < 8){
+    alert("Aucun numéro de téléphone valide n'est enregistré pour ce client. Ajoute son numéro dans la réservation.");
+    return;
+  }
+  const apt = apartments.find(a=>a.id===b.apartmentId);
+  const firstName = String(b.client||'').trim();
+  const lines = [
+    'Bonjour'+(firstName ? ' '+firstName : '')+' !',
+    '',
+    'Nous sommes ravis de vous accueillir prochainement.',
+    'Voici le récapitulatif de votre séjour :',
+    'Logement : '+(apt ? apt.name : '—'),
+    'Arrivée : '+fmtDateShort(b.checkin)+(b.checkinTime ? ' à '+b.checkinTime : ''),
+    'Départ : '+fmtDateShort(b.checkout)+(b.checkoutTime ? ' à '+b.checkoutTime : ''),
+    b.flightNumber ? 'Vol : '+b.flightNumber+(b.flightTime ? ' — arrivée prévue à '+b.flightTime : '') : '',
+    '',
+    'Nous restons à votre disposition si vous avez des questions.',
+    'À bientôt !'
+  ].filter(Boolean);
+  const message = lines.join('\n');
+  const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
+  showConfirm("Ouvrir WhatsApp avec ce message prérempli pour "+(b.client||'ce client')+" ?\n\nAucun message ne sera envoyé automatiquement. Tu pourras le relire et appuyer toi-même sur Envoyer dans WhatsApp.", ()=>{
+    window.open(url,'_blank','noopener,noreferrer');
+  });
+}
+
 function closeDetailModal(){
   document.getElementById('detailBackdrop').hidden = true;
   detailBookingId = null;
@@ -7165,6 +7198,7 @@ function bindEvents(){
   if(syncUrl) setTimeout(flushPendingSync, 250);
 
   document.getElementById('closeDetailXBtn').addEventListener('click', closeDetailModal);
+  document.getElementById('detailWhatsAppBtn').addEventListener('click', prepareBookingWhatsApp);
  document.getElementById('detailEditBtn').addEventListener('click', ()=>{
   if(agendaDetailId){
     const id = agendaDetailId;
