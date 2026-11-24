@@ -3091,15 +3091,21 @@ function answerVoiceQuestion(phrase){
       : 'Aucun'+(isDeparture?' départ ':'e arrivée ')+when+'.';
   }
 
-  // 4) Ménages à faire
+  // 4) Ménages à faire : se baser sur les événements réellement planifiés dans l'Agenda.
   if(/menage/.test(t) && /(rest|faire|prevoir|prevu|quel|combien|y a)/.test(t)){
     const limit = addDaysISO(today,8);
-    const list = bookings.filter(b=> active(b) && b.checkout>=today && b.checkout<limit)
-      .sort((a,b)=> a.checkout.localeCompare(b.checkout));
-    if(!list.length) return 'Aucun ménage à prévoir dans les 7 prochains jours.';
-    return 'Ménages à prévoir (7 prochains jours) : '+list.map(b=>{
-      const urgent = bookings.some(x=> x.id!==b.id && x.apartmentId===b.apartmentId && x.checkin===b.checkout && active(x));
-      return aptLabel(b.apartmentId)+' le '+fmtDateShort(b.checkout)+(urgent?' (arrivée le même jour)':'');
+    const list = (Array.isArray(agendaEvents) ? agendaEvents : [])
+      .filter(ev => ev.category === 'menage' && ev.start_at &&
+        ev.start_at.slice(0,10) >= today && ev.start_at.slice(0,10) < limit)
+      .sort((a,b) => a.start_at.localeCompare(b.start_at));
+    if(!list.length) return 'Aucun ménage planifié dans l’Agenda au cours des 7 prochains jours.';
+    return 'Ménages planifiés dans l’Agenda (7 prochains jours) : '+list.map(ev=>{
+      const apt = apartments.find(a => String(a.id) === String(ev.apartment_id));
+      const date = ev.start_at.slice(0,10);
+      const heure = new Date(ev.start_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      const urgent = bookings.some(b => active(b) &&
+        String(b.apartmentId) === String(ev.apartment_id) && b.checkin === date);
+      return (apt ? apt.name : 'Logement non précisé')+' le '+fmtDateShort(date)+' à '+heure+(urgent?' (arrivée le même jour)':'');
     }).join(' ; ')+'.';
   }
   return null;
