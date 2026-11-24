@@ -2946,6 +2946,7 @@ let voiceRecognition = null;
 let voiceListening = false;
 let voiceBusy = false;
 let voiceSpeaking = false;
+let voiceLastBookingId = null;
 
 function resumeVoiceListening(){
   if(voiceChatOpen && !voiceBusy && !voiceSpeaking && voiceRecognition && !voiceListening){
@@ -3250,6 +3251,26 @@ function answerVoiceQuestion(phrase){
   const MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   const mentioned = apartments.filter(a=> a.name && t.includes(norm(a.name)));
 
+  // Consultation complémentaire du dernier séjour identifié.
+  if(voiceLastBookingId && /consulter|consulte|details|detail|informations|information|fiche|affiche|montre|voir/.test(t)){
+    const previousBooking = bookings.find(b=>String(b.id)===String(voiceLastBookingId));
+    if(!previousBooking){ voiceLastBookingId = null; return "Le séjour retrouvé n'est plus disponible. Redonne-moi le nom du client."; }
+    const b = previousBooking;
+    const status = (STATUSES.find(s=>s.key===b.status)||{}).label || b.status || 'non précisé';
+    const details = ['Client : '+(b.client||'non renseigné'), 'Séjour du '+fmtDateShort(b.checkin)+' au '+fmtDateShort(b.checkout), 'Logement : '+aptLabel(b.apartmentId), 'Statut : '+status];
+    if(b.source) details.push('Origine : '+b.source);
+    if(b.phone) details.push('Téléphone : '+b.phone);
+    if(b.adults!=null) details.push('Adultes : '+b.adults);
+    if(b.children!=null) details.push('Enfants : '+b.children);
+    if(b.babies!=null) details.push('Bébés : '+b.babies);
+    if(b.total!=null) details.push('Montant total : '+fmtEuro(b.total));
+    if(b.pricePerNight!=null) details.push('Prix par nuit : '+fmtEuro(b.pricePerNight));
+    if(b.depositAmount!=null) details.push('Acompte : '+fmtEuro(b.depositAmount));
+    if(b.notes) details.push('Remarques : '+b.notes);
+    if(Array.isArray(b.services) && b.services.length) details.push('Prestations : '+b.services.map(s=>s.label).join(', '));
+    return 'Voici les informations du séjour retrouvé : '+details.join('. ')+'.';
+  }
+
   // 1) Logements libres / disponibles en <mois>
   if(/\b(libres?|disponibles?|dispo|vacants?|vides?)\b/.test(t)){
     let y = ty, m = tm;
@@ -3430,6 +3451,7 @@ function answerVoiceQuestion(phrase){
   if(matchingBookings.length &&
      (/(reservation|reservations|client|sejour|dossier|retrouver|retrouve|chercher|cherche|rechercher|recherche|nom)/.test(t) ||
       matchingBookings.some(b => normalizeSearch(b.client) === spokenSearch))){
+    voiceLastBookingId = matchingBookings.length === 1 ? matchingBookings[0].id : null;
     return matchingBookings.slice(0,8).map(b=>{
       const status = (STATUSES.find(s=>s.key===b.status)||{}).label || b.status || 'statut non précisé';
       const details = [
