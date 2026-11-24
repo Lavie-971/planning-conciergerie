@@ -1578,7 +1578,18 @@ function showErrorBanner(msg){
 
 function showConfirm(message, onYes){
   const backdrop = document.getElementById('confirmBackdrop');
-  document.getElementById('confirmMessage').textContent = message;
+  const modal = backdrop.querySelector('.modal');
+  const content = document.getElementById('confirmMessage');
+  content.textContent = String(message || '').replace(/\\\\n/g, '\\n');
+  content.style.lineHeight = '1.6';
+  content.style.overflowWrap = 'anywhere';
+  if(modal){
+    modal.style.width = 'min(520px, calc(100vw - 28px))';
+    modal.style.maxWidth = '520px';
+    modal.style.maxHeight = 'min(80vh, 680px)';
+    modal.style.overflowY = 'auto';
+  }
+  backdrop.style.zIndex = '10060';
   backdrop.hidden = false;
   const yesBtn = document.getElementById('confirmYesBtn');
   const noBtn = document.getElementById('confirmNoBtn');
