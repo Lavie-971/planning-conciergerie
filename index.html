@@ -2608,9 +2608,17 @@ async function loadData(){
   }
   if(syncUrl){
     try{
-      const [textA,remoteBookings]=await Promise.all([storageGetRaw('apartments'),loadBookingsFromSync()]);
+      const apartmentsDirty=localStorage.getItem(LS_PREFIX+'apartmentsDirty')==='1';
+      const [textA,remoteBookings]=await Promise.all([
+        apartmentsDirty ? Promise.resolve('') : storageGetRaw('apartments'),
+        loadBookingsFromSync()
+      ]);
       if(Array.isArray(remoteBookings)){
-        if(textA&&textA.trim()){
+        if(apartmentsDirty){
+          // Les logements modifiés hors ligne restent prioritaires et seront renvoyés.
+          const localApts=localStorage.getItem(LS_PREFIX+'apartments');
+          if(localApts) apartments=applyApartmentOrder(JSON.parse(localApts));
+        }else if(textA&&textA.trim()){
           apartments=applyApartmentOrder(JSON.parse(textA));
           try{localStorage.setItem(LS_PREFIX+'apartments',JSON.stringify(apartments));}catch(e){}
         }
@@ -2624,8 +2632,9 @@ async function loadData(){
         finalBookings=Array.from(byId.values());
         bookings=finalBookings;
         try{localStorage.setItem(LS_PREFIX+'bookings',JSON.stringify(bookings));}catch(e){}
-        setSyncStatus(ops.length?'syncing':'ok');
+        setSyncStatus(ops.length||apartmentsDirty?'syncing':'ok');
         if(ops.length) schedulePendingSync();
+        if(apartmentsDirty) await saveApartments();
         return true;
       }
       throw new Error('Réponse serveur invalide');
@@ -2636,6 +2645,9 @@ async function loadData(){
 async function saveApartments(){
   // L'ordre du tableau devient une donnée persistante, synchronisée sur tous les appareils.
   stampApartmentOrder(apartments);
+  // Si l'envoi échoue, ce marqueur empêche un rafraîchissement distant d'écraser
+  // les changements locaux avant leur prochaine tentative de synchronisation.
+  try{ localStorage.setItem(LS_PREFIX+'apartmentsDirty','1'); }catch(e){}
   const ok=await storageSetRaw('apartments',JSON.stringify(apartments));
   if(syncUrl && ok){
     // Supprime côté distant les logements qui n'existent plus localement.
@@ -2646,6 +2658,7 @@ async function saveApartments(){
       for(const a of (Array.isArray(remote)?remote:[])){ if(a && a.id && !localIds.has(a.id)) await postSyncPayload({key:'apartments_delete',id:a.id}); }
     }catch(e){ console.error('Nettoyage logements distants',e); }
   }
+  if(ok){ try{ localStorage.removeItem(LS_PREFIX+'apartmentsDirty'); }catch(e){} }
   return ok;
 }
 function saveBookings(){
