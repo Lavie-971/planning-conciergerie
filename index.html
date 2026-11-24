@@ -1538,6 +1538,20 @@ body.printing-doc #printPanel{
 <!-- Custom confirm dialog (replaces window.confirm, which some preview sandboxes silently block) -->
 <div id="printPanel"></div>
 
+<div class="modal-backdrop" id="whatsappChoiceBackdrop" hidden style="z-index:10070;">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head"><h2 style="font-size:16px;">Préparer un message WhatsApp</h2></div>
+    <div class="modal-content" style="display:grid;gap:10px;">
+      <p style="font-size:14px;margin:0;color:var(--ink);">Choisis le message à préparer :</p>
+      <button class="btn" type="button" data-wa-choice="1">1 — Message de bienvenue</button>
+      <button class="btn" type="button" data-wa-choice="2">2 — Rappel, 3 jours avant l’arrivée</button>
+      <button class="btn" type="button" data-wa-choice="3">3 — Remerciement et demande d’avis</button>
+      <button class="btn" type="button" data-wa-choice="0">0 — Activer le programme (bienvenue déjà envoyé)</button>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;"><button class="btn" type="button" id="whatsappChoiceCancel">Annuler</button></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="confirmBackdrop" hidden style="z-index:80;">
   <div class="modal" style="max-width:360px;">
     <div class="modal-head">
@@ -6293,6 +6307,26 @@ function activateBookingWhatsAppWorkflow(b){
   return true;
 }
 
+function showWhatsAppChoiceModal(onChoose){
+  const backdrop=document.getElementById('whatsappChoiceBackdrop');
+  if(!backdrop)return;
+  const close=()=>{
+    backdrop.hidden=true;
+    backdrop.querySelectorAll('[data-wa-choice]').forEach(btn=>btn.onclick=null);
+    const cancel=document.getElementById('whatsappChoiceCancel');
+    if(cancel)cancel.onclick=null;
+  };
+  backdrop.hidden=false;
+  backdrop.querySelectorAll('[data-wa-choice]').forEach(btn=>{
+    btn.onclick=()=>{
+      const choice=btn.getAttribute('data-wa-choice');
+      close();
+      onChoose(choice);
+    };
+  });
+  document.getElementById('whatsappChoiceCancel').onclick=close;
+}
+
 function prepareBookingWhatsApp(choiceOverride){
   // Un clic DOM transmet un événement : il ne doit jamais être interprété comme un choix.
   if(choiceOverride && typeof choiceOverride==='object') choiceOverride=undefined;
@@ -6310,14 +6344,11 @@ function prepareBookingWhatsApp(choiceOverride){
   const lodging = apt ? apt.name : 'votre logement';
   const arrival = fmtDateShort(b.checkin)+(b.checkinTime ? ' à '+b.checkinTime : '');
   const departure = fmtDateShort(b.checkout)+(b.checkoutTime ? ' à '+b.checkoutTime : '');
-  const rawChoice = choiceOverride !== undefined && choiceOverride !== null
-    ? choiceOverride
-    : prompt(
-      "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Remerciement et demande d'avis (ensemble)\\n0 - Activer le programme si le message de bienvenue a déjà été envoyé\\n\\nSaisis 0, 1, 2 ou 3 :",
-      "1"
-    );
-  if(rawChoice===null) return;
-  const enteredChoice = String(rawChoice).trim();
+  if(choiceOverride === undefined || choiceOverride === null){
+    showWhatsAppChoiceModal(choice=>prepareBookingWhatsApp(choice));
+    return;
+  }
+  const enteredChoice = String(choiceOverride).trim();
   // Compatibilité avec les anciens programmes où le remerciement portait le numéro 4.
   const choice = enteredChoice === '4' ? '3' : enteredChoice;
   if(choice==='0'){
@@ -6329,21 +6360,21 @@ function prepareBookingWhatsApp(choiceOverride){
   }
   const templates = {
     "1": [
-      'Bonjour'+(name ? ' '+name : '')+' !','','Nous sommes ravis de vous accueillir prochainement.',
-      'Voici le récapitulatif de votre séjour :','Logement : '+lodging,'Arrivée : '+arrival,'Départ : '+departure,
+      'Bonjour'+(name ? ' '+name : '')+' !','','Nous sommes heureux de vous accueillir prochainement.',
+      'Voici les informations concernant votre séjour :','Logement : '+lodging,'Arrivée : '+arrival,'Départ : '+departure,
       b.flightNumber ? 'Vol : '+b.flightNumber+(b.flightTime ? ' — arrivée prévue à '+b.flightTime : '') : '',
-      '','Nous restons à votre disposition si vous avez des questions.','À bientôt !'
+      '','Si vous avez la moindre question avant votre arrivée, nous restons à votre disposition.','Au plaisir de vous accueillir !'
     ],
     "2": [
-      'Bonjour'+(name ? ' '+name : '')+' !','','Nous vous rappelons que votre arrivée approche.',
+      'Bonjour'+(name ? ' '+name : '')+' !','','Votre arrivée approche ! Voici un petit rappel des informations de votre séjour :',
       'Votre séjour à '+lodging+' commence le '+arrival+'.','Votre départ est prévu le '+departure+'.',
-      'N’hésitez pas à nous contacter si vous avez une question.','À très bientôt !'
+      'Si vous avez besoin d’informations complémentaires, n’hésitez pas à nous contacter.','À très bientôt !'
     ],
     "3": [
       'Bonjour'+(name ? ' '+name : '')+' !','','Merci d’avoir choisi '+lodging+' pour votre séjour.',
-      'Nous espérons que vous avez passé un agréable moment et vous souhaitons un excellent retour.',
-      'Si vous avez quelques instants, pourriez-vous également partager votre avis sur votre expérience ?',
-      'Votre retour nous aide beaucoup. Au plaisir de vous accueillir à nouveau !'
+      'Nous espérons que votre séjour s’est très bien passé et que vous avez fait bon voyage pour votre retour.',
+      'Si vous avez quelques instants, nous serions ravis que vous partagiez votre expérience en laissant un avis.',
+      'Votre retour est précieux et nous aide à nous améliorer. Merci encore, et au plaisir de vous accueillir une prochaine fois !'
     ]
   };
   if(!templates[choice]){
