@@ -1515,7 +1515,7 @@ body.printing-doc #printPanel{
 
 window.addEventListener('error', function(e){
   // Les erreurs génériques provenant d'un script externe (CDN, police, aperçu WhatsApp, etc.)
-  // ne doivent pas faire croire que l'application ou Google Sheets est en panne.
+  // ne doivent pas faire croire que l'application ou le stockage distant est en panne.
   const msg = e && e.message ? String(e.message) : '';
   if(!msg || msg === 'Script error.' || msg === 'Script error') return;
   showErrorBanner(msg);
@@ -1645,7 +1645,7 @@ function generateId(){
 function openSyncModal(){
   document.getElementById('syncPwInput').value = '';
   document.getElementById('syncEmailInput').value = (sbSession() && sbSession().user && sbSession().user.email) || '';
-  const hint=document.getElementById('syncTestHint'); if(hint) hint.textContent='Le test n’écrit aucune réservation : il vérifie uniquement le serveur, Supabase sans modifier tes réservations ni tes logements.';
+  const hint=document.getElementById('syncTestHint'); if(hint) hint.textContent='Le test n’écrit aucune réservation : il vérifie uniquement le serveur, Supabase, sans modifier tes réservations ni tes logements.';
   document.getElementById('syncFormError').style.display = 'none';
   const diag=document.getElementById('syncDiagnostic');
   let lastErr='';
@@ -2488,8 +2488,7 @@ async function storageSetRaw(key, value){
   _savingInProgress = false;
   return ok;
 }
-/* Une seule requête : le script Google relit toute la feuille, retrouve l'index des années,
-   fusionne bookings_<année> pour chacune et renvoie le tableau complet déjà assemblé. */
+/* Une seule lecture Supabase récupère l'ensemble des réservations. */
 async function loadBookingsFromSync(){
   if(!syncUrl) return null;
   try{
@@ -2500,7 +2499,7 @@ async function loadBookingsFromSync(){
     const parsed=JSON.parse(text);
     if(!Array.isArray(parsed)) throw new Error('Réponse réservations invalide');
     return parsed;
-  }catch(e){ console.error('Lecture Google Sheets',e); return null; }
+  }catch(e){ console.error('Lecture Supabase',e); return null; }
 }
 
 function readPendingOps(){
@@ -6851,7 +6850,7 @@ function updateAgendaCleaningFields(){
   if(!Number.isInteger(minutes)||minutes<=0){hint.textContent='La durée du ménage n’est pas renseignée pour ce logement. Ajoute-la dans les paramètres du logement.';return;}
   const date=document.getElementById('agendaStartDate').value;
   const time=document.getElementById('agendaStartTime').value;
-  const m=date.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+  const m=date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if(!m||!time){hint.textContent='Indique la date et l’heure de début pour calculer la fin ('+minutes+' min).';return;}
   const start=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(time.slice(0,2)),Number(time.slice(3,5)));
   const end=new Date(start.getTime()+minutes*60000);
