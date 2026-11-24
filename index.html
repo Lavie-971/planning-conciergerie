@@ -710,7 +710,7 @@ body.printing-doc #printPanel{
      <button id="manageApartmentsBtn">🏠 Logements</button>
 <button id="addBookingBtn" class="primary">+ Réservation</button>
 <button id="agendaBtn" class="primary">📅 Agenda</button>
-      <button id="voiceCommandBtn" class="primary" type="button">🎙️ Commande vocale</button>
+      <button id="voiceCommandBtn" class="primary" type="button">🎙️ Assistant vocal</button>
     </div>
   </header>
 
@@ -2930,37 +2930,144 @@ function renderMiniCalendar(inputId){
     });
   });
 }
-function startVoiceCommand(){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let voiceChatOpen = false;
+let voiceRecognition = null;
+let voiceListening = false;
+let voiceBusy = false;
 
+function voiceChatAddMessage(role, message){
+  const list = document.getElementById('voiceChatMessages');
+  if(!list) return;
+  const bubble = document.createElement('div');
+  bubble.style.cssText = 'max-width:88%;padding:10px 13px;border-radius:14px;white-space:pre-wrap;line-height:1.45;font-size:14px;'+
+    (role === 'user'
+      ? 'align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px;'
+      : 'align-self:flex-start;background:var(--surface-2,var(--line));color:var(--ink);border-bottom-left-radius:4px;');
+  bubble.textContent = String(message || '');
+  list.appendChild(bubble);
+  list.scrollTop = list.scrollHeight;
+}
+
+function voiceNotify(message){
+  if(voiceChatOpen){
+    voiceChatAddMessage('assistant', message);
+    speakAnswer(message);
+  }else{
+    alert(message);
+  }
+}
+
+function openVoiceChat(){
+  let panel = document.getElementById('voiceChatPanel');
+  if(!panel){
+    panel = document.createElement('section');
+    panel.id = 'voiceChatPanel';
+    panel.setAttribute('role','dialog');
+    panel.setAttribute('aria-label','Assistant vocal');
+    panel.style.cssText = 'position:fixed;right:18px;bottom:18px;width:min(420px,calc(100vw - 24px));height:min(620px,calc(100dvh - 36px));z-index:10050;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 50px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden;';
+    panel.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);">'+
+      '<div><strong>🎙️ Assistant vocal</strong><div id="voiceChatStatus" style="font-size:12px;color:var(--ink-faint);margin-top:3px;">Prêt à vous écouter</div></div>'+
+      '<button type="button" id="voiceChatClose" aria-label="Fermer" style="font-size:20px;border:0;background:transparent;color:var(--ink);">✕</button></div>'+
+      '<div id="voiceChatMessages" aria-live="polite" style="flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">'+
+      '<div style="align-self:flex-start;max-width:88%;padding:10px 13px;border-radius:14px;background:var(--surface-2,var(--line));font-size:14px;line-height:1.45;">Bonjour ! Je peux répondre à vos questions sur les réservations, les logements, les revenus et l’Agenda. Vous pouvez parler ou écrire.</div></div>'+
+      '<form id="voiceChatForm" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);">'+
+      '<input id="voiceChatInput" type="text" placeholder="Écrire un message…" autocomplete="off" style="min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--surface);color:var(--ink);">'+
+      '<button type="button" id="voiceChatMic" aria-label="Parler" style="border:0;border-radius:12px;padding:0 13px;background:var(--accent);color:#fff;">🎙️</button>'+
+      '<button type="submit" style="border:0;border-radius:12px;padding:0 14px;background:var(--accent);color:#fff;">➤</button></form>';
+    document.body.appendChild(panel);
+    document.getElementById('voiceChatClose').addEventListener('click', closeVoiceChat);
+    document.getElementById('voiceChatMic').addEventListener('click', startVoiceRecognition);
+    document.getElementById('voiceChatForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const input = document.getElementById('voiceChatInput');
+      const phrase = input.value.trim();
+      if(!phrase || voiceBusy) return;
+      input.value = '';
+      await submitVoicePhrase(phrase);
+    });
+  }
+  panel.hidden = false;
+  voiceChatOpen = true;
+  document.getElementById('voiceChatInput').focus();
+}
+
+function closeVoiceChat(){
+  voiceChatOpen = false;
+  if(voiceRecognition){
+    try{ voiceRecognition.stop(); }catch(e){}
+  }
+  voiceRecognition = null;
+  voiceListening = false;
+  voiceBusy = false;
+  const panel = document.getElementById('voiceChatPanel');
+  if(panel) panel.remove();
+  const button = document.getElementById('voiceCommandBtn');
+  if(button) button.textContent = '🎙️ Assistant vocal';
+}
+
+async function submitVoicePhrase(phrase){
+  if(voiceBusy) return;
+  voiceBusy = true;
+  voiceChatAddMessage('user', phrase);
+  const status = document.getElementById('voiceChatStatus');
+  if(status) status.textContent = 'Réflexion en cours…';
+  try{
+    await interpretVoiceCommandWithAI(phrase);
+  }finally{
+    voiceBusy = false;
+    const currentStatus = document.getElementById('voiceChatStatus');
+    if(currentStatus) currentStatus.textContent = voiceListening ? 'Je vous écoute…' : 'Vous pouvez parler ou écrire';
+    if(voiceChatOpen && voiceRecognition && !voiceListening) startVoiceRecognition();
+  }
+}
+
+function startVoiceRecognition(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition){
-    alert("La reconnaissance vocale n'est pas disponible dans ce navigateur. Essaie avec Google Chrome.");
+    voiceNotify("La reconnaissance vocale n'est pas disponible dans ce navigateur. Vous pouvez toujours écrire votre demande.");
     return;
   }
+  if(voiceListening || voiceBusy) return;
+  if(!voiceRecognition){
+    voiceRecognition = new SpeechRecognition();
+    voiceRecognition.lang = 'fr-FR';
+    voiceRecognition.continuous = false;
+    voiceRecognition.interimResults = false;
+    voiceRecognition.onstart = ()=>{
+      voiceListening = true;
+      const status = document.getElementById('voiceChatStatus');
+      if(status) status.textContent = 'Je vous écoute…';
+      const mic = document.getElementById('voiceChatMic');
+      if(mic) mic.textContent = '🔴';
+      const topButton = document.getElementById('voiceCommandBtn');
+      if(topButton) topButton.textContent = '🎙️ Je t’écoute…';
+    };
+    voiceRecognition.onresult = async event=>{
+      const phrase = event.results && event.results[0] && event.results[0][0]
+        ? event.results[0][0].transcript.trim() : '';
+      if(phrase) await submitVoicePhrase(phrase);
+    };
+    voiceRecognition.onerror = event=>{
+      if(event && event.error !== 'no-speech' && event.error !== 'aborted'){
+        voiceChatAddMessage('assistant',"Je n'ai pas réussi à comprendre. Vous pouvez réessayer ou écrire votre demande.");
+      }
+    };
+    voiceRecognition.onend = ()=>{
+      voiceListening = false;
+      const mic = document.getElementById('voiceChatMic');
+      if(mic) mic.textContent = '🎙️';
+      const topButton = document.getElementById('voiceCommandBtn');
+      if(topButton) topButton.textContent = '🎙️ Assistant vocal';
+      const status = document.getElementById('voiceChatStatus');
+      if(status && !voiceBusy) status.textContent = 'Vous pouvez parler ou écrire';
+    };
+  }
+  try{ voiceRecognition.start(); }catch(e){}
+}
 
-  const recognition = new SpeechRecognition();
-  recognition.lang = 'fr-FR';
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  recognition.onstart = ()=>{
-    document.getElementById('voiceCommandBtn').textContent = '🎙️ Je t’écoute...';
-  };
-
-  recognition.onresult = (event)=>{
-    const phrase = event.results[0][0].transcript;
-    interpretVoiceCommandWithAI(phrase);
-  };
-
-  recognition.onerror = ()=>{
-    alert("Je n'ai pas réussi à comprendre. Réessaie.");
-  };
-
-  recognition.onend = ()=>{
-    document.getElementById('voiceCommandBtn').textContent = '🎙️ Commande vocale';
-  };
-
-  recognition.start();
+function startVoiceCommand(){
+  openVoiceChat();
+  startVoiceRecognition();
 }
   function handleVoiceCommand(phrase){
   const normaliser = texte => texte
@@ -3179,7 +3286,7 @@ function answerVoiceQuestion(phrase){
 
 async function interpretVoiceCommandWithAI(phrase){
   const localAnswer = answerVoiceQuestion(phrase);
-  if(localAnswer){ speakAnswer(localAnswer); alert(localAnswer); return; }
+  if(localAnswer){ voiceNotify(localAnswer); return; }
   try{
     const token = await sbToken();
     const now = new Date();
@@ -3232,7 +3339,7 @@ sources: SOURCES.map(s=>({key:s.key,label:s.label})),
     const result = data.result || {};
 
     if(result.clarification){
-      alert(result.clarification);
+      voiceNotify(result.clarification);
       return;
     }
 if(result.action === 'delete' && result.objectType === 'reservation'){
@@ -3241,7 +3348,7 @@ if(result.action === 'delete' && result.objectType === 'reservation'){
   );
 
   if(!targetBooking){
-    alert('Je ne trouve pas la réservation à supprimer. Précise le nom du client et le logement.');
+    voiceNotify('Je ne trouve pas la réservation à supprimer. Précise le nom du client et le logement.');
     return;
   }
 
@@ -3270,7 +3377,7 @@ if(result.action === 'delete' && result.objectType === 'reservation'){
 
   if(!['create','update','delete'].includes(result.action) ||
    !['reservation','agenda'].includes(result.objectType)){
-      alert('Je ne sais pas encore répondre à ça.\n\nEssaie par exemple :\n• Quels logements sont libres en décembre ?\n• Combien ai-je gagné ce mois-ci ?\n• Quels clients arrivent demain ?\n• Quels ménages restent à faire ?\n\nOu dicte la création, la modification ou la suppression d’une réservation ou d’un rendez-vous.');
+      voiceNotify('Je ne sais pas encore répondre à ça.\n\nEssaie par exemple :\n• Quels logements sont libres en décembre ?\n• Combien ai-je gagné ce mois-ci ?\n• Quels clients arrivent demain ?\n• Quels ménages restent à faire ?\n\nOu dicte la création, la modification ou la suppression d’une réservation ou d’un rendez-vous.');
       return;
     }
     
@@ -3284,7 +3391,7 @@ if(result.objectType === 'agenda'){
 
   if(result.action === 'delete'){
     if(!targetEvent){
-      alert('Je ne trouve pas cet événement dans l’Agenda.');
+      voiceNotify('Je ne trouve pas cet événement dans l’Agenda.');
       return;
     }
 
@@ -3300,7 +3407,7 @@ if(result.objectType === 'agenda'){
   }
 
   if(result.action === 'update' && !targetEvent){
-    alert('Je ne trouve pas l’événement à modifier.');
+    voiceNotify('Je ne trouve pas l’événement à modifier.');
     return;
   }
 
@@ -3319,7 +3426,7 @@ if(result.objectType === 'agenda'){
   if(apartment) fields.push('Logement : ' + apartment.name);
 
   if(!fields.length){
-    alert('Je n’ai reconnu aucune information pour l’Agenda.');
+    voiceNotify('Je n’ai reconnu aucune information pour l’Agenda.');
     return;
   }
 
@@ -3386,7 +3493,7 @@ if(result.action === 'update'){
   );
 
   if(!targetBooking){
-    alert('Je ne trouve pas la réservation à modifier. Précise le client et le logement.');
+    voiceNotify('Je ne trouve pas la réservation à modifier. Précise le client et le logement.');
     return;
   }
 }
@@ -3438,7 +3545,7 @@ if(result.source && SOURCES.some(s=>s.key===result.source)){
   changes.push('Origine : ' + s.label);
 }
     if(!changes.length){
-      alert('Je n’ai reconnu aucun champ à compléter.');
+      voiceNotify('Je n’ai reconnu aucun champ à compléter.');
       return;
     }
 
@@ -3448,7 +3555,7 @@ if(result.source && SOURCES.some(s=>s.key===result.source)){
         if(result.action === 'update' && !bookingIsOpen){
   openEditBooking(targetBooking.id);
 }else if(result.action === 'update' && editingBookingId !== targetBooking.id){
-  alert('Ferme ou enregistre d’abord la réservation actuellement ouverte pour éviter de perdre tes saisies.');
+  voiceNotify('Ferme ou enregistre d’abord la réservation actuellement ouverte pour éviter de perdre tes saisies.');
   return;
 }else if(!bookingIsOpen){
   openNewBookingForCell('', today);
@@ -3536,7 +3643,7 @@ if(result.source && SOURCES.some(s=>s.key===result.source)){
     );
 
   }catch(error){
-    alert('Erreur : ' + error.message);
+    voiceNotify('Erreur : ' + error.message);
   }
 }
 
