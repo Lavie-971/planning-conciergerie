@@ -6360,21 +6360,51 @@ function prepareBookingWhatsApp(choiceOverride){
   }
   const templates = {
     "1": [
-      'Bonjour'+(name ? ' '+name : '')+' !','','Nous sommes heureux de vous accueillir prochainement.',
-      'Voici les informations concernant votre séjour :','Logement : '+lodging,'Arrivée : '+arrival,'Départ : '+departure,
+      'Bonjour'+(name ? ' '+name : '')+' 😊',
+      '',
+      'Toute l’équipe est ravie de vous accueillir prochainement !',
+      'Pour préparer votre arrivée en toute tranquillité, voici le récapitulatif de votre séjour :',
+      '',
+      '🏡  Votre logement',
+      lodging,
+      '',
+      '🗓️  Votre séjour',
+      'Arrivée : '+arrival,
+      'Départ : '+departure,
+      b.flightNumber ? '' : '',
+      b.flightNumber ? '✈️  Votre voyage' : '',
       b.flightNumber ? 'Vol : '+b.flightNumber+(b.flightTime ? ' — arrivée prévue à '+b.flightTime : '') : '',
-      '','Si vous avez la moindre question avant votre arrivée, nous restons à votre disposition.','Au plaisir de vous accueillir !'
+      '',
+      'Si vous avez la moindre question ou besoin d’un renseignement, écrivez-nous : nous serons heureux de vous aider.',
+      '',
+      'Nous vous souhaitons un excellent voyage et avons hâte de vous accueillir ! 🌴',
+      'À très bientôt !'
     ],
     "2": [
-      'Bonjour'+(name ? ' '+name : '')+' !','','Votre arrivée approche ! Voici un petit rappel des informations de votre séjour :',
-      'Votre séjour à '+lodging+' commence le '+arrival+'.','Votre départ est prévu le '+departure+'.',
-      'Si vous avez besoin d’informations complémentaires, n’hésitez pas à nous contacter.','À très bientôt !'
+      'Bonjour'+(name ? ' '+name : '')+' 😊',
+      '',
+      'Votre séjour approche à grands pas ! Nous avons hâte de vous accueillir à '+lodging+'.',
+      '',
+      'Petit rappel pour organiser votre arrivée sereinement :',
+      '',
+      '🗓️  Arrivée : '+arrival,
+      '🧳  Départ : '+departure,
+      '',
+      'Si vous avez une question ou si vous avez besoin d’une précision avant votre venue, n’hésitez surtout pas à nous écrire.',
+      '',
+      'Nous vous souhaitons une belle préparation de voyage et vous disons à très bientôt ! ☀️'
     ],
     "3": [
-      'Bonjour'+(name ? ' '+name : '')+' !','','Merci d’avoir choisi '+lodging+' pour votre séjour.',
-      'Nous espérons que votre séjour s’est très bien passé et que vous avez fait bon voyage pour votre retour.',
-      'Si vous avez quelques instants, nous serions ravis que vous partagiez votre expérience en laissant un avis.',
-      'Votre retour est précieux et nous aide à nous améliorer. Merci encore, et au plaisir de vous accueillir une prochaine fois !'
+      'Bonjour'+(name ? ' '+name : '')+' 😊',
+      '',
+      'Nous espérons que vous êtes bien rentrés et que vous gardez de beaux souvenirs de votre séjour à '+lodging+'.',
+      '',
+      'Un grand merci d’avoir choisi notre logement ! Ce fut un plaisir de vous accueillir. 💛',
+      '',
+      'Si vous avez quelques instants, votre avis nous ferait très plaisir. Votre retour compte beaucoup et aide les prochains voyageurs à faire leur choix.',
+      '',
+      'Encore merci pour votre confiance, et peut-être à une prochaine fois !',
+      'Nous vous souhaitons une très belle continuation. 🌺'
     ]
   };
   if(!templates[choice]){
