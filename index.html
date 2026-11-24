@@ -1067,7 +1067,11 @@ body.printing-doc #printPanel{
         </select>
       </div>
       <div class="field">
-        <label for="newAptPropertyAddress">Adresse du logement</label>
+        <label for="newAptCommune">Commune du logement</label>
+        <select id="newAptCommune">${communeOptionsHtml()}</select>
+      </div>
+      <div class="field">
+        <label for="newAptPropertyAddress">Adresse du logement (facultative)</label>
         <input type="text" id="newAptPropertyAddress" placeholder="ex : 5 impasse des Cocotiers, 97190 Le Gosier">
       </div>
       <div class="field" style="max-width:190px;">
@@ -5212,7 +5216,7 @@ function renderApartmentsList(){
       </div>
       <div class="info">
         <div class="n">${escapeHtml(apt.name)}</div>
-        <div class="o">${escapeHtml(apt.owner||'—')} · commission ${apt.commissionPercent!=null?apt.commissionPercent:20}% · ménage ${apt.cleaningDurationMinutes ? apt.cleaningDurationMinutes+' min' : 'durée à renseigner'}</div>
+        <div class="o">${escapeHtml(apt.owner||'—')} · ${escapeHtml(apt.commune||'Commune à renseigner')} · commission ${apt.commissionPercent!=null?apt.commissionPercent:20}% · ménage ${apt.cleaningDurationMinutes ? apt.cleaningDurationMinutes+' min' : 'durée à renseigner'}</div>
       </div>
       <button data-act="edit" title="Modifier">✎</button>
       <button data-act="delete" title="Supprimer">🗑</button>
@@ -5325,6 +5329,44 @@ function moveApartment(index, dir){
   renderAll();
 }
 
+const GUADELOUPE_COMMUNES = [
+  "Les Abymes",
+  "Anse-Bertrand",
+  "Baie-Mahault",
+  "Baillif",
+  "Basse-Terre",
+  "Bouillante",
+  "Capesterre-Belle-Eau",
+  "Capesterre-de-Marie-Galante",
+  "Deshaies",
+  "La Désirade",
+  "Gourbeyre",
+  "Goyave",
+  "Grand-Bourg",
+  "Le Gosier",
+  "Lamentin",
+  "Morne-à-l'Eau",
+  "Le Moule",
+  "Petit-Bourg",
+  "Petit-Canal",
+  "Pointe-à-Pitre",
+  "Pointe-Noire",
+  "Port-Louis",
+  "Saint-Claude",
+  "Saint-François",
+  "Saint-Louis",
+  "Sainte-Anne",
+  "Sainte-Rose",
+  "Terre-de-Bas",
+  "Terre-de-Haut",
+  "Trois-Rivières",
+  "Vieux-Fort",
+  "Vieux-Habitants"
+];
+function communeOptionsHtml(selected=''){
+  return '<option value="">Choisir une commune</option>'+GUADELOUPE_COMMUNES.map(c=>`<option value="${escapeHtml(c)}" ${selected===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
+}
+
 function startEditApartment(item, id){
   const apt = apartments.find(a=>a.id===id);
   if(!apt) return;
@@ -5340,7 +5382,10 @@ function startEditApartment(item, id){
         <select id="editAptType" style="flex:1;">
           ${typeOptions.map(t=>`<option value="${t}" ${apt.propertyType===t?'selected':''}>${t||'Type de logement'}</option>`).join('')}
         </select>
-        <input type="text" id="editAptPropertyAddress" value="${escapeHtml(apt.propertyAddress||'')}" placeholder="Adresse du logement" style="flex:1;">
+        <select id="editAptCommune" style="flex:1;">${communeOptionsHtml(apt.commune||'')}</select>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="editAptPropertyAddress" value="${escapeHtml(apt.propertyAddress||'')}" placeholder="Adresse du logement (facultative)" style="flex:1;">
       </div>
       <div style="display:flex;gap:6px;">
         <input type="tel" id="editAptOwnerPhone" value="${escapeHtml(apt.ownerPhone||'')}" placeholder="Téléphone propriétaire" style="flex:1;">
@@ -5374,6 +5419,7 @@ function startEditApartment(item, id){
     apt.owner = newOwner;
     apt.commissionPercent = isNaN(newCommission) ? 20 : newCommission;
     apt.propertyType = document.getElementById('editAptType').value;
+    apt.commune = document.getElementById('editAptCommune').value;
     apt.ownerPhone = document.getElementById('editAptOwnerPhone').value.trim();
     apt.ownerEmail = document.getElementById('editAptOwnerEmail').value.trim();
     apt.ownerAddress = document.getElementById('editAptOwnerAddress').value.trim();
@@ -5436,6 +5482,7 @@ async function addApartment(){
   const commissionRaw = parseFloat(document.getElementById('newAptCommission').value);
   const commissionPercent = isNaN(commissionRaw) ? 20 : commissionRaw;
   const propertyType = document.getElementById('newAptType').value;
+  const commune = document.getElementById('newAptCommune').value;
   const ownerPhone = document.getElementById('newAptOwnerPhone').value.trim();
   const ownerEmail = document.getElementById('newAptOwnerEmail').value.trim();
   const ownerAddress = document.getElementById('newAptOwnerAddress').value.trim();
@@ -5449,12 +5496,13 @@ async function addApartment(){
   }
   errEl.style.display = 'none';
   await refreshApartmentsFromRemote();
-  apartments.push({id: generateId(), name, owner, commissionPercent, propertyType, ownerPhone, ownerEmail, ownerAddress, propertyAddress, cleaningDurationMinutes, advances: [], globalServices: [], comment: ''});
+  apartments.push({id: generateId(), name, owner, commissionPercent, propertyType, commune, ownerPhone, ownerEmail, ownerAddress, propertyAddress, cleaningDurationMinutes, advances: [], globalServices: [], comment: ''});
   await saveApartments();
   document.getElementById('newAptName').value = '';
   document.getElementById('newAptOwner').value = '';
   document.getElementById('newAptCommission').value = '20';
   document.getElementById('newAptType').value = '';
+  document.getElementById('newAptCommune').value = '';
   document.getElementById('newAptOwnerPhone').value = '';
   document.getElementById('newAptOwnerEmail').value = '';
   document.getElementById('newAptOwnerAddress').value = '';
