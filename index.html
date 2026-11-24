@@ -3233,10 +3233,10 @@ function answerVoiceQuestion(phrase){
 
   // 2) Gains : « combien j'ai gagné ce mois-ci / le mois dernier / cette année »
   if(/(gagn|rapport|touch|revenus?|chiffre d affaires|benefices?|commissions?)/.test(t) &&
-     /(combien|quel|mois|annee|de janvier|de fevrier|de mars|d avril|de mai|de juin|de juillet|d aout|de septembre|d octobre|de novembre|de decembre|janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|20\\d{2})/.test(t)){
+     /(combien|quel|mois|annee|de janvier|de fevrier|de mars|d avril|de mai|de juin|de juillet|d aout|de septembre|d octobre|de novembre|de decembre|janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|20\d{2})/.test(t)){
     let start, end, label;
     const requestedMonth = MOIS.findIndex(m => new RegExp('\\b'+m+'\\b').test(t));
-    const explicitYear = t.match(/\\b(20\\d{2})\\b/);
+    const explicitYear = t.match(/\b(20\d{2})\b/);
     if(/mois (dernier|precedent)/.test(t)){
       const pm = tm===0 ? 11 : tm-1, py = tm===0 ? ty-1 : ty;
       start = toISO(py,pm,1); end = addDaysISO(start,daysInMonth(py,pm)); label = MOIS_FR[pm]+' '+py;
