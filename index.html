@@ -3263,7 +3263,10 @@ function answerVoiceQuestion(phrase){
         if(b.status!=='annulation') serv += getServicesTotal(b)||0;
       }
     });
-    return 'Pour '+label+' (réservations arrivant sur la période) : commission '+fmtEuro(com)+', prestations '+fmtEuro(serv)+', soit '+fmtEuro(com+serv)+' au total.';
+    apartments.forEach(apt=>{
+      serv += getGlobalServicesTotal(apt,start,end);
+    });
+    return 'Pour '+label+' (réservations arrivant sur la période) : commission '+fmtEuro(com)+', prestations liées aux réservations et services généraux '+fmtEuro(serv)+', soit '+fmtEuro(com+serv)+' au total.';
   }
 
   // 3) Arrivées / départs : demain, aujourd'hui, après-demain
@@ -3296,6 +3299,47 @@ function answerVoiceQuestion(phrase){
       return (apt ? apt.name : 'Logement non précisé')+' le '+fmtDateShort(date)+' à '+heure+(urgent?' (arrivée le même jour)':'');
     }).join(' ; ')+'.';
   }
+  // 5) Informations sur les logements enregistrés
+  if(/\\b(logement|logements|appartement|appartements)\\b/.test(t) &&
+     /(liste|combien|quel|quels|details|information|adresse|capacite|chambre|proprietaire|commission)/.test(t)){
+    if(mentioned.length){
+      return mentioned.map(a=>{
+        const details=[];
+        if(a.propertyType) details.push(a.propertyType);
+        if(a.commune) details.push(a.commune);
+        if(a.bedroomCount!=null) details.push(a.bedroomCount+' chambre(s)');
+        if(a.maxGuests!=null) details.push(a.maxGuests+' voyageur(s) maximum');
+        if(a.commissionPercent!=null) details.push('commission '+a.commissionPercent+' %');
+        if(a.cleaningDurationMinutes) details.push('ménage '+a.cleaningDurationMinutes+' minutes');
+        if(a.propertyAddress) details.push('adresse '+a.propertyAddress);
+        if(a.owner) details.push('propriétaire '+a.owner);
+        return a.name+(details.length?' : '+details.join(', '):' : aucune information complémentaire enregistrée');
+      }).join('. ')+'.';
+    }
+    if(/combien/.test(t)) return 'Tu as '+apartments.length+' logement(s) enregistré(s).';
+    return apartments.length
+      ? 'Logements enregistrés : '+apartments.map(a=>a.name).join(', ')+'.'
+      : 'Aucun logement enregistré.';
+  }
+
+  // 6) Prestations et services enregistrés
+  if(/\\b(prestation|prestations|service|services)\\b/.test(t) &&
+     /(liste|quel|quels|combien|enregistre|facture|effectue)/.test(t)){
+    const items=[];
+    bookings.filter(b=>b.status!=='annulation').forEach(b=>{
+      (b.services||[]).forEach(s=>{
+        if(s && s.label) items.push({label:s.label,price:s.price,apartment:aptLabel(b.apartmentId),date:b.checkin});
+      });
+    });
+    apartments.forEach(a=>(a.globalServices||[]).forEach(s=>{
+      if(s && s.label) items.push({label:s.label,price:s.price,apartment:a.name,date:s.date});
+    }));
+    const filtered=items.filter(x=>!mentioned.length || mentioned.some(a=>a.name===x.apartment));
+    if(!filtered.length) return 'Aucune prestation enregistrée'+(mentioned.length?' pour '+mentioned.map(a=>a.name).join(', '):'')+'.';
+    const total=filtered.reduce((sum,x)=>sum+(Number(x.price)||0),0);
+    return 'Prestations enregistrées : '+filtered.slice(-12).map(x=>x.label+' ('+x.apartment+', '+fmtDateShort(x.date)+', '+fmtEuro(x.price||0)+')').join(' ; ')+'. Total des éléments listés : '+fmtEuro(total)+'.';
+  }
+
   return null;
 }
 
