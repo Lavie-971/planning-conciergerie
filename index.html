@@ -3278,16 +3278,19 @@ function startVoiceCommand(){
   alert("Réservation préremplie. Vérifie les informations puis enregistre-la manuellement.");
 }
   
+
 async function interpretVoiceCommandWithAI(phrase){
   try{
     const token = await sbToken();
-
     const now = new Date();
     const today = [
       now.getFullYear(),
       String(now.getMonth()+1).padStart(2,'0'),
       String(now.getDate()).padStart(2,'0')
     ].join('-');
+
+    const bookingModal = document.getElementById('modalBackdrop');
+    const bookingIsOpen = bookingModal && !bookingModal.hidden;
 
     const response = await fetch(
       SB_URL + '/functions/v1/voice-assistant',
@@ -3301,10 +3304,9 @@ async function interpretVoiceCommandWithAI(phrase){
         body: JSON.stringify({
           phrase,
           today,
-          apartments: apartments.map(a=>({
-            id:a.id,
-            name:a.name
-          })),
+          apartments: apartments.map(a=>({id:a.id,name:a.name})),
+statuses: STATUSES.map(s=>({key:s.key,label:s.label})),
+sources: SOURCES.map(s=>({key:s.key,label:s.label})),
           bookings: bookings.map(b=>({
             id:b.id,
             apartmentId:b.apartmentId,
@@ -3325,20 +3327,17 @@ async function interpretVoiceCommandWithAI(phrase){
     );
 
     const data = await response.json();
+    if(!response.ok) throw new Error(data.error || 'Erreur du service vocal.');
 
-    if(!response.ok){
-      throw new Error(data.error || 'Erreur du service vocal.');
-    }
-
-    const result = data.result;
+    const result = data.result || {};
 
     if(result.clarification){
       alert(result.clarification);
       return;
     }
 
-    if(result.action !== 'create' || result.objectType !== 'reservation'){
-      alert('Pour le moment, seules les nouvelles réservations sont prises en charge.');
+    if(!['create','update'].includes(result.action) || result.objectType !== 'reservation'){
+      alert('Cette commande sera prise en charge dans la prochaine étape.');
       return;
     }
 
@@ -3347,32 +3346,139 @@ async function interpretVoiceCommandWithAI(phrase){
       String(result.apartmentName || '').trim().toLowerCase()
     );
 
-    if(!apartment || !result.client || !result.startDate || !result.endDate){
-      alert('Il manque le logement, le client ou une date. Merci de préciser la demande.');
+    const hasValue = value =>
+      value !== null && value !== undefined && value !== '';
+
+    const changes = [];
+
+    if(apartment) changes.push('Logement : ' + apartment.name);
+    if(hasValue(result.client)) changes.push('Client : ' + result.client);
+    if(hasValue(result.phone)) changes.push('Téléphone : ' + result.phone);
+    if(hasValue(result.startDate)) changes.push('Arrivée : ' + result.startDate);
+    if(hasValue(result.endDate)) changes.push('Départ : ' + result.endDate);
+    if(hasValue(result.adults)) changes.push('Adultes : ' + result.adults);
+    if(hasValue(result.children)) changes.push('Enfants : ' + result.children);
+    if(hasValue(result.babies)) changes.push('Bébés : ' + result.babies);
+    if(hasValue(result.pricePerNight)) changes.push('Prix par nuit : ' + result.pricePerNight);
+    if(hasValue(result.total)) changes.push('Total : ' + result.total);
+    if(hasValue(result.commissionPercent)) changes.push('Commission : ' + result.commissionPercent + '%');
+    if(hasValue(result.commissionAmount)) changes.push('Montant commission : ' + result.commissionAmount);
+    if(hasValue(result.depositAmount)) changes.push('Acompte : ' + result.depositAmount);
+    if(hasValue(result.checkinTime)) changes.push('Heure arrivée : ' + result.checkinTime);
+    if(hasValue(result.checkoutTime)) changes.push('Heure départ : ' + result.checkoutTime);
+    if(hasValue(result.flightNumber)) changes.push('Vol : ' + result.flightNumber);
+    if(hasValue(result.flightTime)) changes.push('Heure du vol : ' + result.flightTime);
+    if(hasValue(result.tenantAddress)) changes.push('Adresse : ' + result.tenantAddress);
+    if(hasValue(result.notes)) changes.push('Remarques : ' + result.notes);
+    if(Array.isArray(result.services) && result.services.length){
+  result.services.forEach(s=>{
+    if(s && s.label){
+      changes.push('Prestation : ' + s.label +
+        (s.price != null ? ' — ' + s.price + ' €' : ''));
+    }
+  });
+}
+    if(hasValue(result.invoice)) changes.push('Facture : ' + (result.invoice ? 'Oui' : 'Non'));
+if(result.status && STATUSES.some(s=>s.key===result.status)){
+  const s = STATUSES.find(s=>s.key===result.status);
+  changes.push('Statut : ' + s.label);
+}
+
+if(result.source && SOURCES.some(s=>s.key===result.source)){
+  const s = SOURCES.find(s=>s.key===result.source);
+  changes.push('Origine : ' + s.label);
+}
+    if(!changes.length){
+      alert('Je n’ai reconnu aucun champ à compléter.');
       return;
     }
 
-    if(result.endDate <= result.startDate){
-      alert('La date de départ doit être après la date d’arrivée.');
-      return;
+    showConfirm(
+      'Appliquer ces informations au formulaire ?\n\n' + changes.join('\n'),
+      ()=>{
+        if(!bookingIsOpen){
+          openNewBookingForCell('', today);
+          document.getElementById('bkApartment').value = '';
+          document.getElementById('bkCheckin').value = '';
+          document.getElementById('bkCheckout').value = '';
+          document.getElementById('bkAdults').value = 0;
+        }
+
+        const setIfPresent = (id,value)=>{
+          if(hasValue(value)) document.getElementById(id).value = value;
+        };
+
+        if(apartment) document.getElementById('bkApartment').value = apartment.id;
+        setIfPresent('bkClient',result.client);
+        setIfPresent('bkPhone',result.phone);
+        if(hasValue(result.startDate)) setIfPresent('bkCheckin',isoToFR(result.startDate));
+        if(hasValue(result.endDate)) setIfPresent('bkCheckout',isoToFR(result.endDate));
+        setIfPresent('bkAdults',result.adults);
+        setIfPresent('bkChildren',result.children);
+        setIfPresent('bkBabies',result.babies);
+        setIfPresent('bkPricePerNight',result.pricePerNight);
+        setIfPresent('bkTotal',result.total);
+        setIfPresent('bkCommissionPercent',result.commissionPercent);
+        setIfPresent('bkCommissionAmount',result.commissionAmount);
+        setIfPresent('bkDeposit',result.depositAmount);
+        setIfPresent('bkCheckinTime',result.checkinTime);
+        setIfPresent('bkCheckoutTime',result.checkoutTime);
+        setIfPresent('bkFlightNumber',result.flightNumber);
+        setIfPresent('bkFlightTime',result.flightTime);
+        setIfPresent('bkTenantAddress',result.tenantAddress);
+        setIfPresent('bkNotes',result.notes);
+if(Array.isArray(result.services) && result.services.length){
+  result.services.forEach(s=>{
+    if(!s || !s.label) return;
+    const existing = currentServices.find(
+      x=>x.label.trim().toLowerCase() === s.label.trim().toLowerCase()
+    );
+    if(existing){
+      if(s.price != null) existing.price = s.price;
+    }else{
+      currentServices.push({
+        label: s.label,
+        price: s.price != null ? s.price : null
+      });
     }
+  });
+  renderServicesRows();
+  updateServicesHint();
+}
+        if(hasValue(result.depositAmount)){
+          document.getElementById('bkTrackDeposit').checked = true;
+          document.getElementById('depositFields').style.display = 'flex';
+        }
+        if(hasValue(result.checkinTime) || hasValue(result.checkoutTime)){
+          document.getElementById('bkTrackTimes').checked = true;
+          document.getElementById('timeFields').style.display = 'flex';
+        }
+        if(hasValue(result.flightNumber) || hasValue(result.flightTime)){
+          document.getElementById('bkTrackFlight').checked = true;
+          document.getElementById('flightFields').style.display = 'flex';
+        }
+        if(hasValue(result.invoice)){
+          document.getElementById('bkInvoice').checked = result.invoice;
+          document.getElementById('invoiceFields').style.display = result.invoice ? '' : 'none';
+        }
+        if(result.status && STATUSES.some(s=>s.key===result.status)){
+  selectedStatus = result.status;
+  renderStatusOptions();
+}
 
-    const message =
-      'Confirmer cette nouvelle réservation ?\n\n' +
-      'Client : ' + result.client + '\n' +
-      'Logement : ' + apartment.name + '\n' +
-      'Arrivée : ' + isoToFR(result.startDate) + '\n' +
-      'Départ : ' + isoToFR(result.endDate);
+if(result.source && SOURCES.some(s=>s.key===result.source)){
+  selectedSource = result.source;
+  renderSourceOptions();
+}
+        if(hasValue(result.total)) priceEditMode = 'total';
+        if(hasValue(result.commissionAmount)) commissionEditMode = 'amount';
 
-    showConfirm(message, ()=>{
-      openNewBookingForCell(apartment.id, result.startDate);
-
-      document.getElementById('bkClient').value = result.client;
-      document.getElementById('bkCheckout').value = isoToFR(result.endDate);
-
-      updateNightsBadge();
-      recalcPriceTotal();
-    });
+        updateBabyReminder();
+        updateNightsBadge();
+        recalcPriceTotal();
+        updateBalanceDisplay();
+      }
+    );
 
   }catch(error){
     alert('Erreur : ' + error.message);
