@@ -6328,7 +6328,7 @@ function prepareBookingWhatsApp(choiceOverride){
     ]
   };
   if(!templates[choice]){
-    alert("Choix invalide. Saisis un chiffre de 1 à 5.");
+    alert("Choix invalide. Saisis un chiffre de 1 à 4.");
     return;
   }
   const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\\n'));
