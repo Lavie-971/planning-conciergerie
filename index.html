@@ -3312,7 +3312,19 @@ function answerVoiceQuestion(phrase){
     return 'Pour '+label+' (réservations arrivant sur la période) : commission '+fmtEuro(com)+', prestations liées aux réservations et services généraux '+fmtEuro(serv)+', soit '+fmtEuro(com+serv)+' au total.';
   }
 
-  // 3) Arrivées / départs : demain, aujourd'hui, après-demain
+  // 3) Prochaines arrivées : les 7 prochains jours
+  if(/\b(arriv\w*)\b/.test(t) && /\b(prochain\w*|a venir|futur\w*|suivant\w*)\b/.test(t)){
+    const limit = addDaysISO(today,8);
+    const list = bookings
+      .filter(b=>active(b) && b.checkin && b.checkin>=today && b.checkin<limit)
+      .sort((a,b)=>a.checkin.localeCompare(b.checkin));
+    if(!list.length) return 'Aucune arrivée prévue au cours des 7 prochains jours.';
+    return 'Prochaines arrivées (7 prochains jours) : '+list.slice(0,12).map(b=>
+      fmtDateShort(b.checkin)+' : '+(b.client||'client sans nom')+' ('+aptLabel(b.apartmentId)+')'
+    ).join(' ; ')+(list.length>12?' ; et '+(list.length-12)+' autre(s) arrivée(s)':'')+'.';
+  }
+
+  // 4) Arrivées / départs : demain, aujourd'hui, après-demain
   if(/\b(arriv\w*|depart\w*)\b/.test(t) && /(demain|aujourd)/.test(t)){
     const isDeparture = /depart/.test(t) && !/arriv/.test(t);
     const after = /apres.?demain/.test(t), tomorrow = /demain/.test(t);
@@ -3325,7 +3337,26 @@ function answerVoiceQuestion(phrase){
       : 'Aucun'+(isDeparture?' départ ':'e arrivée ')+when+'.';
   }
 
-  // 4) Ménages à faire : se baser sur les événements réellement planifiés dans l'Agenda.
+  // 5) Consultation de l'Agenda à une date précise
+  if(/\b(agenda|calendrier|evenement|evenements|planning)\b/.test(t) &&
+     /\b(demain|aujourd|apres.?demain)\b/.test(t)){
+    const day = /apres.?demain/.test(t) ? addDaysISO(today,2) :
+      /demain/.test(t) ? addDaysISO(today,1) : today;
+    const when = /apres.?demain/.test(t) ? 'après-demain' :
+      /demain/.test(t) ? 'demain' : 'aujourd’hui';
+    const list = (Array.isArray(agendaEvents) ? agendaEvents : [])
+      .filter(ev=>ev.start_at && ev.start_at.slice(0,10)===day)
+      .sort((a,b)=>a.start_at.localeCompare(b.start_at));
+    if(!list.length) return 'Aucun événement prévu dans l’Agenda '+when+'.';
+    return 'Agenda '+when+' ('+fmtDateShort(day)+') : '+list.map(ev=>{
+      const apt = apartments.find(a=>String(a.id)===String(ev.apartment_id));
+      const time = new Date(ev.start_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      return time+' : '+(ev.title||ev.category||'Événement')+
+        (apt?' ('+apt.name+')':ev.location?' ('+ev.location+')':'');
+    }).join(' ; ')+'.';
+  }
+
+  // 6) Ménages à faire : se baser sur les événements réellement planifiés dans l'Agenda.
   if(/menage/.test(t) && /(rest|faire|prevoir|prevu|quel|combien|y a)/.test(t)){
     const limit = addDaysISO(today,8);
     const list = (Array.isArray(agendaEvents) ? agendaEvents : [])
