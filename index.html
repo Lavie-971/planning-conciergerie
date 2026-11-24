@@ -680,6 +680,7 @@ body.printing-doc #printPanel{
 <div id="accountGate" role="status" aria-live="polite">
   <div class="gate-spin"></div>
   <div style="font-weight:600;color:var(--ink);">Vérification de votre compte…</div>
+  <div id="gateStage" style="font-size:12px;color:var(--ink-faint);margin-top:6px;">Démarrage de l’application…</div>
   <div id="gateSlow" hidden style="font-size:13px;max-width:280px;">Cela prend plus de temps que prévu. Vérifiez votre connexion Internet.<br><button type="button" class="btn" style="margin-top:10px;" onclick="location.reload()">Recharger la page</button></div>
 </div>
 <script>setTimeout(function(){var g=document.getElementById('accountGate'),m=document.getElementById('gateSlow');if(g&&!g.hidden&&m)m.hidden=false;},15000);</script>
@@ -1934,6 +1935,7 @@ function setAppAccessVisible(visible){
 }
 function showAccountGate(){ const g=document.getElementById('accountGate'); if(g) g.hidden=false; setAppAccessVisible(false); }
 function hideAccountGate(){ const g=document.getElementById('accountGate'); if(g) g.hidden=true; }
+function setAccountGateStage(message){ const el=document.getElementById('gateStage'); if(el) el.textContent=message; }
 function approvedCacheKey(uid){ return 'conciergerie_approved_'+uid; }
 async function sbAfterLogin(){
   const s=sbSession();
@@ -1942,6 +1944,7 @@ async function sbAfterLogin(){
   // Le contenu reste masqué tant que le statut du compte n'est pas connu.
   accountApproved=false;
   showAccountGate();
+  setAccountGateStage('Vérification de votre autorisation…');
   setAccountScope(userId);
   syncUrl=SB_URL; _syncWriteUrl=null;
   // Ne jamais réutiliser les données en mémoire de l'utilisateur précédent.
@@ -1972,9 +1975,13 @@ async function sbAfterLogin(){
     if(accessScreen) accessScreen.remove();
     if(profile.role==='admin') addAdminUsersButton();
     else { const adminButton=document.getElementById('adminUsersFloatingButton'); if(adminButton) adminButton.remove(); }
+    setAccountGateStage('Chargement des logements et réservations…');
     await loadData();
+    setAccountGateStage('Chargement des préférences de l’agenda…');
     await loadAgendaColors();
+    setAccountGateStage('Synchronisation de l’agenda…');
     await syncAgendaPending();
+    setAccountGateStage('Finalisation de l’affichage…');
     renderAll();
     setAppAccessVisible(true);
     hideAccountGate();
