@@ -3373,6 +3373,29 @@ function answerVoiceQuestion(phrase){
       return (apt ? apt.name : 'Logement non précisé')+' le '+fmtDateShort(date)+' à '+heure+(urgent?' (arrivée le même jour)':'');
     }).join(' ; ')+'.';
   }
+  // Recherche directe d'une réservation à partir du nom du client.
+  const matchingBookings = bookings.filter(b => {
+    const client = norm(b.client);
+    return client && client.length >= 2 && t.includes(client);
+  });
+  if(matchingBookings.length &&
+     (/(reservation|reservations|client|sejour|dossier|retrouver|chercher|rechercher)/.test(t) ||
+      matchingBookings.some(b => norm(b.client) === t.trim()))){
+    return matchingBookings.slice(0,8).map(b=>{
+      const status = (STATUSES.find(s=>s.key===b.status)||{}).label || b.status || 'statut non précisé';
+      const details = [
+        'séjour du '+fmtDateShort(b.checkin)+' au '+fmtDateShort(b.checkout),
+        aptLabel(b.apartmentId),
+        'statut '+status
+      ];
+      if(b.source) details.push('source '+b.source);
+      if(b.total!=null) details.push('montant '+fmtEuro(b.total));
+      if(b.adults!=null) details.push(b.adults+' adulte(s)');
+      if(b.children!=null && b.children>0) details.push(b.children+' enfant(s)');
+      return (b.client||'Client sans nom')+' : '+details.join(', ');
+    }).join('. ')+(matchingBookings.length>8?' ; autres résultats non affichés':'')+'.';
+  }
+
   // 5) Informations sur les logements enregistrés
   if(/\b(logement|logements|appartement|appartements)\b/.test(t)){
     if(mentioned.length){
