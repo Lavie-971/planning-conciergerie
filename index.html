@@ -3377,10 +3377,10 @@ function answerVoiceQuestion(phrase){
   const normalizeSearch = value => String(value||'')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\\u0300-\\u036f]/g,'')
+    .replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-z0-9]+/g,' ')
     .trim()
-    .replace(/\\s+/g,' ');
+    .replace(/\s+/g,' ');
   const spokenSearch = normalizeSearch(phrase);
   const matchingBookings = bookings.filter(b => {
     const client = normalizeSearch(b.client);
