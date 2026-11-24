@@ -6411,19 +6411,18 @@ function prepareBookingWhatsApp(choiceOverride){
   }
   const message = templates[choice].filter(line=>line!==null&&line!==undefined).join('\n');
   const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
-  // L'action de choisir le message suffit pour ouvrir WhatsApp : une seule confirmation suit l'envoi.
+  // Ouvre WhatsApp sans afficher de fenêtre de confirmation dans Planning.
   window.open(url,'_blank','noopener,noreferrer');
-  showConfirm("As-tu envoyé ce message dans WhatsApp ?",()=>{
-    if(choice==='1'){
-      activateBookingWhatsAppWorkflow(b);
-    }else{
-      const key=choice==='2'?'reminder':choice==='3'?'afterStay':null;
-      if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
-        b.whatsappWorkflow.steps[key].sentAt=new Date().toISOString();
-        saveBookingWhatsAppWorkflow(b,b.whatsappWorkflow);
-      }
+  // Le clic sur la préparation déclenche le suivi : l'envoi final reste manuel dans WhatsApp.
+  if(choice==='1'){
+    activateBookingWhatsAppWorkflow(b);
+  }else{
+    const key=choice==='2'?'reminder':choice==='3'?'afterStay':null;
+    if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
+      b.whatsappWorkflow.steps[key].sentAt=new Date().toISOString();
+      saveBookingWhatsAppWorkflow(b,b.whatsappWorkflow);
     }
-  });
+  }
 }
 
 function saveBookingWhatsAppWorkflow(booking,workflow){
