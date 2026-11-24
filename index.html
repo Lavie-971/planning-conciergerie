@@ -1580,7 +1580,7 @@ function showConfirm(message, onYes){
   const backdrop = document.getElementById('confirmBackdrop');
   const modal = backdrop.querySelector('.modal');
   const content = document.getElementById('confirmMessage');
-  content.textContent = String(message || '').replace(/\\\\n/g, '\\n');
+  content.textContent = String(message || '').replace(/\\n/g, '\n');
   content.style.lineHeight = '1.6';
   content.style.overflowWrap = 'anywhere';
   if(modal){
