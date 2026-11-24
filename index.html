@@ -1735,7 +1735,7 @@ function sbLogout(){ sbSetSession(null); }
 async function sbAuthRequest(grant, body){
   let r;
   try{
-    r=await fetch(SB_URL+'/auth/v1/token?grant_type='+grant,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    r=await fetch(SB_URL+'/auth/v1/token?grant_type='+grant,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
   }catch(e){ const off=new Error('Connexion impossible : vérifie ta connexion Internet.'); off.offline=true; throw off; }
   let j=null; try{ j=await r.json(); }catch(e){}
   if(!r.ok || !j || !j.access_token){
@@ -1793,7 +1793,7 @@ async function sbRest(method, path, body, extra){
   }
   let r;
   try{
-    r=await fetch(SB_URL+'/rest/v1/'+path,{method:method,headers:Object.assign({'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},extra||{}),body:body==null?undefined:JSON.stringify(body)});
+    r=await fetch(SB_URL+'/rest/v1/'+path,{method:method,headers:Object.assign({'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},extra||{}),body:body==null?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
   }catch(e){ const off=new Error('Hors ligne.'); off.offline=true; throw off; }
   if(r.status===401){ const e=new Error('Session expirée.'); e.auth=true; throw e; }
   const txt=await r.text();
