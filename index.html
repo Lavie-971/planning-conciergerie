@@ -504,7 +504,16 @@ tbody tr:hover{background:var(--accent-soft);}
 .divider{border:none;border-top:1px solid var(--line);margin:16px 0;}
 .field-error{color:var(--st-annulation);font-size:12.5px;margin:-6px 0 12px;font-weight:500;}
 .apt-edit-row{display:flex;gap:8px;flex:1;align-items:center;}
-.apt-edit-row input{flex:1;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13px;}
+.apt-edit-row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13px;}
+.apt-list-item.apt-editing{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;box-sizing:border-box;}
+.apt-list-item.apt-editing .apt-edit-row{width:100%;min-width:0;box-sizing:border-box;}
+.apt-list-item.apt-editing .apt-edit-row>div{width:100%;min-width:0;box-sizing:border-box;}
+.apt-list-item.apt-editing .apt-edit-row input,
+.apt-list-item.apt-editing .apt-edit-row select{min-width:0;box-sizing:border-box;}
+.apt-edit-actions{display:flex;justify-content:flex-end;gap:10px;width:100%;padding:4px 0;box-sizing:border-box;}
+.apt-list-item.apt-editing .apt-edit-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:38px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);font-size:13px;font-weight:600;cursor:pointer;}
+.apt-list-item.apt-editing .apt-edit-actions button[data-act="save"]{background:var(--accent);border-color:var(--accent);color:#fff;}
+.apt-list-item.apt-editing .apt-edit-actions button:disabled{opacity:.6;cursor:wait;}
 
 @media (max-width:900px){
   #app{padding:16px 14px 50px;}
@@ -5321,9 +5330,12 @@ function startEditApartment(item, id){
         <input type="number" id="editAptCleaningDuration" value="${apt.cleaningDurationMinutes!=null?escapeHtml(apt.cleaningDurationMinutes):''}" min="1" step="1" placeholder="Durée ménage (min)" style="max-width:170px;">
       </div>
     </div>
-    <button data-act="save" title="Enregistrer">✔</button>
-    <button data-act="cancel" title="Annuler">✕</button>
+    <div class="apt-edit-actions">
+      <button data-act="save" type="button" title="Enregistrer">✔ Enregistrer</button>
+      <button data-act="cancel" type="button" title="Annuler">✕ Annuler</button>
+    </div>
   `;
+  item.classList.add('apt-editing');
   attachPhoneMask(document.getElementById('editAptOwnerPhone'));
   item.querySelector('[data-act=save]').addEventListener('click', async ()=>{
     const newName = document.getElementById('editAptName').value.trim();
