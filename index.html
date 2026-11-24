@@ -578,6 +578,18 @@ tbody tr:hover{background:var(--accent-soft);}
 
 table{min-width:760px;}
 
+/* Sur mobile, les tableaux défilent dans leur propre zone sans élargir toute la page. */
+@media (max-width:720px){
+  table{
+    display:block;
+    width:100%;
+    max-width:100%;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+
 /* ===== v31 : vérification de compte + confort mobile ===== */
 #accountGate{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px;text-align:center;color:var(--ink-soft);}
 #accountGate[hidden]{display:none;}
