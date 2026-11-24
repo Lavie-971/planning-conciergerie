@@ -683,6 +683,7 @@ body.printing-doc #printPanel{
   <div id="gateStage" style="font-size:12px;color:var(--ink-faint);margin-top:6px;">Démarrage de l’application…</div>
   <div id="gateSlow" hidden style="font-size:13px;max-width:280px;">Cela prend plus de temps que prévu. Vérifiez votre connexion Internet.<br><button type="button" class="btn" style="margin-top:10px;" onclick="location.reload()">Recharger la page</button></div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/libphonenumber-js@1.11.20/bundle/libphonenumber-min.js"></script>
 <script>
 (function(){
   function stage(message){var el=document.getElementById('gateStage');if(el)el.textContent=message;}
