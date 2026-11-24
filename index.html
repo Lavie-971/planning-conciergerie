@@ -3382,9 +3382,48 @@ function answerVoiceQuestion(phrase){
     .trim()
     .replace(/\s+/g,' ');
   const spokenSearch = normalizeSearch(phrase);
+  const ignoredNameWords = new Set([
+    'retrouve','retrouver','cherche','chercher','recherche','rechercher',
+    'reservation','reservations','client','clients','sejour','sejours',
+    'nom','de','du','des','la','le','les','un','une','pour','sur',
+    'madame','monsieur','mme','m','mr','mlle'
+  ]);
+  const spokenNameWords = spokenSearch.split(' ').filter(w =>
+    w.length >= 3 && !ignoredNameWords.has(w)
+  );
+  const editDistance = (a,b) => {
+    const previous = Array.from({length:b.length+1},(_,i)=>i);
+    for(let i=1;i<=a.length;i++){
+      let diagonal = previous[0];
+      previous[0] = i;
+      for(let j=1;j<=b.length;j++){
+        const above = previous[j];
+        previous[j] = Math.min(
+          previous[j]+1,
+          previous[j-1]+1,
+          diagonal+(a[i-1]===b[j-1]?0:1)
+        );
+        diagonal = above;
+      }
+    }
+    return previous[b.length];
+  };
+  const nameTokenMatches = (nameToken, spokenToken) => {
+    if(nameToken === spokenToken) return true;
+    const longest = Math.max(nameToken.length,spokenToken.length);
+    if(longest < 4) return false;
+    const distance = editDistance(nameToken,spokenToken);
+    const allowed = longest >= 8 ? 2 : 1;
+    return distance <= allowed && (1-distance/longest) >= 0.75;
+  };
   const matchingBookings = bookings.filter(b => {
     const client = normalizeSearch(b.client);
-    return client.length >= 2 && spokenSearch.includes(client);
+    if(!client) return false;
+    if(spokenSearch.includes(client)) return true;
+    const clientWords = client.split(' ').filter(w=>w.length>=3 && !ignoredNameWords.has(w));
+    return clientWords.some(nameWord =>
+      spokenNameWords.some(spokenWord=>nameTokenMatches(nameWord,spokenWord))
+    );
   });
   if(matchingBookings.length &&
      (/(reservation|reservations|client|sejour|dossier|retrouver|retrouve|chercher|cherche|rechercher|recherche|nom)/.test(t) ||
