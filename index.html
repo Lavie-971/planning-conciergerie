@@ -3374,8 +3374,7 @@ function answerVoiceQuestion(phrase){
     }).join(' ; ')+'.';
   }
   // 5) Informations sur les logements enregistrés
-  if(/\b(logement|logements|appartement|appartements)\b/.test(t) &&
-     /(liste|combien|quel|quels|details|information|adresse|capacite|chambre|proprietaire|commission)/.test(t)){
+  if(/\b(logement|logements|appartement|appartements)\b/.test(t)){
     if(mentioned.length){
       return mentioned.map(a=>{
         const details=[];
@@ -3397,8 +3396,7 @@ function answerVoiceQuestion(phrase){
   }
 
   // 6) Prestations et services enregistrés
-  if(/\b(prestation|prestations|service|services)\b/.test(t) &&
-     /(liste|quel|quels|combien|enregistre|facture|effectue)/.test(t)){
+  if(/\b(prestation|prestations|service|services)\b/.test(t)){
     const items=[];
     bookings.filter(b=>b.status!=='annulation').forEach(b=>{
       (b.services||[]).forEach(s=>{
