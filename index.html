@@ -6287,7 +6287,6 @@ function activateBookingWhatsAppWorkflow(b){
   if(!b || b.whatsappWorkflow)return false;
   const workflow={activatedAt:new Date().toISOString(),welcomeSentAt:new Date().toISOString(),steps:{
     reminder:{dueDate:addDaysISO(b.checkin,-3),template:'2',sentAt:null,promptedDate:null},
-    departure:{dueDate:b.checkout,template:'3',sentAt:null,promptedDate:null},
     afterStay:{dueDate:addDaysISO(b.checkout,1),template:'4',sentAt:null,promptedDate:null}
   }};
   saveBookingWhatsAppWorkflow(b,workflow);
@@ -6310,7 +6309,7 @@ function prepareBookingWhatsApp(choiceOverride){
   const arrival = fmtDateShort(b.checkin)+(b.checkinTime ? ' à '+b.checkinTime : '');
   const departure = fmtDateShort(b.checkout)+(b.checkoutTime ? ' à '+b.checkoutTime : '');
   const choice = choiceOverride || prompt(
-    "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Informations le jour du départ\\n4 - Remerciement et demande d'avis (ensemble)\\n0 - Activer le programme si le message de bienvenue a déjà été envoyé\\n\\nSaisis un chiffre de 0 à 4 :",
+    "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Remerciement et demande d'avis (ensemble)\\n0 - Activer le programme si le message de bienvenue a déjà été envoyé\\n\\nSaisis 0, 1, 2 ou 3 :",
     "1"
   );
   if(choice===null) return;
@@ -6334,11 +6333,6 @@ function prepareBookingWhatsApp(choiceOverride){
       'N’hésitez pas à nous contacter si vous avez une question.','À très bientôt !'
     ],
     "3": [
-      'Bonjour'+(name ? ' '+name : '')+' !','','Nous espérons que votre séjour à '+lodging+' s’est bien passé.',
-      'Pour votre départ prévu le '+departure+', merci de nous confirmer si nécessaire l’heure à laquelle vous pensez quitter le logement.',
-      'Bon retour et merci !'
-    ],
-    "4": [
       'Bonjour'+(name ? ' '+name : '')+' !','','Merci d’avoir choisi '+lodging+' pour votre séjour.',
       'Nous espérons que vous avez passé un agréable moment et vous souhaitons un excellent retour.',
       'Si vous avez quelques instants, pourriez-vous également partager votre avis sur votre expérience ?',
@@ -6346,7 +6340,7 @@ function prepareBookingWhatsApp(choiceOverride){
     ]
   };
   if(!templates[choice]){
-    alert("Choix invalide. Saisis un chiffre de 0 à 4.");
+    alert("Choix invalide. Saisis 0, 1, 2 ou 3.");
     return;
   }
   const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\\n'));
@@ -6356,9 +6350,9 @@ function prepareBookingWhatsApp(choiceOverride){
     window.open(url,'_blank','noopener,noreferrer');
     showConfirm("As-tu bien envoyé ce message dans WhatsApp ? Le programme ne sera activé ou mis à jour qu’après ta confirmation.",()=>{
       if(choice==='1'){
-        if(activateBookingWhatsAppWorkflow(b)) alert("Programme activé : rappel 3 jours avant l’arrivée, informations le jour du départ, puis remerciement et demande d’avis ensemble le lendemain du départ. Chaque envoi restera manuel.");
+        if(activateBookingWhatsAppWorkflow(b)) alert("Programme activé : rappel 3 jours avant l’arrivée, puis remerciement et demande d’avis ensemble le lendemain du départ. Chaque envoi restera manuel.");
       }else{
-        const key=choice==='2'?'reminder':choice==='3'?'departure':choice==='4'?'afterStay':null;
+        const key=choice==='2'?'reminder':choice==='3'?'afterStay':null;
         if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
           b.whatsappWorkflow.steps[key].sentAt=new Date().toISOString();
           saveBookingWhatsAppWorkflow(b,b.whatsappWorkflow);
@@ -6383,12 +6377,12 @@ function checkWhatsAppSchedules(){
   for(const booking of bookings){
     const steps=booking&&booking.whatsappWorkflow&&booking.whatsappWorkflow.steps;
     if(!steps)continue;
-    for(const key of ['reminder','departure','afterStay']){
+    for(const key of ['reminder','afterStay']){
       const step=steps[key];
       if(!step||step.sentAt||!step.dueDate||step.dueDate>today||step.promptedDate===today)continue;
       step.promptedDate=today;
       saveBookingWhatsAppWorkflow(booking,booking.whatsappWorkflow);
-      const labels={reminder:"Rappel avant l’arrivée",departure:"Informations de départ",afterStay:"Remerciement et demande d’avis"};
+      const labels={reminder:"Rappel avant l’arrivée",afterStay:"Remerciement et demande d’avis"};
       _whatsappSchedulePromptOpen=true;
       showConfirm("Message WhatsApp programmé à préparer pour "+(booking.client||'ce client')+" : "+labels[key]+".\\n\\nSouhaites-tu le préparer maintenant ? Aucun envoi ne sera effectué automatiquement.",()=>{
         _whatsappSchedulePromptOpen=false;
