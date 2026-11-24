@@ -2672,18 +2672,27 @@ async function loadData(){
 async function saveApartments(){
   // L'ordre du tableau devient une donnée persistante, synchronisée sur tous les appareils.
   stampApartmentOrder(apartments);
-  // Si l'envoi échoue, ce marqueur empêche un rafraîchissement distant d'écraser
-  // les changements locaux avant leur prochaine tentative de synchronisation.
+  // Le marqueur reste présent tant que l'envoi ET le nettoyage distant ne sont pas terminés.
   try{ localStorage.setItem(LS_PREFIX+'apartmentsDirty','1'); }catch(e){}
-  const ok=await storageSetRaw('apartments',JSON.stringify(apartments));
+  let ok=await storageSetRaw('apartments',JSON.stringify(apartments));
   if(syncUrl && ok){
-    // Supprime côté distant les logements qui n'existent plus localement.
     try{
-      const raw=await storageGetRaw('apartments');
-      const remote=raw?JSON.parse(raw):[];
-      const localIds=new Set(apartments.map(a=>a.id));
-      for(const a of (Array.isArray(remote)?remote:[])){ if(a && a.id && !localIds.has(a.id)) await postSyncPayload({key:'apartments_delete',id:a.id}); }
-    }catch(e){ console.error('Nettoyage logements distants',e); }
+      // Une lecture stricte évite de prendre une erreur réseau pour une liste distante vide.
+      const raw=await readRemoteKeyStrict('apartments');
+      const remote=raw.trim()?JSON.parse(raw):[];
+      if(!Array.isArray(remote)) throw new Error('Liste distante des logements invalide.');
+      const localIds=new Set(apartments.map(a=>String(a.id)));
+      for(const a of remote){
+        if(a && a.id && !localIds.has(String(a.id))){
+          await postSyncPayload({key:'apartments_delete',id:a.id});
+        }
+      }
+    }catch(e){
+      ok=false;
+      setSyncStatus('error');
+      recordSyncError(e);
+      console.error('Nettoyage logements distants reporté',e);
+    }
   }
   if(ok){ try{ localStorage.removeItem(LS_PREFIX+'apartmentsDirty'); }catch(e){} }
   return ok;
