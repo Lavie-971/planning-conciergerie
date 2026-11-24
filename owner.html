@@ -1,0 +1,526 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace propriétaire — Conciergerie</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f4f1;color:#293b35;font-family:Arial,sans-serif;line-height:1.5}
+header{background:#fff;padding:27px 18px;text-align:center;border-bottom:1px solid #e1e7e2}
+h1{font-family:Georgia,serif;font-style:italic;color:#37695a;font-weight:normal;margin:0;font-size:29px}
+header p{font-size:13px;color:#89948d;margin:7px 0 0}
+main{max-width:1100px;margin:28px auto;padding:0 16px 45px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.small{font-size:12px;color:#89948d}
+select,button{padding:10px 14px;border:1px solid #d6dfd8;border-radius:8px;background:white;color:#40544b;font-size:14px}
+button{background:#37695a;color:white;border:0;cursor:pointer}
+button:hover{background:#285344}
+.intro{background:white;border:1px solid #e1e7e2;border-radius:13px;padding:21px;margin-bottom:15px}
+.intro h2{font-family:Georgia,serif;font-weight:normal;color:#37695a;margin:0 0 5px;font-size:23px}
+.address{font-size:13px;color:#89948d;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:15px 0 20px}
+.kpi{background:white;border:1px solid #e1e7e2;border-radius:12px;padding:17px;min-width:0}
+.kpi-label{font-size:11px;color:#89948d;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.kpi-value{font-size:22px;font-weight:bold;color:#315e50;overflow-wrap:anywhere}
+.kpi-note{font-size:11px;color:#a0aaa3;margin-top:5px}
+.section-title{font-family:Georgia,serif;font-weight:normal;color:#37695a;font-size:22px;margin:28px 0 13px}
+.panel{background:white;border:1px solid #e1e7e2;border-radius:12px;padding:19px;margin-bottom:16px}
+.panel h3{font-family:Georgia,serif;font-weight:normal;color:#37695a;margin:0 0 15px;font-size:19px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:570px}
+th,td{text-align:left;padding:11px 9px;border-bottom:1px solid #edf0ed}
+th{color:#668273;font-weight:600;background:#f7f9f7}
+td.num,th.num{text-align:right;white-space:nowrap}
+.month-name{font-weight:bold;color:#40584c}
+.month-bar{height:6px;background:#edf0ed;border-radius:8px;overflow:hidden;margin-top:6px;min-width:65px}
+.month-bar span{display:block;height:100%;background:#82a995;border-radius:8px}
+.total-row{font-weight:bold;background:#f7f9f7}
+details{background:white;border:1px solid #e1e7e2;border-radius:11px;margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;padding:15px 17px;display:flex;justify-content:space-between;gap:12px;align-items:center;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"＋";color:#37695a;font-size:18px}
+details[open] summary:after{content:"−"}
+.summary-title{font-weight:bold;color:#40584c}
+.summary-sub{font-size:12px;color:#89948d;margin-top:4px}
+.booking-list{padding:0 16px 14px}
+.booking{border-top:1px solid #edf0ed;padding:14px 2px;display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:12px;align-items:center;font-size:13px}
+.booking-label{font-size:10px;color:#89948d;margin-bottom:4px;text-transform:uppercase}
+.booking-value{color:#40544b}
+.booking-total{font-weight:bold;text-align:right;white-space:nowrap}
+.booking-net{color:#37695a;font-weight:bold}
+.status{display:inline-block;padding:4px 9px;border-radius:20px;background:#edf4ef;color:#48715c;font-size:11px}
+.warning{background:#fff8e9;border:1px solid #ead9ac;border-radius:9px;padding:12px 14px;color:#77643b;font-size:12px;margin:14px 0}
+.empty{padding:20px;text-align:center;color:#89948d;font-size:13px}
+.footer{text-align:center;font-size:11px;color:#a0aaa3;margin-top:28px}
+@media(max-width:760px){
+ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .kpi-value{font-size:19px}
+ .booking{grid-template-columns:1fr 1fr}
+ .booking-total{text-align:left}
+}
+@media(max-width:420px){
+ main{padding-left:10px;padding-right:10px}
+ .kpi{padding:13px}
+ .kpi-value{font-size:17px}
+ .intro,.panel{padding:14px}
+}
+@media print{
+ body{background:white}
+ header{padding:12px}
+ main{max-width:none;margin:12px auto;padding:0}
+ .toolbar button,.toolbar select{display:none}
+ .panel,.intro,.kpi,details{break-inside:avoid;box-shadow:none}
+ details:not([open]) .booking-list{display:block}
+ summary:after{display:none}
+ .footer{margin-top:15px}
+}
+</style>
+</head>
+<body>
+<header>
+<h1>Espace propriétaire</h1>
+<p>Suivi de votre logement et de vos revenus locatifs</p>
+</header>
+
+<main>
+<div class="toolbar">
+<span class="small">Votre espace personnel et confidentiel</span>
+<div style="display:flex;gap:8px;align-items:center">
+<select id="year" aria-label="Choisir l'année"></select>
+<button id="printBtn" type="button">Imprimer le bilan</button>
+</div>
+</div>
+
+<div id="message">Chargement de votre espace…</div>
+<div id="dashboard"></div>
+<div class="footer">Espace privé de consultation — Données transmises par votre gestionnaire</div>
+</main>
+
+<script>
+const SUPABASE_URL='https://pezxvjollptmwmadykfk.supabase.co';
+const SUPABASE_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
+
+const token=new URLSearchParams(location.search).get('token');
+const message=document.getElementById('message');
+const dashboard=document.getElementById('dashboard');
+const yearSelect=document.getElementById('year');
+const currentYear=new Date().getFullYear();
+const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+for(let y=currentYear-2;y<=currentYear+2;y++){
+  const option=document.createElement('option');
+  option.value=y;
+  option.textContent=y;
+  if(y===currentYear)option.selected=true;
+  yearSelect.appendChild(option);
+}
+
+function addText(parent,tag,value,className){
+  const el=document.createElement(tag);
+  el.textContent=value==null?'':String(value);
+  if(className)el.className=className;
+  parent.appendChild(el);
+  return el;
+}
+
+function money(value){
+  return Number(value||0).toLocaleString('fr-FR',{
+    style:'currency',currency:'EUR'
+  });
+}
+
+function formatDate(value){
+  if(!value)return '—';
+  const d=new Date(value+'T12:00:00');
+  return isNaN(d.getTime())?value:d.toLocaleDateString('fr-FR');
+}
+
+function dateValue(value){
+  if(!value)return NaN;
+  return Date.parse(value+'T00:00:00Z');
+}
+
+function getNights(booking){
+  const start=dateValue(booking.checkin);
+  const end=dateValue(booking.checkout);
+  if(!Number.isFinite(start)||!Number.isFinite(end))return 0;
+  return Math.max(0,Math.round((end-start)/86400000));
+}
+
+function getCommission(booking){
+  const fixed=booking.commissionAmount;
+  const percent=booking.commissionPercent;
+  const total=Number(booking.total);
+
+  // Reprend la règle de calcul de l'application.
+  if(fixed!==null&&fixed!==undefined&&fixed!==''&&Number.isFinite(Number(fixed))){
+    return Math.max(0,Number(fixed));
+  }
+
+  if(percent!==null&&percent!==undefined&&percent!==''&&Number.isFinite(Number(percent))&&Number.isFinite(total)){
+    return Math.max(0,Math.round(total*Number(percent))/100);
+  }
+
+  return 0;
+}
+
+function isFinancial(booking){
+  return ['arrhes','paye'].includes(String(booking.status||'').toLowerCase());
+}
+
+function hasTotal(booking){
+  return booking.total!==null&&booking.total!==undefined&&booking.total!==''&&Number.isFinite(Number(booking.total));
+}
+
+function makeKpi(parent,label,value,note){
+  const card=document.createElement('div');
+  card.className='kpi';
+  addText(card,'div',label,'kpi-label');
+  addText(card,'div',value,'kpi-value');
+  if(note)addText(card,'div',note,'kpi-note');
+  parent.appendChild(card);
+}
+
+function getYearBookings(apartment,year){
+  const start=Date.UTC(year,0,1);
+  const end=Date.UTC(year+1,0,1);
+  return (apartment.bookings||[]).filter(b=>{
+    const ci=dateValue(b.checkin);
+    const co=dateValue(b.checkout);
+    return Number.isFinite(ci)&&Number.isFinite(co)&&ci<end&&co>start;
+  });
+}
+
+function overlapNights(booking,year,month){
+  const stayStart=dateValue(booking.checkin);
+  const stayEnd=dateValue(booking.checkout);
+  if(!Number.isFinite(stayStart)||!Number.isFinite(stayEnd))return 0;
+
+  const periodStart=month===null?Date.UTC(year,0,1):Date.UTC(year,month,1);
+  const periodEnd=month===null?Date.UTC(year+1,0,1):Date.UTC(year,month+1,1);
+  const start=Math.max(stayStart,periodStart);
+  const end=Math.min(stayEnd,periodEnd);
+  return Math.max(0,Math.round((end-start)/86400000));
+}
+
+function bookingFinancialValues(booking){
+  const total=hasTotal(booking)?Number(booking.total):null;
+  const commission=getCommission(booking);
+  return {
+    total,
+    commission,
+    net:total===null?null:total-commission
+  };
+}
+
+function calculatePeriod(bookings,year,month){
+  let revenue=0;
+  let commission=0;
+  let net=0;
+  let nights=0;
+  let count=0;
+  let incomplete=0;
+
+  bookings.forEach(b=>{
+    if(!isFinancial(b))return;
+
+    const overlap=overlapNights(b,year,month);
+    if(overlap<=0)return;
+
+    const totalNights=getNights(b)||1;
+    const values=bookingFinancialValues(b);
+
+    nights+=overlap;
+    if(values.total===null){
+      incomplete++;
+      return;
+    }
+
+    const ratio=overlap/totalNights;
+    revenue+=values.total*ratio;
+    commission+=values.commission*ratio;
+    net+=values.net*ratio;
+
+    // Une réservation est comptée dans son mois d'arrivée,
+    // ou en janvier si elle a commencé avant l'année sélectionnée.
+    const arrival=new Date(dateValue(b.checkin));
+    const arrivalYear=arrival.getUTCFullYear();
+    const arrivalMonth=arrivalYear<year?0:arrival.getUTCMonth();
+    if(month===null||month===arrivalMonth)count++;
+  });
+
+  return {revenue,commission,net,nights,count,incomplete};
+}
+
+function renderGlobalSummary(apartments,year){
+  const all=[];
+  apartments.forEach(a=>{
+    getYearBookings(a,year).forEach(b=>all.push(b));
+  });
+
+  const totals=calculatePeriod(all,year,null);
+  const confirmed=all.filter(isFinancial).length;
+
+  const kpis=document.createElement('div');
+  kpis.className='kpis';
+
+  makeKpi(kpis,'Revenu locatif brut',money(totals.revenue),'Réservations avec arrhes ou payées');
+  makeKpi(kpis,'Commission conciergerie',money(totals.commission),'Calculée réservation par réservation');
+  makeKpi(kpis,'Revenu propriétaire',money(totals.net),'Après déduction des commissions');
+  makeKpi(kpis,'Nuitées confirmées',String(totals.nights),'Sur la période sélectionnée');
+
+  dashboard.appendChild(kpis);
+
+  const info=document.createElement('div');
+  info.className='small';
+  info.style.margin='-5px 0 20px';
+  info.textContent=confirmed+' réservation(s) avec arrhes ou payées sur la période.';
+  dashboard.appendChild(info);
+
+  if(totals.incomplete){
+    const warning=document.createElement('div');
+    warning.className='warning';
+    warning.textContent=totals.incomplete+' réservation(s) confirmée(s) n’ont pas de montant total renseigné. Elles sont exclues des totaux financiers pour éviter un calcul incorrect.';
+    dashboard.appendChild(warning);
+  }
+}
+
+function renderMonthlyPanel(parent,bookings,year){
+  const panel=document.createElement('section');
+  panel.className='panel';
+  addText(panel,'h3','Bilan financier mois par mois');
+
+  const monthly=months.map((name,index)=>({
+    name,
+    ...calculatePeriod(bookings,year,index)
+  }));
+
+  const maxValue=Math.max(1,...monthly.map(m=>m.revenue));
+  const wrap=document.createElement('div');
+  wrap.className='table-wrap';
+  const table=document.createElement('table');
+  const thead=document.createElement('thead');
+  const head=document.createElement('tr');
+
+  ['Mois','Réservations','Nuitées','Revenu brut','Commission','Net propriétaire'].forEach((label,i)=>{
+    addText(head,'th',label,i===0?'':'num');
+  });
+  thead.appendChild(head);
+  table.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+  monthly.forEach(m=>{
+    const row=document.createElement('tr');
+    const nameCell=document.createElement('td');
+    addText(nameCell,'div',m.name,'month-name');
+    const bar=document.createElement('div');
+    bar.className='month-bar';
+    const fill=document.createElement('span');
+    fill.style.width=(m.revenue/maxValue*100)+'%';
+    bar.appendChild(fill);
+    nameCell.appendChild(bar);
+    row.appendChild(nameCell);
+
+    addText(row,'td',String(m.count),'num');
+    addText(row,'td',String(m.nights),'num');
+    addText(row,'td',money(m.revenue),'num');
+    addText(row,'td',money(m.commission),'num');
+    addText(row,'td',money(m.net),'num');
+    tbody.appendChild(row);
+  });
+
+  const totals=calculatePeriod(bookings,year,null);
+  const totalRow=document.createElement('tr');
+  totalRow.className='total-row';
+  addText(totalRow,'td','TOTAL');
+  addText(totalRow,'td',String(totals.count),'num');
+  addText(totalRow,'td',String(totals.nights),'num');
+  addText(totalRow,'td',money(totals.revenue),'num');
+  addText(totalRow,'td',money(totals.commission),'num');
+  addText(totalRow,'td',money(totals.net),'num');
+  tbody.appendChild(totalRow);
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  panel.appendChild(wrap);
+  parent.appendChild(panel);
+}
+
+function commissionLabel(booking){
+  if(booking.commissionPercent!==null&&booking.commissionPercent!==undefined&&booking.commissionPercent!==''){
+    return Number(booking.commissionPercent).toLocaleString('fr-FR')+' %';
+  }
+  if(booking.commissionAmount!==null&&booking.commissionAmount!==undefined&&booking.commissionAmount!==''){
+    return 'Forfait en euros';
+  }
+  return 'Non renseignée';
+}
+
+function renderBookingDetails(parent,bookings,year){
+  addText(parent,'h2','Détail des réservations','section-title');
+
+  if(!bookings.length){
+    addText(parent,'div','Aucune réservation sur cette période.','empty');
+    return;
+  }
+
+  const groups=months.map((name,index)=>({
+    name,
+    index,
+    bookings:bookings.filter(b=>{
+      const arrival=new Date(dateValue(b.checkin));
+      if(!Number.isFinite(arrival.getTime()))return false;
+      const month=arrival.getUTCFullYear()<year?0:arrival.getUTCMonth();
+      return month===index;
+    })
+  }));
+
+  groups.forEach(group=>{
+    if(!group.bookings.length)return;
+
+    const details=document.createElement('details');
+    const summary=document.createElement('summary');
+    const left=document.createElement('div');
+
+    addText(left,'div',group.name,'summary-title');
+    addText(left,'div',group.bookings.length+' réservation(s)','summary-sub');
+    summary.appendChild(left);
+    details.appendChild(summary);
+
+    const list=document.createElement('div');
+    list.className='booking-list';
+
+    group.bookings.sort((a,b)=>String(a.checkin).localeCompare(String(b.checkin)));
+
+    group.bookings.forEach(booking=>{
+      const values=bookingFinancialValues(booking);
+      const item=document.createElement('div');
+      item.className='booking';
+
+      const dates=document.createElement('div');
+      addText(dates,'div','Arrivée / Départ','booking-label');
+      addText(dates,'div',formatDate(booking.checkin)+' – '+formatDate(booking.checkout),'booking-value');
+      item.appendChild(dates);
+
+      const status=document.createElement('div');
+      addText(status,'div','Statut','booking-label');
+      addText(status,'span',booking.status||'Non renseigné','status');
+      item.appendChild(status);
+
+      const commission=document.createElement('div');
+      addText(commission,'div','Commission ('+commissionLabel(booking)+')','booking-label');
+      addText(commission,'div',values.total===null?'—':money(values.commission),'booking-value');
+      item.appendChild(commission);
+
+      const amount=document.createElement('div');
+      addText(amount,'div','Revenu propriétaire','booking-label');
+      addText(amount,'div',values.net===null?'À compléter':money(values.net),'booking-net booking-total');
+      item.appendChild(amount);
+
+      const extra=document.createElement('div');
+      extra.style.gridColumn='1/-1';
+      extra.className='small';
+      const guests=Number(booking.adults||0)+Number(booking.children||0);
+      extra.textContent='Voyageurs : '+guests+' · Montant réservation : '+(values.total===null?'Non renseigné':money(values.total));
+      list.appendChild(item);
+      item.appendChild(extra);
+    });
+
+    details.appendChild(list);
+    parent.appendChild(details);
+  });
+}
+
+function renderDashboard(apartments,year){
+  dashboard.replaceChildren();
+
+  const title=document.createElement('section');
+  title.className='intro';
+  addText(title,'h2','Votre bilan annuel');
+  addText(title,'p','Synthèse de vos logements pour '+year,'address');
+  dashboard.appendChild(title);
+
+  renderGlobalSummary(apartments,year);
+
+  apartments.forEach(apartment=>{
+    const bookings=getYearBookings(apartment,year);
+    const section=document.createElement('section');
+    section.className='intro';
+    addText(section,'h2',apartment.name||'Votre logement');
+    if(apartment.propertyType){
+      addText(section,'p',apartment.propertyType,'address');
+    }
+    if(apartment.propertyAddress){
+      addText(section,'p',apartment.propertyAddress,'address');
+    }
+    dashboard.appendChild(section);
+
+    renderMonthlyPanel(dashboard,bookings,year);
+    renderBookingDetails(dashboard,bookings,year);
+  });
+
+  const note=document.createElement('p');
+  note.className='small';
+  note.style.marginTop='20px';
+  note.textContent='Les totaux financiers prennent en compte uniquement les réservations avec arrhes ou payées. Les montants et commissions des séjours chevauchant plusieurs mois ou années sont répartis selon le nombre de nuitées.';
+  dashboard.appendChild(note);
+}
+
+async function loadOwner(){
+  if(!token){
+    message.hidden=false;
+    message.textContent='Lien incomplet. Demandez un nouveau lien à votre gestionnaire.';
+    dashboard.replaceChildren();
+    return;
+  }
+
+  message.hidden=false;
+  message.textContent='Chargement de votre espace…';
+  dashboard.replaceChildren();
+
+  try{
+    const response=await fetch(
+      SUPABASE_URL+'/rest/v1/rpc/owner_portal_get',
+      {
+        method:'POST',
+        headers:{
+          'apikey':SUPABASE_KEY,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          target_token:token,
+          target_year:Number(yearSelect.value)
+        })
+      }
+    );
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(result.message||result.details||'Lien invalide ou expiré.');
+    }
+
+    if(!result.apartments||!result.apartments.length){
+      throw new Error('Aucun logement associé à ce lien.');
+    }
+
+    message.hidden=true;
+    renderDashboard(result.apartments,Number(yearSelect.value));
+
+  }catch(error){
+    message.hidden=false;
+    message.textContent=error.message||'Impossible de charger votre espace.';
+    dashboard.replaceChildren();
+  }
+}
+
+yearSelect.addEventListener('change',loadOwner);
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
+loadOwner();
+</script>
+</body>
+</html>
