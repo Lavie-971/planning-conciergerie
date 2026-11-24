@@ -2945,10 +2945,22 @@ function saveBookings(){
 /* ---------------- date helpers (UTC-safe) ---------------- */
 function pad(n){ return n<10 ? '0'+n : ''+n; }
 function toISO(y,m,d){ return `${y}-${pad(m+1)}-${pad(d)}`; }
+
 function parseISO(s){
-  const [y,m,d] = s.split('-').map(Number);
+  if(!s || typeof s !== 'string'){
+    return {y:2000, m:0, d:1};
+  }
+
+  const parts = s.split('-').map(Number);
+
+  if(parts.length !== 3 || parts.some(n=>!Number.isFinite(n))){
+    return {y:2000, m:0, d:1};
+  }
+
+  const [y,m,d] = parts;
   return {y, m:m-1, d};
 }
+
 function utcVal(iso){
   const p = parseISO(iso);
   return Date.UTC(p.y, p.m, p.d);
