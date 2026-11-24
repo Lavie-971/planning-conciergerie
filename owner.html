@@ -9,28 +9,38 @@
 <title>Espace propriétaire — Conciergerie</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:linear-gradient(180deg,#edf3ef 0,#f6f8f6 260px,#f3f4f1 100%);color:#293b35;font-family:Arial,sans-serif;line-height:1.55}
-header{background:rgba(255,255,255,.94);padding:32px 18px;text-align:center;border-bottom:1px solid #dce7df;box-shadow:0 4px 18px rgba(35,70,54,.05)}
-h1{font-family:Georgia,serif;font-style:italic;color:#37695a;font-weight:normal;margin:0;font-size:29px}
-header p{font-size:13px;color:#89948d;margin:7px 0 0}
-main{max-width:1100px;margin:30px auto;padding:0 16px 45px}
-.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+body{margin:0;background:#F2F5F2;color:#293B35;font-family:Arial,sans-serif;line-height:1.6}
+header{position:relative;overflow:hidden;background:linear-gradient(125deg,#244F40 0%,#36745B 58%,#54896D 100%);padding:38px 18px 42px;text-align:center;border-bottom:5px solid #D4E5D8;box-shadow:0 8px 24px rgba(35,70,54,.12)}
+header:before,header:after{content:"";position:absolute;border:1px solid #83A995;border-radius:50%;width:230px;height:230px;opacity:.28}
+header:before{left:-90px;top:-150px}
+header:after{right:-85px;bottom:-175px}
+.header-content{position:relative;z-index:1;max-width:760px;margin:0 auto}
+.brand-mark{width:48px;height:48px;margin:0 auto 12px;border-radius:16px;background:#E0EEE3;color:#2C604A;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.header-eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#D5E8DA;margin-bottom:7px}
+h1{font-family:Georgia,serif;color:#fff;font-weight:normal;margin:0;font-size:32px;letter-spacing:.01em}
+header p{font-size:14px;color:#E0ECE3;margin:8px 0 0}
+header .header-note{display:inline-block;margin-top:17px;padding:6px 12px;border:1px solid #83A995;border-radius:30px;color:#F1F7F2;font-size:11px}
+main{max-width:1100px;margin:26px auto;padding:0 16px 45px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;background:#E6EEE8;border:1px solid #D8E4DA;border-radius:13px;padding:11px 14px}
 .small{font-size:12px;color:#89948d}
 select,button{padding:11px 15px;border:1px solid #d6dfd8;border-radius:9px;background:white;color:#40544b;font-size:14px;min-height:44px}
 button{background:#37695a;color:white;border:0;cursor:pointer}
 button:hover{background:#285344;transform:translateY(-1px)}
 button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid rgba(55,105,90,.25);outline-offset:2px}
 button{transition:background .18s ease,transform .18s ease}
-.intro{background:white;border:1px solid #e1e7e2;border-radius:15px;padding:23px;margin-bottom:15px;box-shadow:0 5px 18px rgba(35,70,54,.045)}
+.intro{background:#fff;border:1px solid #E1E9E3;border-left:4px solid #82A995;border-radius:15px;padding:23px;margin-bottom:15px;box-shadow:0 5px 18px rgba(35,70,54,.045)}
 .intro h2{font-family:Georgia,serif;font-weight:normal;color:#37695a;margin:0 0 5px;font-size:23px}
 .address{font-size:13px;color:#89948d;margin:0}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:15px 0 20px}
-.kpi{background:white;border:1px solid #e1e7e2;border-radius:14px;padding:18px;min-width:0;box-shadow:0 4px 14px rgba(35,70,54,.035)}
-.kpi-label{font-size:11px;color:#89948d;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
-.kpi-value{font-size:22px;font-weight:bold;color:#315e50;overflow-wrap:anywhere}
-.kpi-note{font-size:11px;color:#a0aaa3;margin-top:5px}
-.section-title{font-family:Georgia,serif;font-weight:normal;color:#37695a;font-size:22px;margin:28px 0 13px}
-.panel{background:white;border:1px solid #e1e7e2;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 4px 16px rgba(35,70,54,.04)}
+.kpi{position:relative;background:#fff;border:1px solid #DFE8E1;border-top:4px solid #83A995;border-radius:15px;padding:18px;min-width:0;box-shadow:0 5px 16px rgba(35,70,54,.055)}
+.kpi:nth-child(2){border-top-color:#7896B0}
+.kpi:nth-child(3){border-top-color:#C39A61}
+.kpi:nth-child(4){border-top-color:#8C9B78}
+.kpi-label{font-size:10px;font-weight:700;color:#718278;margin-bottom:9px;text-transform:uppercase;letter-spacing:.07em}
+.kpi-value{font-size:23px;font-weight:750;color:#315E50;overflow-wrap:anywhere;letter-spacing:-.03em}
+.kpi-note{font-size:11px;color:#87958C;margin-top:6px}
+.section-title{font-family:Georgia,serif;font-weight:normal;color:#37695a;font-size:23px;margin:30px 0 14px}
+.panel{background:#fff;border:1px solid #E1E9E3;border-radius:15px;padding:21px;margin-bottom:16px;box-shadow:0 5px 18px rgba(35,70,54,.045)}
 .panel h3{font-family:Georgia,serif;font-weight:normal;color:#37695a;margin:0 0 15px;font-size:19px}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:570px}
@@ -57,7 +67,7 @@ details[open] summary:after{content:"−"}
 .status{display:inline-block;padding:5px 10px;border-radius:20px;background:#edf4ef;color:#48715c;font-size:11px;font-weight:600}
 .warning{background:#fff8e9;border:1px solid #ead9ac;border-radius:9px;padding:12px 14px;color:#77643b;font-size:12px;margin:14px 0}
 .empty{padding:20px;text-align:center;color:#89948d;font-size:13px}
-.footer{text-align:center;font-size:11px;color:#a0aaa3;margin-top:28px}
+.footer{text-align:center;font-size:11px;color:#87958C;margin-top:30px;padding:16px;border-top:1px solid #DDE6DF}
 @media(max-width:760px){
  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
  .kpi-value{font-size:19px}
@@ -86,8 +96,13 @@ details[open] summary:after{content:"−"}
 </head>
 <body>
 <header>
-<h1>Espace propriétaire</h1>
-<p>Suivi de votre logement et de vos revenus locatifs</p>
+<div class="header-content">
+  <div class="brand-mark" aria-hidden="true">⌂</div>
+  <div class="header-eyebrow">Votre espace personnel</div>
+  <h1>Espace propriétaire</h1>
+  <p>Retrouvez en un coup d’œil le suivi de votre logement et de vos revenus locatifs.</p>
+  <div class="header-note">Accès privé et sécurisé</div>
+</div>
 </header>
 
 <main>
