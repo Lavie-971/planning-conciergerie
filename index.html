@@ -6808,7 +6808,7 @@ if(checkin && checkout && checkout <= checkin){
   errEl.style.display = 'none';
 
   const previousBooking=editingBookingId ? bookings.find(b=>String(b.id)===String(editingBookingId)) : null;
-  const data = {apartmentId, client, phone, checkin, checkout, checkinTime, checkoutTime, flightNumber, flightTime, status:selectedStatus, source:selectedSource, adults, children, babies, pricePerNight, total, priceMode:priceEditMode, commissionPercent, commissionAmount, trackDeposit, depositAmount, invoice, tenantAddress, services: currentServices.filter(s=>s.label.trim()!=='' || (s.price!=null && !isNaN(s.price))), notes, whatsappWorkflow:previousBooking ? (previousBooking.whatsappWorkflow||null) : null};
+  const data = { ...(previousBooking ? {icalManaged:previousBooking.icalManaged, icalProvider:previousBooking.icalProvider, icalEventUid:previousBooking.icalEventUid, icalFeedKey:previousBooking.icalFeedKey, manualStatusOverride:previousBooking.manualStatusOverride===true || (previousBooking.icalManaged===true && previousBooking.status!==selectedStatus)} : {}), apartmentId, client, phone, checkin, checkout, checkinTime, checkoutTime, flightNumber, flightTime, status:selectedStatus, source:selectedSource, adults, children, babies, pricePerNight, total, priceMode:priceEditMode, commissionPercent, commissionAmount, trackDeposit, depositAmount, invoice, tenantAddress, services: currentServices.filter(s=>s.label.trim()!=='' || (s.price!=null && !isNaN(s.price))), notes, whatsappWorkflow:previousBooking ? (previousBooking.whatsappWorkflow||null) : null};
 
   const blockingStatuses = ['indisponible','option','arrhes','paye'];
   if(apartmentId && checkin && checkout && blockingStatuses.includes(selectedStatus)){
