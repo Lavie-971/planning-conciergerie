@@ -2599,9 +2599,19 @@ async function saveBookingsToSync(list, replaceAll=false){
 }
 async function refreshBookingsFromRemote(){
   if(!syncUrl) return false;
-  const merged=await loadBookingsFromSync();
-  if(Array.isArray(merged)){
-    bookings=merged; try{localStorage.setItem(LS_PREFIX+'bookings',JSON.stringify(bookings));}catch(e){}
+  const remote=await loadBookingsFromSync();
+  if(Array.isArray(remote)){
+    // L'actualisation automatique ne doit jamais écraser les opérations locales
+    // qui attendent encore leur synchronisation avec Supabase.
+    const byId=new Map(remote.filter(b=>b&&b.id).map(b=>[String(b.id),b]));
+    for(const op of readPendingOps()){
+      const id=String(op && (op.id || (op.booking&&op.booking.id)) || '');
+      if(!id) continue;
+      if(op.type==='delete') byId.delete(id);
+      else if(op.type==='upsert'&&op.booking) byId.set(id,op.booking);
+    }
+    bookings=Array.from(byId.values());
+    try{localStorage.setItem(LS_PREFIX+'bookings',JSON.stringify(bookings));}catch(e){}
     return true;
   }
   return false;
