@@ -721,6 +721,7 @@ body.printing-doc #printPanel{
 
   <div class="legend-bar" id="legendBar"></div>
 
+  <div id="weekOverviewPanel" style="margin:0 0 16px;"></div>
   <div class="today-tomorrow-grid">
     <div id="todayPanel"></div>
     <div id="tomorrowPanel"></div>
@@ -3605,10 +3606,68 @@ function renderLegend(){
 
 function renderAll(){
   renderTodayPanel();
+  renderWeekOverview();
   renderCalendar();
   renderSummary();
   refreshApartmentSelects();
   renderList();
+}
+
+/* ---------------- vue synthétique des 7 prochains jours ---------------- */
+function renderWeekOverview(){
+  const container=document.getElementById('weekOverviewPanel');
+  if(!container) return;
+  const start=todayISO();
+  const end=addDaysISO(start,7);
+  const active=bookings.filter(b=>!['annulation','nemeconcerne'].includes(b.status));
+  const aptName=id=>{
+    const apt=apartments.find(a=>String(a.id)===String(id));
+    return apt?apt.name:'Logement supprimé';
+  };
+  const arrivals=active.filter(b=>b.checkin>=start&&b.checkin<end);
+  const departures=active.filter(b=>b.checkout>=start&&b.checkout<end);
+  const events=(agendaEvents||[]).filter(ev=>{
+    if(!ev.start_at) return false;
+    const date=new Date(ev.start_at).toLocaleDateString('sv-SE');
+    return date>=start&&date<end;
+  }).sort((a,b)=>String(a.start_at).localeCompare(String(b.start_at)));
+  const cleanings=events.filter(ev=>ev.category==='menage');
+  const appointments=events.filter(ev=>ev.category!=='menage');
+  const dayRows=[];
+  for(let offset=0;offset<7;offset++){
+    const date=addDaysISO(start,offset);
+    const a=arrivals.filter(b=>b.checkin===date);
+    const d=departures.filter(b=>b.checkout===date);
+    const e=events.filter(ev=>new Date(ev.start_at).toLocaleDateString('sv-SE')===date);
+    if(!a.length&&!d.length&&!e.length) continue;
+    const turnover=new Set(d.filter(dep=>a.some(arr=>String(arr.apartmentId)===String(dep.apartmentId))).map(b=>String(b.apartmentId)));
+    dayRows.push(`<div style="padding:9px 0;border-top:1px solid var(--line);">
+      <strong>${fmtDateShort(date)}</strong>
+      <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">
+        ${a.length?`🛬 ${a.map(b=>escapeHtml(aptName(b.apartmentId))).join(', ')}`:''}
+        ${a.length&&d.length?' · ':''}
+        ${d.length?`🛫 ${d.map(b=>escapeHtml(aptName(b.apartmentId))).join(', ')}`:''}
+        ${(a.length||d.length)&&e.length?' · ':''}
+        ${e.map(ev=>{
+          const time=new Date(ev.start_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+          const label=ev.category==='menage'?'🧹':'📌';
+          return label+' '+time+' '+escapeHtml(ev.title||'Rendez-vous');
+        }).join(' · ')}
+      </div>
+      ${turnover.size?`<div style="color:var(--st-annulation);font-size:12px;margin-top:4px;">⚠️ Rotation le même jour : ${Array.from(turnover).map(id=>escapeHtml(aptName(id))).join(', ')}</div>`:''}
+    </div>`);
+  }
+  container.innerHTML=`
+    <section class="calendar-card" style="padding:14px 16px;">
+      <div style="font-weight:700;font-size:16px;margin-bottom:12px;">📊 Vue des 7 prochains jours</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-bottom:8px;">
+        <div class="card"><div class="label">Arrivées</div><div class="value">${arrivals.length}</div></div>
+        <div class="card"><div class="label">Départs</div><div class="value">${departures.length}</div></div>
+        <div class="card"><div class="label">Ménages planifiés</div><div class="value">${cleanings.length}</div></div>
+        <div class="card"><div class="label">Autres rendez-vous</div><div class="value">${appointments.length}</div></div>
+      </div>
+      ${dayRows.length?dayRows.join(''):'<div class="today-empty">Aucune activité prévue dans les 7 prochains jours.</div>'}
+    </section>`;
 }
 
 /* ---------------- panneau "Aujourd'hui" ---------------- */
