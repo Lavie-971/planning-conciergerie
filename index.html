@@ -367,8 +367,8 @@ div.field:has(.checkbox-label){margin-bottom:10px;}
 .apartment-row.agenda-row .apt-info{cursor:default;}
 .apartment-row.agenda-row .apt-info:hover{background:var(--surface);}
 .apartment-row.agenda-row .apt-info:hover .apt-name{color:var(--ink);}
-/* Les événements d'agenda reprennent la couleur de leur catégorie, en version pastel. */
-.booking-bar.agenda-event-bar{background:var(--agenda-event-bg,#E8EEEA);color:#29443B;border:1px solid var(--agenda-event-color,#C9D6CE);border-left:4px solid var(--agenda-event-color,#C9D6CE);box-shadow:none;}
+/* Les événements d'agenda utilisent une couleur pleine, sans transparence. */
+.booking-bar.agenda-event-bar{background:var(--agenda-event-bg,#777777);color:#fff;border:1px solid var(--agenda-event-color,#C9D6CE);border-left:4px solid var(--agenda-event-color,#C9D6CE);box-shadow:none;}
 .booking-bar.agenda-event-bar:hover{filter:brightness(0.97);}
 
 .empty-state{
@@ -4453,7 +4453,7 @@ function renderCalendar(){
     bar.className = 'booking-bar agenda-event-bar';
     const eventColor = getAgendaColors()[ev.category] || '#8064A2';
     bar.style.setProperty('--agenda-event-color', eventColor);
-    bar.style.setProperty('--agenda-event-bg', eventColor + '24');
+    bar.style.setProperty('--agenda-event-bg', eventColor);
     bar.style.gridColumn = `${startCol*2} / ${endCol*2}`;
     bar.style.gridRow = String(lane+1);
     bar.style.cursor = 'pointer';
