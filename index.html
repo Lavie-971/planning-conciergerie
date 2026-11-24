@@ -2988,7 +2988,8 @@ function openVoiceChat(){
   }
   panel.hidden = false;
   voiceChatOpen = true;
-  document.getElementById('voiceChatInput').focus();
+  // Ne pas donner automatiquement le focus au champ texte : cela ouvre le clavier mobile.
+  // Le clavier apparaîtra uniquement si l’utilisateur touche le champ.
 }
 
 function closeVoiceChat(){
