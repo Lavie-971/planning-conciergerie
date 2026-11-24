@@ -1,6 +1,6 @@
 // Service worker : permet d'ouvrir l'app sans connexion (fichiers mis en cache).
 // Les données, elles, sont gardées par l'app dans le navigateur et synchronisées au retour du réseau.
-const CACHE = 'conciergerie-v37';
+const CACHE = 'conciergerie-v38';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
