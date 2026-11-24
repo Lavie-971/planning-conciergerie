@@ -1213,7 +1213,7 @@ body.printing-doc #printPanel{
     <div class="modal-footer">
       <div class="left" style="display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn danger" id="detailDeleteBtn">Supprimer</button>
-        <button class="btn" id="detailWhatsAppBtn" type="button">Préparer WhatsApp</button>
+        <button class="btn" id="detailWhatsAppBtn" type="button">😊 Message de bienvenue</button>
       </div>
       <div class="right">
         <button class="btn primary" id="detailEditBtn">✎ Modifier</button>
@@ -1542,11 +1542,8 @@ body.printing-doc #printPanel{
   <div class="modal" style="max-width:440px;">
     <div class="modal-head"><h2 style="font-size:16px;">Préparer un message WhatsApp</h2></div>
     <div class="modal-content" style="display:grid;gap:10px;">
-      <p style="font-size:14px;margin:0;color:var(--ink);">Choisis le message à préparer :</p>
-      <button class="btn" type="button" data-wa-choice="1">1 — Message de bienvenue</button>
-      <button class="btn" type="button" data-wa-choice="2">2 — Rappel, 3 jours avant l’arrivée</button>
-      <button class="btn" type="button" data-wa-choice="3">3 — Remerciement et demande d’avis</button>
-      <button class="btn" type="button" data-wa-choice="0">0 — Activer le programme (bienvenue déjà envoyé)</button>
+      <p style="font-size:14px;margin:0;color:var(--ink);">Pour démarrer le programme, prépare et envoie le message de bienvenue :</p>
+      <button class="btn primary" type="button" data-wa-choice="1">😊 Préparer le message de bienvenue</button>
     </div>
     <div class="modal-footer" style="justify-content:flex-end;"><button class="btn" type="button" id="whatsappChoiceCancel">Annuler</button></div>
   </div>
@@ -6351,13 +6348,6 @@ function prepareBookingWhatsApp(choiceOverride){
   const enteredChoice = String(choiceOverride).trim();
   // Compatibilité avec les anciens programmes où le remerciement portait le numéro 4.
   const choice = enteredChoice === '4' ? '3' : enteredChoice;
-  if(choice==='0'){
-    showConfirm("Confirmer que le message de bienvenue a déjà été envoyé à ce client ? Le programme sera alors activé sans renvoyer ce message.",()=>{
-      if(activateBookingWhatsAppWorkflow(b)) alert("Programme WhatsApp activé. Les prochains messages seront proposés aux dates prévues, avec validation manuelle de chaque envoi.");
-      else alert("Un programme WhatsApp existe déjà pour cette réservation.");
-    });
-    return;
-  }
   const templates = {
     "1": [
       'Bonjour'+(name ? ' '+name : '')+' 😊',
