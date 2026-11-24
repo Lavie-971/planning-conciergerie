@@ -6409,8 +6409,7 @@ function prepareBookingWhatsApp(choiceOverride){
     alert("Choix invalide. Saisis 0, 1, 2 ou 3.");
     return;
   }
-  const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(line=>line!==null&&line!==undefined).join('\n'));
-  if(message===null || !message.trim()) return;
+  const message = templates[choice].filter(line=>line!==null&&line!==undefined).join('\n');
   const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
   // L'action de choisir le message suffit pour ouvrir WhatsApp : une seule confirmation suit l'envoi.
   window.open(url,'_blank','noopener,noreferrer');
