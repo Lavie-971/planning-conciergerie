@@ -6384,19 +6384,18 @@ function prepareBookingWhatsApp(choiceOverride){
   const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\n'));
   if(message===null || !message.trim()) return;
   const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
-  showConfirm("Ouvrir WhatsApp avec ce message pour "+(b.client||'ce client')+" ?\\n\\nLe message sera seulement prérempli. Aucun envoi automatique : tu devras appuyer toi-même sur Envoyer dans WhatsApp.", ()=>{
-    window.open(url,'_blank','noopener,noreferrer');
-    showConfirm("As-tu bien envoyé ce message dans WhatsApp ? Le programme ne sera activé ou mis à jour qu’après ta confirmation.",()=>{
-      if(choice==='1'){
-        if(activateBookingWhatsAppWorkflow(b)) alert("Programme activé : rappel 3 jours avant l’arrivée, puis remerciement et demande d’avis ensemble le lendemain du départ. Chaque envoi restera manuel.");
-      }else{
-        const key=choice==='2'?'reminder':choice==='3'?'afterStay':null;
-        if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
-          b.whatsappWorkflow.steps[key].sentAt=new Date().toISOString();
-          saveBookingWhatsAppWorkflow(b,b.whatsappWorkflow);
-        }
+  // L'action de choisir le message suffit pour ouvrir WhatsApp : une seule confirmation suit l'envoi.
+  window.open(url,'_blank','noopener,noreferrer');
+  showConfirm("As-tu envoyé ce message dans WhatsApp ?",()=>{
+    if(choice==='1'){
+      activateBookingWhatsAppWorkflow(b);
+    }else{
+      const key=choice==='2'?'reminder':choice==='3'?'afterStay':null;
+      if(key && b.whatsappWorkflow && b.whatsappWorkflow.steps && b.whatsappWorkflow.steps[key]){
+        b.whatsappWorkflow.steps[key].sentAt=new Date().toISOString();
+        saveBookingWhatsAppWorkflow(b,b.whatsappWorkflow);
       }
-    });
+    }
   });
 }
 
