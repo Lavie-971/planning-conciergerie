@@ -6338,9 +6338,13 @@ function prepareBookingWhatsApp(choiceOverride){
   }
   const apt = apartments.find(a=>a.id===b.apartmentId);
   const name = String(b.client||'').trim();
-  const lodging = apt ? apt.name : 'votre logement';
-  const arrival = fmtDateShort(b.checkin)+(b.checkinTime ? ' à '+b.checkinTime : '');
-  const departure = fmtDateShort(b.checkout)+(b.checkoutTime ? ' à '+b.checkoutTime : '');
+  const lodging = apt && String(apt.name||'').trim();
+  const arrivalDate = b.checkin ? fmtDateShort(b.checkin) : '';
+  const departureDate = b.checkout ? fmtDateShort(b.checkout) : '';
+  const arrival = arrivalDate+(b.checkinTime ? ' à '+b.checkinTime : '');
+  const departure = departureDate+(b.checkoutTime ? ' à '+b.checkoutTime : '');
+  const flightNumber = String(b.flightNumber||'').trim();
+  const flightTime = String(b.flightTime||'').trim();
   if(choiceOverride === undefined || choiceOverride === null){
     showWhatsAppChoiceModal(choice=>prepareBookingWhatsApp(choice));
     return;
@@ -6355,16 +6359,18 @@ function prepareBookingWhatsApp(choiceOverride){
       'Toute l’équipe est ravie de vous accueillir prochainement !',
       'Pour préparer votre arrivée en toute tranquillité, voici le récapitulatif de votre séjour :',
       '',
-      '🏡  Votre logement',
-      lodging,
-      '',
-      '🗓️  Votre séjour',
-      'Arrivée : '+arrival,
-      'Départ : '+departure,
-      b.flightNumber ? '' : '',
-      b.flightNumber ? '✈️  Votre voyage' : '',
-      b.flightNumber ? 'Vol : '+b.flightNumber+(b.flightTime ? ' — arrivée prévue à '+b.flightTime : '') : '',
-      '',
+      ...(lodging ? ['🏡  Votre logement', lodging, ''] : []),
+      ...((arrival || departure) ? [
+        '🗓️  Votre séjour',
+        ...(arrival ? ['Arrivée : '+arrival] : []),
+        ...(departure ? ['Départ : '+departure] : []),
+        ''
+      ] : []),
+      ...((flightNumber || flightTime) ? [
+        '✈️  Votre voyage',
+        ...(flightNumber ? ['Vol : '+flightNumber+(flightTime ? ' — arrivée prévue à '+flightTime : '')] : flightTime ? ['Heure d’arrivée : '+flightTime] : []),
+        ''
+      ] : []),
       'Si vous avez la moindre question ou besoin d’un renseignement, écrivez-nous : nous serons heureux de vous aider.',
       '',
       'Nous vous souhaitons un excellent voyage et avons hâte de vous accueillir ! 🌴',
@@ -6373,12 +6379,14 @@ function prepareBookingWhatsApp(choiceOverride){
     "2": [
       'Bonjour'+(name ? ' '+name : '')+' 😊',
       '',
-      'Votre séjour approche à grands pas ! Nous avons hâte de vous accueillir à '+lodging+'.',
-      '',
-      'Petit rappel pour organiser votre arrivée sereinement :',
-      '',
-      '🗓️  Arrivée : '+arrival,
-      '🧳  Départ : '+departure,
+      'Votre séjour approche à grands pas !'+(lodging ? ' Nous avons hâte de vous accueillir à '+lodging+'.' : ''),
+      ...((arrival || departure) ? [
+        '',
+        'Petit rappel pour organiser votre arrivée sereinement :',
+        '',
+        ...(arrival ? ['🗓️  Arrivée : '+arrival] : []),
+        ...(departure ? ['🧳  Départ : '+departure] : [])
+      ] : []),
       '',
       'Si vous avez une question ou si vous avez besoin d’une précision avant votre venue, n’hésitez surtout pas à nous écrire.',
       '',
@@ -6387,7 +6395,7 @@ function prepareBookingWhatsApp(choiceOverride){
     "3": [
       'Bonjour'+(name ? ' '+name : '')+' 😊',
       '',
-      'Nous espérons que vous êtes bien rentrés et que vous gardez de beaux souvenirs de votre séjour à '+lodging+'.',
+      'Nous espérons que vous êtes bien rentrés et que vous gardez de beaux souvenirs'+(lodging ? ' de votre séjour à '+lodging : ' de votre séjour')+'.',
       '',
       'Un grand merci d’avoir choisi notre logement ! Ce fut un plaisir de vous accueillir. 💛',
       '',
@@ -6401,7 +6409,7 @@ function prepareBookingWhatsApp(choiceOverride){
     alert("Choix invalide. Saisis 0, 1, 2 ou 3.");
     return;
   }
-  const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(Boolean).join('\n'));
+  const message = prompt("Tu peux modifier le message avant de l'ouvrir dans WhatsApp :",templates[choice].filter(line=>line!==null&&line!==undefined).join('\n'));
   if(message===null || !message.trim()) return;
   const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
   // L'action de choisir le message suffit pour ouvrir WhatsApp : une seule confirmation suit l'envoi.
