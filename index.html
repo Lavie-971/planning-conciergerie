@@ -598,11 +598,16 @@ table{min-width:760px;}
 #app{min-width:0;max-width:100%;}
 #agendaColorsBox{display:none!important;} /* Les anciennes préférences sont conservées, mais les couleurs ne pilotent plus l'agenda. */
 @media (max-width:720px){
-  .apt-info,.header-spacer{width:108px;flex:0 0 108px;}
-  .apt-info{padding-left:8px;padding-right:6px;}
-  .apt-info .apt-name{font-size:12.5px;line-height:1.25;}
-  .apt-info .apt-owner{font-size:10.5px;}
-  .booking-bar{font-size:12px;padding:0 6px;min-width:0;}
+  .apt-info,.header-spacer{width:124px;flex:0 0 124px;}
+  .apt-info{padding:8px 8px;}
+  .apt-info .apt-name{font-size:13px;line-height:1.3;overflow-wrap:anywhere;}
+  .apt-info .apt-owner{font-size:10.5px;line-height:1.3;}
+  .apartment-row:not(.agenda-row){background:#FCFDFC;}
+  .apartment-row:not(.agenda-row) .apt-info{background:#F4F8F5;}
+  .apartment-row:not(.agenda-row){border-bottom:2px solid var(--line);}
+  .booking-bar{font-size:12.5px;padding:0 7px;min-width:0;border-radius:7px;}
+  .booking-bar .bname{font-size:12px;}
+  .source-dot{width:10px;height:10px;left:5px;}
   .booking-bar .bname{min-width:0;}
   .calendar-card{max-width:100%;min-width:0;}
   .calendar-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
@@ -3876,7 +3881,9 @@ function renderCalendar(){
   const monthStartISO = range.startISO;
   const monthEndExclISO = addDaysISO(monthStartISO, nDays); // premier jour après la plage affichée
   const isPhone = window.innerWidth <= 720;
-  const dayWidth = viewMode==='week' ? (isPhone ? Math.max(38, Math.floor((window.innerWidth-108-24)/7)) : 90) : (isPhone ? 40 : 34);
+  const dayWidth = viewMode==='week' ? (isPhone ? Math.max(38, Math.floor((window.innerWidth-124-24)/7)) : 90) : (isPhone ? 42 : 34);
+  const laneHeight = isPhone ? 36 : 28;
+  const agendaLaneHeight = isPhone ? 32 : 28;
 
   if(apartments.length === 0){
     scroll.innerHTML = `<div class="empty-state">
@@ -3987,8 +3994,8 @@ function renderCalendar(){
   });
 
   const agendaRowCount = Math.max(1, agendaLanes.length);
-  agendaDays.style.gridTemplateRows = `repeat(${agendaRowCount}, 28px)`;
-  agendaRow.style.minHeight = (agendaRowCount*28+8)+'px';
+  agendaDays.style.gridTemplateRows = `repeat(${agendaRowCount}, ${agendaLaneHeight}px)`;
+  agendaRow.style.minHeight = (agendaRowCount*agendaLaneHeight+8)+'px';
   agendaRow.appendChild(agendaDays);
   scroll.appendChild(agendaRow);
   apartments.forEach(apt=>{
@@ -4019,7 +4026,7 @@ function renderCalendar(){
 
     const row = document.createElement('div');
     row.className = 'apartment-row';
-    row.style.minHeight = (lanes*28 + 8) + 'px';
+    row.style.minHeight = (lanes*laneHeight + 8) + 'px';
 
     const info = document.createElement('div');
     info.className = 'apt-info';
@@ -4031,7 +4038,7 @@ function renderCalendar(){
     const daysWrap = document.createElement('div');
     daysWrap.className = 'apt-days';
     daysWrap.style.gridTemplateColumns = `repeat(${nDays*2}, ${dayWidth/2}px)`;
-    daysWrap.style.gridTemplateRows = `repeat(${lanes}, 28px)`;
+    daysWrap.style.gridTemplateRows = `repeat(${lanes}, ${laneHeight}px)`;
 
     for(let d=1; d<=nDays; d++){
       const dISO = addDaysISO(monthStartISO, d-1);
