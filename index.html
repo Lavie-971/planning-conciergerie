@@ -6942,11 +6942,11 @@ async function loadAgendaEvents(){
   return agendaEvents;
 }
 
+let agendaSyncInProgress = false;
+
 async function saveAgendaEvent(event){
   const item = Object.assign({}, event);
-  if(!item.id){
-    item.id = crypto.randomUUID();
-  }
+  if(!item.id) item.id = crypto.randomUUID();
 
   const index = agendaEvents.findIndex(e => e.id === item.id);
   if(index >= 0) agendaEvents[index] = item;
@@ -6954,24 +6954,12 @@ async function saveAgendaEvent(event){
 
   saveAgendaLocal();
 
-  try {
-    if(index >= 0){
-      await sbRest(
-        'PATCH',
-        'agenda_events?id=eq.' + encodeURIComponent(item.id),
-        item
-      );
-    } else {
-      await sbRest('POST', 'agenda_events', item);
-    }
-
-    agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
-    writeAgendaQueue();
-  } catch(e) {
-    agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
-    agendaPendingOps.push({type:'upsert', id:item.id, event:item});
-    writeAgendaQueue();
-  }
+  // Mettre en file avant l'envoi : une coupure ou une modification concurrente
+  // ne peut ainsi faire disparaître la dernière version enregistrée.
+  agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
+  agendaPendingOps.push({opId:crypto.randomUUID(),type:'upsert',id:item.id,event:item});
+  writeAgendaQueue();
+  await syncAgendaPending();
 
   return item;
 }
@@ -6980,47 +6968,49 @@ async function deleteAgendaEvent(id){
   agendaEvents = agendaEvents.filter(e => e.id !== id);
   saveAgendaLocal();
 
-  try {
-    await sbRest(
-      'DELETE',
-      'agenda_events?id=eq.' + encodeURIComponent(id)
-    );
-
-    agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
-    writeAgendaQueue();
-  } catch(e) {
-    agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
-    agendaPendingOps.push({type:'delete', id:id});
-    writeAgendaQueue();
-  }
+  agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
+  agendaPendingOps.push({opId:crypto.randomUUID(),type:'delete',id:id});
+  writeAgendaQueue();
+  await syncAgendaPending();
 }
 
 async function syncAgendaPending(){
-  const queue = readAgendaQueue();
+  if(agendaSyncInProgress) return;
+  agendaSyncInProgress = true;
+  try {
+    const queue = readAgendaQueue();
+    for(const op of queue){
+      try {
+        if(op.type === 'upsert'){
+          const exists = await sbRest(
+            'GET',
+            'agenda_events?id=eq.' + encodeURIComponent(op.id) + '&select=id'
+          );
 
-  for(const op of queue){
-    try {
-      if(op.type === 'upsert'){
-        const exists = await sbRest(
-          'GET',
-          'agenda_events?id=eq.' + encodeURIComponent(op.id) + '&select=id'
-        );
-
-        if(Array.isArray(exists) && exists.length){
-          await sbRest('PATCH', 'agenda_events?id=eq.' + encodeURIComponent(op.id), op.event);
-        } else {
-          await sbRest('POST', 'agenda_events', op.event);
+          if(Array.isArray(exists) && exists.length){
+            await sbRest('PATCH', 'agenda_events?id=eq.' + encodeURIComponent(op.id), op.event);
+          } else {
+            await sbRest('POST', 'agenda_events', op.event);
+          }
+        } else if(op.type === 'delete'){
+          await sbRest('DELETE', 'agenda_events?id=eq.' + encodeURIComponent(op.id));
         }
-      } else if(op.type === 'delete'){
-        await sbRest('DELETE', 'agenda_events?id=eq.' + encodeURIComponent(op.id));
-      }
 
-      agendaPendingOps = readAgendaQueue().filter(item => item.id !== op.id);
-      writeAgendaQueue();
-    } catch(e) {
-      console.warn('Synchronisation agenda reportée.', e);
-      break;
+        // Ne retirer que cette version précise : une modification plus récente
+        // du même rendez-vous reste dans la file pour le prochain passage.
+        const latestQueue = readAgendaQueue();
+        agendaPendingOps = latestQueue.filter(item => {
+          if(op.opId) return item.opId !== op.opId;
+          return JSON.stringify(item) !== JSON.stringify(op);
+        });
+        writeAgendaQueue();
+      } catch(e) {
+        console.warn('Synchronisation agenda reportée.', e);
+        break;
+      }
     }
+  } finally {
+    agendaSyncInProgress = false;
   }
 
   await loadAgendaEvents();
