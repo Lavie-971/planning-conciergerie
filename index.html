@@ -6287,7 +6287,7 @@ function activateBookingWhatsAppWorkflow(b){
   if(!b || b.whatsappWorkflow)return false;
   const workflow={activatedAt:new Date().toISOString(),welcomeSentAt:new Date().toISOString(),steps:{
     reminder:{dueDate:addDaysISO(b.checkin,-3),template:'2',sentAt:null,promptedDate:null},
-    afterStay:{dueDate:addDaysISO(b.checkout,1),template:'4',sentAt:null,promptedDate:null}
+    afterStay:{dueDate:addDaysISO(b.checkout,1),template:'3',sentAt:null,promptedDate:null}
   }};
   saveBookingWhatsAppWorkflow(b,workflow);
   return true;
@@ -6315,7 +6315,9 @@ function prepareBookingWhatsApp(choiceOverride){
       "1"
     );
   if(rawChoice===null) return;
-  const choice = String(rawChoice).trim();
+  const enteredChoice = String(rawChoice).trim();
+  // Compatibilité avec les anciens programmes où le remerciement portait le numéro 4.
+  const choice = enteredChoice === '4' ? '3' : enteredChoice;
   if(choice==='0'){
     showConfirm("Confirmer que le message de bienvenue a déjà été envoyé à ce client ? Le programme sera alors activé sans renvoyer ce message.",()=>{
       if(activateBookingWhatsAppWorkflow(b)) alert("Programme WhatsApp activé. Les prochains messages seront proposés aux dates prévues, avec validation manuelle de chaque envoi.");
