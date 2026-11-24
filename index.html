@@ -2945,6 +2945,13 @@ let voiceChatOpen = false;
 let voiceRecognition = null;
 let voiceListening = false;
 let voiceBusy = false;
+let voiceSpeaking = false;
+
+function resumeVoiceListening(){
+  if(voiceChatOpen && !voiceBusy && !voiceSpeaking && voiceRecognition && !voiceListening){
+    startVoiceRecognition();
+  }
+}
 
 function voiceChatAddMessage(role, message){
   const list = document.getElementById('voiceChatMessages');
@@ -3039,7 +3046,7 @@ async function submitVoicePhrase(phrase){
     voiceBusy = false;
     const currentStatus = document.getElementById('voiceChatStatus');
     if(currentStatus) currentStatus.textContent = voiceListening ? 'Je vous écoute…' : 'Vous pouvez parler ou écrire';
-    if(voiceChatOpen && voiceRecognition && !voiceListening) startVoiceRecognition();
+    if(voiceChatOpen && !voiceSpeaking && voiceRecognition && !voiceListening) startVoiceRecognition();
   }
 }
 
@@ -3206,11 +3213,26 @@ function voiceDateFR(v){
 function speakAnswer(text){
   try{
     if(!('speechSynthesis' in window)) return;
+    // Couper le micro pendant toute la réponse pour éviter que l'assistante
+    // ne retranscrive sa propre voix comme une nouvelle demande.
+    voiceSpeaking = true;
+    if(voiceRecognition && voiceListening){
+      try{ voiceRecognition.stop(); }catch(e){}
+    }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text.replace(/[•⚠️]/g,''));
     u.lang = 'fr-FR';
+    const finishSpeaking = ()=>{
+      voiceSpeaking = false;
+      resumeVoiceListening();
+    };
+    u.onend = finishSpeaking;
+    u.onerror = finishSpeaking;
     speechSynthesis.speak(u);
-  }catch(e){}
+  }catch(e){
+    voiceSpeaking = false;
+    resumeVoiceListening();
+  }
 }
 
 function answerVoiceQuestion(phrase){
