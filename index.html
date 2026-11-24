@@ -6294,6 +6294,8 @@ function activateBookingWhatsAppWorkflow(b){
 }
 
 function prepareBookingWhatsApp(choiceOverride){
+  // Un clic DOM transmet un événement : il ne doit jamais être interprété comme un choix.
+  if(choiceOverride && typeof choiceOverride==='object') choiceOverride=undefined;
   const b = bookings.find(x=>String(x.id)===String(detailBookingId));
   if(!b) return;
   let phone = String(b.phone||'').replace(/[^0-9]/g,'');
@@ -6759,7 +6761,6 @@ function finalizeSaveBooking(data){
   if(savedBooking.whatsappWorkflow && savedBooking.whatsappWorkflow.steps){
     const steps=savedBooking.whatsappWorkflow.steps;
     if(steps.reminder && !steps.reminder.sentAt) steps.reminder.dueDate=addDaysISO(data.checkin,-3);
-    if(steps.departure && !steps.departure.sentAt) steps.departure.dueDate=data.checkout;
     if(steps.afterStay && !steps.afterStay.sentAt) steps.afterStay.dueDate=addDaysISO(data.checkout,1);
   }
   saveBookings();
@@ -7327,7 +7328,7 @@ function bindEvents(){
   if(syncUrl) setTimeout(flushPendingSync, 250);
 
   document.getElementById('closeDetailXBtn').addEventListener('click', closeDetailModal);
-  document.getElementById('detailWhatsAppBtn').addEventListener('click', prepareBookingWhatsApp);
+  document.getElementById('detailWhatsAppBtn').addEventListener('click', ()=>prepareBookingWhatsApp());
  document.getElementById('detailEditBtn').addEventListener('click', ()=>{
   if(agendaDetailId){
     const id = agendaDetailId;
