@@ -758,7 +758,7 @@ body.printing-doc #printPanel{
   <input id="agendaStartTime" type="time">
 </div>
 
-        <div class="field">
+        <div class="field" id="agendaEndDateField">
   <label for="agendaEndDate">Date de fin</label>
   <div class="date-input-wrap">
     <input type="text" id="agendaEndDate" placeholder="jj/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
@@ -766,7 +766,7 @@ body.printing-doc #printPanel{
     <div class="mini-calendar" id="miniCal_agendaEndDate" hidden></div>
   </div>
 </div>
-<div class="field">
+<div class="field" id="agendaEndTimeField">
   <label for="agendaEndTime">Heure de fin</label>
   <input id="agendaEndTime" type="time">
 </div>
@@ -788,6 +788,7 @@ body.printing-doc #printPanel{
             <option value="">Aucun logement</option>
           </select>
         </div>
+        <div id="agendaCleaningEndHint" style="display:none;font-size:12px;color:var(--ink-soft);margin-top:-8px;margin-bottom:12px;"></div>
 
         <div class="modal-footer">
           <div class="left"></div>
@@ -1060,6 +1061,10 @@ body.printing-doc #printPanel{
         <label for="newAptPropertyAddress">Adresse du logement</label>
         <input type="text" id="newAptPropertyAddress" placeholder="ex : 5 impasse des Cocotiers, 97190 Le Gosier">
       </div>
+      <div class="field" style="max-width:190px;">
+        <label for="newAptCleaningDuration">Durée du ménage (minutes)</label>
+        <input type="number" id="newAptCleaningDuration" min="1" step="1" placeholder="À renseigner">
+      </div>
     </div>
     <div class="field-row">
       <div class="field">
@@ -1088,7 +1093,7 @@ body.printing-doc #printPanel{
   </div>
 </div>
 
-<!-- Sync (Google Sheets) modal -->
+<!-- Connexion et synchronisation Supabase -->
 <div class="modal-backdrop" id="syncBackdrop" hidden>
   <div class="modal" style="max-width:600px;">
     <div class="modal-head">
@@ -1107,12 +1112,7 @@ body.printing-doc #printPanel{
       <label for="syncPwInput">Mot de passe</label>
       <input type="password" id="syncPwInput" autocomplete="current-password" placeholder="Mot de passe">
     </div>
-    <div style="display:none;">
-      <textarea id="appsScriptCode" readonly></textarea>
-      <input type="text" id="syncUrlInput">
-      <button type="button" id="copyScriptBtn">Copier</button>
-    </div>
-    <p style="font-size:11.5px;color:var(--ink-faint);margin-top:-6px;line-height:1.5;">Le test vérifie réellement la lecture et l’écriture dans Google Sheets. Il écrit puis relit une petite clé technique <code>__sync_probe__</code>. Les enregistrements utilisent l'URL finale de la Web App pour éviter les problèmes de redirection.</p>
+    <p style="font-size:11.5px;color:var(--ink-faint);margin-top:-6px;line-height:1.5;">Tes logements, réservations et événements d’agenda sont enregistrés dans Supabase et associés à ton compte.</p>
     <div class="field-error" id="syncFormError" style="display:none;"></div>
     <div id="syncStatusLine" style="font-size:12.5px;color:var(--ink-faint);margin-bottom:6px;"></div>
     <div id="syncTestHint" style="font-size:11.5px;color:var(--ink-faint);margin-bottom:8px;">Le test n’écrit qu’une petite clé technique temporaire.</div>
@@ -1642,332 +1642,10 @@ function generateId(){
   return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
 }
 
-const APPS_SCRIPT_CODE = `// MOT DE PASSE : remplace '' par ton mot de passe (ex. 'MonMotDePasse2026'). Laisse '' pour ne rien demander.
-var APP_PASSWORD = '';
-function authOk_(pw) { return !APP_PASSWORD || String(pw || '') === APP_PASSWORD; }
-
-function doGet(e) {
-  e = e || {parameter:{}};
-  if (e.parameter.owner) return renderOwnerPage_(e.parameter.owner, e.parameter.year);
-  var action = e.parameter.action;
-  var key = e.parameter.key;
-  if (action === 'ping') {
-    return reply_(e, {ok:true, locked:!!APP_PASSWORD, time:new Date().toISOString()});
-  }
-  if (!authOk_(e.parameter.pw)) return reply_(e, {ok:false, auth:false, error:'Mot de passe requis ou incorrect.'});
-  if (action === 'auth') return reply_(e, {ok:true, auth:true});
-  try {
-    var sheet = getSheet_();
-    if (action === 'sync_probe') {
-      var probeValue = String(e.parameter.value || new Date().toISOString());
-      writeKey_(sheet, '__sync_probe__', probeValue);
-      SpreadsheetApp.flush();
-      var probeReadback = String(readKey_(sheet, '__sync_probe__') || '');
-      if (probeReadback !== probeValue) throw new Error("La valeur testée n'a pas pu être relue après écriture.");
-      return reply_(e, {ok:true,key:'__sync_probe__',value:probeReadback,time:new Date().toISOString()});
-    }
-    if (action === 'upsert_apartment') {
-      var apt = JSON.parse(e.parameter.apartment || '{}');
-      if (!apt || !apt.id) throw new Error('Logement invalide.');
-      writeKey_(sheet, 'apartment_' + String(apt.id), JSON.stringify(apt));
-      var aptIds = readApartmentIndex_(sheet);
-      if (aptIds.indexOf(String(apt.id)) === -1) { aptIds.push(String(apt.id)); writeKey_(sheet, 'apartment_index', JSON.stringify(aptIds)); }
-      SpreadsheetApp.flush();
-      return reply_(e, {ok:true,key:'apartments_upsert'});
-    }
-    if (action === 'delete_apartment') {
-      var aptId = String(e.parameter.id || '');
-      if (aptId) {
-        var keptApts = readApartmentIndex_(sheet).filter(function(id){ return id !== aptId; });
-        writeKey_(sheet, 'apartment_index', JSON.stringify(keptApts));
-        writeKey_(sheet, 'apartment_' + aptId, '');
-        SpreadsheetApp.flush();
-      }
-      return reply_(e, {ok:true,key:'apartments_delete'});
-    }
-    if (action === 'upsert_booking') {
-      writeBookingUpsert_(sheet, JSON.parse(e.parameter.booking || '{}')); SpreadsheetApp.flush();
-      return reply_(e, {ok:true,key:'bookings_upsert'});
-    }
-    if (action === 'delete_booking') {
-      var deleteIds=[];
-      if(e.parameter.ids){ try{ deleteIds=JSON.parse(String(e.parameter.ids))||[]; }catch(eDel){ deleteIds=[]; } }
-      if(!deleteIds.length && e.parameter.id) deleteIds=[String(e.parameter.id)];
-      writeBookingDelete_(sheet, deleteIds); SpreadsheetApp.flush();
-      return reply_(e, {ok:true,key:'bookings_delete',count:deleteIds.length});
-    }
-    if (action === 'set_key') {
-      writeKey_(sheet, String(e.parameter.key || ''), String(e.parameter.value || '')); SpreadsheetApp.flush();
-      return reply_(e, {ok:true,key:String(e.parameter.key || '')});
-    }
-    if (action === 'batch_bookings') {
-      writeBookingsBatch_(sheet, JSON.parse(e.parameter.years || '{}'), String(e.parameter.replaceAll || '') === '1'); SpreadsheetApp.flush();
-      return reply_(e, {ok:true,key:'bookings_batch'});
-    }
-  } catch (err0) { return reply_(e, {ok:false,error:String(err0 && err0.message ? err0.message : err0)}); }
-  if (action === 'get') {
-    if (key === 'bookings_all') return reply_(e, {ok:true,key:'bookings_all',value:JSON.stringify(readAllBookings_(sheet))});
-    if (key === 'apartments') {
-      var aptIndexRaw = readKey_(sheet, 'apartment_index');
-      if (aptIndexRaw) {
-        var aptIds2=[]; try{aptIds2=JSON.parse(aptIndexRaw)||[];}catch(e6){aptIds2=[];}
-        var aptOut=[];
-        for(var ai=0;ai<aptIds2.length;ai++){ var ar=readKey_(sheet,'apartment_'+aptIds2[ai]); if(ar){ try{aptOut.push(JSON.parse(ar));}catch(e7){} } }
-        return reply_(e,{ok:true,key:'apartments',value:JSON.stringify(aptOut)});
-      }
-    }
-    var value = readKey_(sheet, key);
-    return reply_(e, {ok:true,key:key,value:value || ''});
-  }
-  return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
-}
-
-function doPost(e) {
-  try {
-    if (!e) throw new Error('Requête POST absente.');
-    var rawBody = (e.postData && e.postData.contents) ? e.postData.contents : '';
-    if (!rawBody && e.parameter && e.parameter.payload) rawBody = e.parameter.payload;
-    if (!rawBody) throw new Error('Corps POST vide.');
-    var body;
-    try { body = JSON.parse(rawBody); }
-    catch (parseErr) {
-      if (e.parameter && e.parameter.payload) body = JSON.parse(String(e.parameter.payload));
-      else throw parseErr;
-    }
-    if (!body || !body.key) throw new Error('Clé de synchronisation absente.');
-    if (!authOk_(body.pw)) return json_({ok:false, auth:false, error:'Mot de passe requis ou incorrect.'});
-    if (body.key === 'sync_probe') return json_({ok:true, key:'sync_probe', time:new Date().toISOString()});
-    var sheet = getSheet_();
-    if (body.key === 'bookings_upsert') {
-      writeBookingUpsert_(sheet, body.booking);
-    } else if (body.key === 'bookings_delete') {
-      writeBookingDelete_(sheet, body.ids || []);
-    } else if (body.key === 'bookings_batch') {
-      writeBookingsBatch_(sheet, body.years || {}, body.replaceAll === true);
-    } else {
-      writeKey_(sheet, body.key, body.value);
-    }
-    SpreadsheetApp.flush();
-    return json_({ok:true, key:body.key, time:new Date().toISOString()});
-  } catch (err) {
-    return json_({ok:false, error:String(err && err.message ? err.message : err)});
-  }
-}
-
-function json_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}
-function reply_(e, obj) {
-  var cb = e && e.parameter ? String(e.parameter.callback || '') : '';
-  if (cb && /^[A-Za-z_$][0-9A-Za-z_$]*(\\.[A-Za-z_$][0-9A-Za-z_$]*)*$/.test(cb)) {
-    return ContentService.createTextOutput(cb + '(' + JSON.stringify(obj) + ');')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return json_(obj);
-}
-function jsonText_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.TEXT);
-}
-
-function renderOwnerPage_(aptId, yearParam) {
-  var sheet = getSheet_();
-  var map = readAllKeyValues_(sheet);
-  var apartments = JSON.parse(map['apartments'] || '[]');
-  var apt = null;
-  for (var i = 0; i < apartments.length; i++) if (apartments[i].id === aptId) { apt = apartments[i]; break; }
-  if (!apt) return HtmlService.createHtmlOutput('<p style="font-family:sans-serif;padding:40px;">Logement introuvable.</p>');
-  var year = parseInt(yearParam, 10) || new Date().getFullYear();
-  var bookings = bookingsForYearFromMap_(map, year);
-  var monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  var monthly = []; for (var m=0;m<12;m++) monthly.push({nights:0,revenue:0,fees:0});
-  var totalRevenue=0,totalNights=0,totalFees=0;
-  for (var j=0;j<bookings.length;j++) {
-    var b=bookings[j]; if (b.apartmentId!==aptId) continue;
-    if (b.status!=='arrhes' && b.status!=='paye') continue;
-    var ci=new Date(b.checkin+'T00:00:00Z'), co=new Date(b.checkout+'T00:00:00Z');
-    if (ci.getUTCFullYear()!==year && co.getUTCFullYear()!==year) continue;
-    var nights=Math.round((co-ci)/86400000), revenue=b.total||0;
-    var commission=(b.commissionAmount!=null)?b.commissionAmount:((b.commissionPercent!=null&&b.total!=null)?Math.round(b.total*b.commissionPercent)/100:0);
-    var services=0; if(b.services) for(var z=0;z<b.services.length;z++) services+=(b.services[z].price||0);
-    var mi=ci.getUTCMonth(); monthly[mi].nights+=nights; monthly[mi].revenue+=revenue; monthly[mi].fees+=commission+services;
-    totalNights+=nights; totalRevenue+=revenue; totalFees+=commission+services;
-  }
-  var rowsHtml='';
-  for(var q=0;q<12;q++){var mo=monthly[q];rowsHtml+='<tr><td>'+monthNames[q]+'</td><td style="text-align:right">'+mo.nights+'</td><td style="text-align:right">'+mo.revenue.toFixed(2)+' €</td><td style="text-align:right">'+mo.fees.toFixed(2)+' €</td><td style="text-align:right">'+(mo.revenue-mo.fees).toFixed(2)+' €</td></tr>';}
-  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Récapitulatif '+apt.name+'</title><style>body{font-family:-apple-system,Arial,sans-serif;max-width:720px;margin:30px auto;padding:0 16px;color:#142C27;}h1{font-size:20px;}table{width:100%;border-collapse:collapse;margin-top:16px;}th,td{padding:8px 6px;border-bottom:1px solid #ddd;text-align:left;font-size:13px;}th{font-size:11px;text-transform:uppercase;color:#666;}tfoot td{font-weight:700;border-top:2px solid #222;}.muted{color:#666;font-size:12px;}</style></head><body><h1>Récapitulatif locatif '+year+'</h1><p><strong>'+apt.name+'</strong>'+(apt.propertyType?' — '+apt.propertyType:'')+'<br>'+(apt.propertyAddress?apt.propertyAddress+'<br>':'')+'</p><table><thead><tr><th>Mois</th><th style="text-align:right">Nuitées</th><th style="text-align:right">Revenu brut</th><th style="text-align:right">Frais conciergerie</th><th style="text-align:right">Net perçu</th></tr></thead><tbody>'+rowsHtml+'</tbody><tfoot><tr><td>Total</td><td style="text-align:right">'+totalNights+'</td><td style="text-align:right">'+totalRevenue.toFixed(2)+' €</td><td style="text-align:right">'+totalFees.toFixed(2)+' €</td><td style="text-align:right">'+(totalRevenue-totalFees).toFixed(2)+' €</td></tr></tfoot></table><p class="muted">Document généré automatiquement à partir de votre planning de conciergerie.</p></body></html>';
-  return HtmlService.createHtmlOutput(html).setTitle('Récapitulatif '+apt.name).addMetaTag('viewport','width=device-width, initial-scale=1');
-}
-
-function readAllKeyValues_(sheet) {
-  var data=sheet.getDataRange().getValues(), map={};
-  for(var i=1;i<data.length;i++) if(data[i][0]!=='' && data[i][0]!=null) map[data[i][0]]=data[i][1];
-  return map;
-}
-
-function readAllBookings_(sheet) { return bookingsForYearFromMap_(readAllKeyValues_(sheet), null); }
-
-function bookingsForYearFromMap_(map, year) {
-  var idsRaw=map['booking_index'];
-  if(idsRaw){
-    var ids=[]; try{ids=JSON.parse(idsRaw)||[];}catch(e){ids=[];}
-    var merged=[];
-    for(var i=0;i<ids.length;i++){
-      var raw=map['booking_'+ids[i]];
-      if(!raw) continue;
-      try{
-        var b=JSON.parse(raw);
-        if(year===null || bookingBelongsToYear_(b,year)) merged.push(b);
-      }catch(e2){}
-    }
-    return merged;
-  }
-  var indexRaw=map['bookings_index'];
-  if(indexRaw){
-    var years=[];try{years=JSON.parse(indexRaw)||[];}catch(e3){years=[];}
-    var wanted=(year===null)?years:years.filter(function(y){return y===year||y===year-1;});
-    var oldMerged=[];
-    for(var j=0;j<wanted.length;j++){var r=map['bookings_'+wanted[j]];if(r){try{oldMerged=oldMerged.concat(JSON.parse(r));}catch(e4){}}}
-    return oldMerged;
-  }
-  try{return JSON.parse(map['bookings']||'[]');}catch(e5){return [];}
-}
-function bookingBelongsToYear_(b,year){
-  var raw=(b&&(b.checkin||b.checkout))||''; var y=parseInt(String(raw).slice(0,4),10);
-  return y===year || y===year-1;
-}
-function readBookingIndex_(sheet){
-  var raw=readKey_(sheet,'booking_index');
-  try{return JSON.parse(raw||'[]')||[];}catch(e){return [];} 
-}
-function ensureBookingStoreMigrated_(sheet){
-  var raw=readKey_(sheet,'booking_index');
-  if(raw) { try{return JSON.parse(raw)||[];}catch(e){} }
-  var map=readAllKeyValues_(sheet);
-  var old=bookingsForYearFromMap_(map,null), ids=[];
-  for(var i=0;i<old.length;i++){
-    if(!old[i] || !old[i].id) continue;
-    ids.push(old[i].id);
-    writeKey_(sheet,'booking_'+old[i].id,JSON.stringify(old[i]));
-  }
-  writeKey_(sheet,'booking_index',JSON.stringify(ids));
-  return ids;
-}
-function withLock_(fn){
-  var lock=LockService.getScriptLock();
-  lock.waitLock(30000);
-  try{return fn();} finally {lock.releaseLock();}
-}
-function findKeyRow_(sheet,key){
-  var last=sheet.getLastRow();
-  if(last<2) return 0;
-  var cell=sheet.getRange(2,1,last-1,1).createTextFinder(String(key)).matchEntireCell(true).findNext();
-  return cell ? cell.getRow() : 0;
-}
-function writeKeysFast_(sheet, pairs){
-  var keys=Object.keys(pairs||{});
-  if(!keys.length) return;
-  // Petites opérations (ajout/suppression d'une réservation) : ne réécrit pas toute la feuille.
-  // Gros lot (synchronisation initiale) : une seule lecture + une seule écriture en bloc.
-  if(keys.length<=20){
-    var append=[];
-    for(var i=0;i<keys.length;i++){
-      var key=keys[i], value=pairs[key];
-      var row=findKeyRow_(sheet,key);
-      if(row) sheet.getRange(row,2).setValue(value);
-      else append.push([key,value]);
-    }
-    if(append.length) sheet.getRange(sheet.getLastRow()+1,1,append.length,2).setValues(append);
-    return;
-  }
-  var data=sheet.getDataRange().getValues();
-  var rowByKey={};
-  for(var r=1;r<data.length;r++) if(data[r][0]!=='' && data[r][0]!=null) rowByKey[String(data[r][0])]=r+1;
-  var add=[];
-  for(var k=0;k<keys.length;k++){
-    var key2=keys[k], value2=pairs[key2];
-    if(rowByKey[key2]) data[rowByKey[key2]-1][1]=value2;
-    else add.push([key2,value2]);
-  }
-  if(data.length>1) sheet.getRange(1,1,data.length,2).setValues(data.map(function(r2){return [r2[0],r2[1]];}));
-  if(add.length) sheet.getRange(sheet.getLastRow()+1,1,add.length,2).setValues(add);
-}
-function writeBookingUpsert_(sheet, booking){
-  if(!booking || !booking.id) throw new Error('Réservation invalide.');
-  return withLock_(function(){
-    var ids=ensureBookingStoreMigrated_(sheet);
-    if(ids.indexOf(booking.id)===-1) ids.push(booking.id);
-    writeKeysFast_(sheet, {
-      ['booking_'+booking.id]: JSON.stringify(booking),
-      booking_index: JSON.stringify(ids)
-    });
-    return true;
-  });
-}
-function writeBookingDelete_(sheet, ids){
-  ids=Array.isArray(ids)?ids.map(String).filter(Boolean):[]; if(!ids.length)return true;
-  return withLock_(function(){
-    var index=ensureBookingStoreMigrated_(sheet), remove={};
-    for(var r=0;r<ids.length;r++) remove[ids[r]]=true;
-    var kept=index.filter(function(id){return !remove[String(id)];});
-    var pairs={booking_index:JSON.stringify(kept)};
-    for(var j=0;j<ids.length;j++) pairs['booking_'+ids[j]]='';
-    writeKeysFast_(sheet,pairs);
-    SpreadsheetApp.flush();
-    return true;
-  });
-}
-
-function writeBookingsBatch_(sheet, yearsMap, replaceAll) {
-  return withLock_(function(){
-    var years=Object.keys(yearsMap||{}).map(Number).sort(function(a,b){return a-b;});
-    var all=[];
-    for(var i=0;i<years.length;i++){var arr=yearsMap[years[i]]||[];for(var j=0;j<arr.length;j++) if(arr[j]&&arr[j].id) all.push(arr[j]);}
-    var old=replaceAll?[]:readAllBookings_(sheet), byId={};
-    for(var k=0;k<old.length;k++) if(old[k]&&old[k].id) byId[old[k].id]=old[k];
-    for(var n=0;n<all.length;n++) byId[all[n].id]=all[n];
-    var ids=Object.keys(byId), pairs={};
-    for(var x=0;x<ids.length;x++) pairs['booking_'+ids[x]]=JSON.stringify(byId[ids[x]]);
-    if(replaceAll){
-      for(var oi=0;oi<old.length;oi++) if(old[oi]&&old[oi].id && !byId[old[oi].id]) pairs['booking_'+old[oi].id]='';
-    }
-    pairs.booking_index=JSON.stringify(ids);
-    pairs.bookings='[]';
-    writeKeysFast_(sheet,pairs);
-    SpreadsheetApp.flush();
-    return true;
-  });
-}
-
-function readApartmentIndex_(sheet){
-  var raw=readKey_(sheet,'apartment_index');
-  try{return JSON.parse(raw||'[]')||[];}catch(e){return [];}
-}
-function getSheet_(){
-  var ss,props=PropertiesService.getScriptProperties(),savedId=props.getProperty('SHEET_ID');
-  try{ss=SpreadsheetApp.getActiveSpreadsheet();}catch(e){ss=null;}
-  if(!ss&&savedId) ss=SpreadsheetApp.openById(savedId);
-  if(!ss){ss=SpreadsheetApp.create('Planning Conciergerie - Données');props.setProperty('SHEET_ID',ss.getId());}
-  var sheet=ss.getSheetByName('data');
-  if(!sheet){sheet=ss.insertSheet('data');sheet.appendRow(['key','value']);}
-  return sheet;
-}
-function readKey_(sheet,key){
-  var data=sheet.getDataRange().getValues();
-  for(var i=1;i<data.length;i++) if(data[i][0]===key) return data[i][1];
-  return '';
-}
-function writeKey_(sheet,key,value){
-  var data=sheet.getDataRange().getValues();
-  for(var i=1;i<data.length;i++) if(data[i][0]===key){sheet.getRange(i+1,2).setValue(value);return;}
-  sheet.appendRow([key,value]);
-}`
-
 function openSyncModal(){
-  document.getElementById('appsScriptCode').value = APPS_SCRIPT_CODE;
-  document.getElementById('syncUrlInput').value = syncUrl || '';
   document.getElementById('syncPwInput').value = '';
   document.getElementById('syncEmailInput').value = (sbSession() && sbSession().user && sbSession().user.email) || '';
-  const hint=document.getElementById('syncTestHint'); if(hint) hint.textContent='Le test n’écrit aucune réservation : il vérifie uniquement le serveur, Apps Script, puis une clé technique.';
+  const hint=document.getElementById('syncTestHint'); if(hint) hint.textContent='Le test n’écrit aucune réservation : il vérifie uniquement le serveur, Supabase sans modifier tes réservations ni tes logements.';
   document.getElementById('syncFormError').style.display = 'none';
   const diag=document.getElementById('syncDiagnostic');
   let lastErr='';
@@ -1993,62 +1671,7 @@ let _syncWriteUrl = null;
 function getSyncPw(){ try{ return window.sessionStorage.getItem('conciergerie_pw')||''; }catch(e){ return ''; } }
 function setSyncPw(v){ try{ window.localStorage.removeItem('conciergerie_pw'); if(v) window.sessionStorage.setItem('conciergerie_pw',v); else window.sessionStorage.removeItem('conciergerie_pw'); }catch(e){} }
 
-function normalizeSyncUrl_old(url){
-  let u=String(url||'').trim();
-  u=u.replace(/[\s\u200B]+/g,'');
-  u=u.replace(/\/$/,'');
-  // Accepte aussi l'URL copiée sans /exec : on la complète automatiquement.
-  if(/^https:\/\/script\.google\.com\/macros\/s\/[^/]+$/.test(u)) u += '/exec';
-  return u;
-}
-
-async function resolveSyncWriteUrl(url){
-  return normalizeSyncUrl(url);
-}
-
-async function probeNetworkOnly(url, timeoutMs){
-  const base=normalizeSyncUrl(url);
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(), timeoutMs||10000);
-  try{
-    await fetch(base+'?action=ping&t='+Date.now(), {mode:'no-cors',cache:'no-store',signal:controller.signal});
-    return true;
-  }catch(e){
-    return false;
-  }finally{ clearTimeout(timer); }
-}
-
-function isDevDeploymentUrl(url){
-  return /\/macros\/s\/[^/]+\/dev(\?|$|\/)/.test(String(url||''));
-}
-function looksLikeAppsScriptUrl(url){
-  return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec\/?$/.test(String(url||''));
-}
-
-/* Détecte le cas de très loin le plus fréquent d'échec total de synchronisation :
-   le déploiement Apps Script n'est pas réglé sur "Tous les utilisateurs", donc Google
-   redirige (302) vers une page de connexion au lieu de répondre. Avec le mode "no-cors"
-   la réponse d'une requête suivie normalement est toujours opaque qu'il y ait eu succès
-   ou échec ; en revanche avec redirect:'manual' un redirect donne un type "opaqueredirect"
-   bien distinct, qu'aucun autre cas ne produit. C'est ce qui permet de donner un message
-   exact au lieu d'un simple "délai dépassé" qui n'aide personne. */
-async function checkDeploymentAccess(url, timeoutMs){
-  try{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(), timeoutMs||8000);
-    let res;
-    try{
-      res=await fetch(url+(url.indexOf('?')>=0?'&':'?')+'action=ping&t='+Date.now(), {
-        mode:'no-cors', redirect:'manual', cache:'no-store', signal:controller.signal
-      });
-    }finally{ clearTimeout(timer); }
-    return res && res.type==='opaqueredirect';
-  }catch(e){
-    return false; // Inconclusif (réseau down, adblock…) : on laisse le test JSONP trancher.
-  }
-}
-
-/* ===== Supabase : remplace Google Apps Script (mêmes "actions" pour le reste de l'app) ===== */
+/* ===== Connexion et stockage Supabase ===== */
 const SB_URL='https://pezxvjollptmwmadykfk.supabase.co';
 const SB_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
 const SB_SESSION_KEY='conciergerie_sb_session';
@@ -2521,7 +2144,7 @@ async function postSyncPayload(payload){
       const remoteIds=new Set((Array.isArray(remote)?remote:[]).map(b=>String(b&&b.id||'')));
       const missing=expected.filter(id=>!remoteIds.has(id));
       if(missing.length){
-        throw new Error('Google Sheets n\'a pas confirmé '+missing.length+' réservation(s) après l\'écriture.');
+        throw new Error('Supabase n’a pas confirmé '+missing.length+' réservation(s) après l\'écriture.');
       }
       clearSyncError();
       return {ok:true,key:'bookings_batch',verified:true,count:expected.length};
@@ -2530,12 +2153,10 @@ async function postSyncPayload(payload){
   let data;
   try{ data=await callSyncJsonp(base,q,20000); }
   catch(e){ recordSyncError(e); throw e; }
-  if(!data || data.ok!==true){ const e=new Error((data&&data.error)||'Google Apps Script a refusé l’écriture.'); recordSyncError(e); throw e; }
+  if(!data || data.ok!==true){ const e=new Error((data&&data.error)||'Supabase a refusé l’écriture.'); recordSyncError(e); throw e; }
   clearSyncError();
   return data;
 }
-
-const DEPLOY_HINT = ' Dans Apps Script : Déployer > Gérer les déploiements > icône crayon (✏️) sur le déploiement > "Qui a accès" doit être réglé sur "Tous les utilisateurs" (Anyone) > Déployer. Important : si le menu déroulant "Version" affiche déjà "Nouvelle version", validez de nouveau — une simple modification sans nouvelle version n\'est pas toujours prise en compte par Google.';
 
 async function testSyncUrl(){
   const email=document.getElementById('syncEmailInput').value.trim();
@@ -2582,7 +2203,7 @@ function mergeRecordsById(localList, remoteList){
 async function readRemoteKeyStrict(key){
   if(!syncUrl) return null;
   const data=await callSyncJsonp(syncUrl,{action:'get',key:String(key)},20000);
-  if(!data || data.ok!==true) throw new Error((data&&data.error)||'Lecture Google Sheets impossible.');
+  if(!data || data.ok!==true) throw new Error((data&&data.error)||'Lecture Supabase impossible.');
   return String(data.value||'');
 }
 
@@ -2717,7 +2338,7 @@ async function silentRefresh(){
   if(!accountApproved || !syncUrl || !sbHasSession() || !activeUserId || anyModalOpen() || _initialSyncInProgress) return;
   // Ne pas écraser les données si une sauvegarde est en cours ou vient de se terminer
   if(_savingInProgress) return;
-  if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité 20s après une sauvegarde (laisse le temps à Apps Script de propager l'écriture, y compris lors d'un démarrage à froid)
+  if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité après une sauvegarde pour éviter d'écraser une modification récente
   await loadData();
   renderAll();
 }
@@ -2740,17 +2361,7 @@ function onVisibilityRefresh(){
 }
 
 /* ---------------- storage ---------------- */
-/* Ordre de priorité : Google Sheets (si configuré) > window.storage (aperçu Claude) > localStorage (repli local).
-   Quand la synchro Google Sheets est active, les réservations sont réparties par année de
-   check-in côté serveur (clés bookings_2024, bookings_2025, ... + un index bookings_index) au
-   lieu d'être stockées dans une seule cellule : ça évite de heurter la limite d'environ
-   50 000 caractères par cellule au fil des années d'utilisation. Ce tri se fait entièrement
-   dans le script Google (une seule lecture de feuille) : le client, lui, ne fait toujours
-   qu'UNE requête pour tout charger (clé spéciale "bookings_all") et qu'UNE requête pour tout
-   sauvegarder (clé spéciale "bookings_batch") — plusieurs requêtes en parallèle seraient en
-   réalité traitées en série par Apps Script et ralentiraient le chargement à mesure que les
-   années s'accumulent. En local (localStorage / aperçu), le tableau complet reste stocké
-   sous une seule clé "bookings" — pas de limite comparable de ce côté. */
+/* Stockage distant Supabase, avec cache local pour préserver l'accès hors ligne. */
 let activeUserId = (sbSession() && sbSession().user && sbSession().user.id) ? String(sbSession().user.id) : null;
 let LS_PREFIX = activeUserId ? ('conciergerie_user_'+activeUserId+'_') : 'conciergerie_locked_';
 function setAccountScope(userId){
@@ -2830,7 +2441,7 @@ async function loadDataFromLocal(){
 let _savingInProgress = false; // verrou : bloque les refreshs pendant une sauvegarde
 let _lastSaveTimestamp = 0;   // timestamp de la dernière sauvegarde
 let _syncQueue = Promise.resolve(); // évite les POST concurrents et garde les sauvegardes dans l'ordre
-let _lastRestoreTimestamp = 0; // protège les données restaurées pendant la propagation vers Google Sheets
+let _lastRestoreTimestamp = 0; // protège les données restaurées pendant la propagation vers Supabase
 let _initialSyncInProgress = false; // bloque les lectures distantes tant que la première synchronisation n'est pas terminée
 
 async function storageGetRaw(key){
@@ -2838,7 +2449,7 @@ async function storageGetRaw(key){
     try{
       const data=await callSyncJsonp(syncUrl,{action:'get',key:String(key)},20000);
       if(data && data.ok===true) return String(data.value||'');
-    }catch(e){ console.error('Lecture Google Sheets',e); }
+    }catch(e){ console.error('Lecture Supabase',e); }
     return '';
   }
   try{
@@ -3008,7 +2619,7 @@ async function loadData(){
         return true;
       }
       throw new Error('Réponse serveur invalide');
-    }catch(e){setSyncStatus('error');console.error('Chargement Google Sheets',e);await loadDataFromLocal();return false;}
+    }catch(e){setSyncStatus('error');console.error('Chargement Supabase',e);await loadDataFromLocal();return false;}
   }
   await loadDataFromLocal(); return true;
 }
@@ -5572,7 +5183,7 @@ function renderApartmentsList(){
       </div>
       <div class="info">
         <div class="n">${escapeHtml(apt.name)}</div>
-        <div class="o">${escapeHtml(apt.owner||'—')} · commission ${apt.commissionPercent!=null?apt.commissionPercent:20}%</div>
+        <div class="o">${escapeHtml(apt.owner||'—')} · commission ${apt.commissionPercent!=null?apt.commissionPercent:20}% · ménage ${apt.cleaningDurationMinutes ? apt.cleaningDurationMinutes+' min' : 'durée à renseigner'}</div>
       </div>
       <button data-act="edit" title="Modifier">✎</button>
       <button data-act="delete" title="Supprimer">🗑</button>
@@ -5708,6 +5319,7 @@ function startEditApartment(item, id){
       </div>
       <div style="display:flex;gap:6px;">
         <input type="text" id="editAptOwnerAddress" value="${escapeHtml(apt.ownerAddress||'')}" placeholder="Adresse du propriétaire" style="flex:1;">
+        <input type="number" id="editAptCleaningDuration" value="${apt.cleaningDurationMinutes!=null?escapeHtml(apt.cleaningDurationMinutes):''}" min="1" step="1" placeholder="Durée ménage (min)" style="max-width:170px;">
       </div>
     </div>
     <button data-act="save" title="Enregistrer">✔</button>
@@ -5727,6 +5339,8 @@ function startEditApartment(item, id){
     apt.ownerEmail = document.getElementById('editAptOwnerEmail').value.trim();
     apt.ownerAddress = document.getElementById('editAptOwnerAddress').value.trim();
     apt.propertyAddress = document.getElementById('editAptPropertyAddress').value.trim();
+    const cleaningDuration = parseInt(document.getElementById('editAptCleaningDuration').value,10);
+    apt.cleaningDurationMinutes = Number.isInteger(cleaningDuration) && cleaningDuration>0 ? cleaningDuration : null;
     saveApartments();
     renderApartmentsList();
     renderAll();
@@ -5761,6 +5375,8 @@ async function addApartment(){
   const ownerEmail = document.getElementById('newAptOwnerEmail').value.trim();
   const ownerAddress = document.getElementById('newAptOwnerAddress').value.trim();
   const propertyAddress = document.getElementById('newAptPropertyAddress').value.trim();
+  const cleaningDurationRaw = parseInt(document.getElementById('newAptCleaningDuration').value,10);
+  const cleaningDurationMinutes = Number.isInteger(cleaningDurationRaw) && cleaningDurationRaw>0 ? cleaningDurationRaw : null;
   if(!name){
     errEl.style.display = 'block';
     errEl.textContent = 'Merci de donner un nom au logement.';
@@ -5768,7 +5384,7 @@ async function addApartment(){
   }
   errEl.style.display = 'none';
   await refreshApartmentsFromRemote();
-  apartments.push({id: generateId(), name, owner, commissionPercent, propertyType, ownerPhone, ownerEmail, ownerAddress, propertyAddress, advances: [], globalServices: [], comment: ''});
+  apartments.push({id: generateId(), name, owner, commissionPercent, propertyType, ownerPhone, ownerEmail, ownerAddress, propertyAddress, cleaningDurationMinutes, advances: [], globalServices: [], comment: ''});
   await saveApartments();
   document.getElementById('newAptName').value = '';
   document.getElementById('newAptOwner').value = '';
@@ -5778,6 +5394,7 @@ async function addApartment(){
   document.getElementById('newAptOwnerEmail').value = '';
   document.getElementById('newAptOwnerAddress').value = '';
   document.getElementById('newAptPropertyAddress').value = '';
+  document.getElementById('newAptCleaningDuration').value = '';
   closeApartmentsModal();
   renderAll();
 }
@@ -6869,19 +6486,6 @@ function bindEvents(){
   document.getElementById('disableSyncBtn').addEventListener('click', ()=>{
     showConfirm('Désactiver la synchronisation ? Les données resteront enregistrées sur cet appareil.', disableSync);
   });
-  document.getElementById('copyScriptBtn').addEventListener('click', ()=>{
-    const ta = document.getElementById('appsScriptCode');
-    ta.select();
-    try{
-      navigator.clipboard.writeText(APPS_SCRIPT_CODE);
-      const btn = document.getElementById('copyScriptBtn');
-      const original = btn.textContent;
-      btn.textContent = '✅ Copié !';
-      setTimeout(()=>{ btn.textContent = original; }, 1500);
-    }catch(e){
-      document.execCommand('copy');
-    }
-  });
   document.getElementById('forceRefreshLink').addEventListener('click', async ()=>{
     await loadData();
     schedulePendingSync();
@@ -7231,6 +6835,29 @@ async function syncAgendaPending(){
 // ===== COMMANDES DE L'AGENDA =====
 let editingAgendaId = null;
 
+function updateAgendaCleaningFields(){
+  const isCleaning=document.getElementById('agendaCategory').value==='menage';
+  const endDateField=document.getElementById('agendaEndDateField');
+  const endTimeField=document.getElementById('agendaEndTimeField');
+  const hint=document.getElementById('agendaCleaningEndHint');
+  if(endDateField) endDateField.hidden=isCleaning;
+  if(endTimeField) endTimeField.hidden=isCleaning;
+  if(!hint) return;
+  hint.style.display=isCleaning?'block':'none';
+  if(!isCleaning){hint.textContent='';return;}
+  const apt=apartments.find(a=>a.id===document.getElementById('agendaApartment').value);
+  const minutes=apt && Number(apt.cleaningDurationMinutes);
+  if(!apt){hint.textContent='Choisis le logement pour calculer automatiquement la fin du ménage.';return;}
+  if(!Number.isInteger(minutes)||minutes<=0){hint.textContent='La durée du ménage n’est pas renseignée pour ce logement. Ajoute-la dans les paramètres du logement.';return;}
+  const date=document.getElementById('agendaStartDate').value;
+  const time=document.getElementById('agendaStartTime').value;
+  const m=date.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+  if(!m||!time){hint.textContent='Indique la date et l’heure de début pour calculer la fin ('+minutes+' min).';return;}
+  const start=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(time.slice(0,2)),Number(time.slice(3,5)));
+  const end=new Date(start.getTime()+minutes*60000);
+  hint.textContent='Fin prévue automatiquement : '+end.toLocaleDateString('fr-FR')+' à '+end.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' ('+minutes+' min)';
+}
+
 function agendaDateValue(value){
   const d = value ? new Date(value) : new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -7380,6 +7007,7 @@ if(endValue){
   document.getElementById('agendaCategory').value = ev.category||'personnel';
   document.getElementById('agendaApartment').value = ev.apartment_id||'';
   document.getElementById('agendaForm').hidden = false;
+  updateAgendaCleaningFields();
 }
 
 function initAgenda(){
@@ -7425,7 +7053,13 @@ document.getElementById('agendaEndTime').value = '';
     document.getElementById('agendaCategory').value = 'personnel';
     document.getElementById('agendaApartment').value = '';
     document.getElementById('agendaForm').hidden = false;
+    updateAgendaCleaningFields();
   });
+
+  document.getElementById('agendaCategory').addEventListener('change',updateAgendaCleaningFields);
+  document.getElementById('agendaApartment').addEventListener('change',updateAgendaCleaningFields);
+  document.getElementById('agendaStartDate').addEventListener('input',updateAgendaCleaningFields);
+  document.getElementById('agendaStartTime').addEventListener('input',updateAgendaCleaningFields);
 
   document.getElementById('agendaCancelBtn').addEventListener('click',()=>{
     // Annuler ferme aussi le panneau : sinon une fenêtre vide restait ouverte.
@@ -7450,10 +7084,26 @@ const toDateTime = (date, time) => {
 };
 
 const start = toDateTime(startDate, startTime);
-const end = toDateTime(endDate, endTime);
+let end = toDateTime(endDate, endTime);
+    const category=document.getElementById('agendaCategory').value;
+    const apartmentId=document.getElementById('agendaApartment').value || null;
+    let finalTitle=title;
 
-    if(!title || !start){
-      alert('Indique au minimum un titre et une date de début.');
+    if(!start){
+      alert('Indique une date et une heure de début.');
+      return;
+    }
+    if(category==='menage'){
+      if(!apartmentId){alert('Choisis le logement pour ce ménage.');return;}
+      const apt=apartments.find(a=>a.id===apartmentId);
+      const minutes=apt && Number(apt.cleaningDurationMinutes);
+      if(!Number.isInteger(minutes)||minutes<=0){alert('La durée du ménage n’est pas renseignée pour ce logement. Ouvre Logements, modifie ce logement et indique sa durée en minutes.');return;}
+      const startDateObj=new Date(start);
+      if(Number.isNaN(startDateObj.getTime())){alert('La date et l’heure de début ne sont pas valides.');return;}
+      end=new Date(startDateObj.getTime()+minutes*60000).toISOString();
+      if(!finalTitle) finalTitle='Ménage — '+apt.name;
+    }else if(!title){
+      alert('Indique un titre pour ce rendez-vous.');
       return;
     }
     if(end && new Date(end)<new Date(start)){
@@ -7463,12 +7113,12 @@ const end = toDateTime(endDate, endTime);
 
     const event = {
       id: editingAgendaId || crypto.randomUUID(),
-      title,
+      title:finalTitle,
       description: document.getElementById('agendaDescription').value.trim(),
-      category: document.getElementById('agendaCategory').value,
+      category,
       start_at: new Date(start).toISOString(),
       end_at: end ? new Date(end).toISOString() : null,
-      apartment_id: document.getElementById('agendaApartment').value || null,
+      apartment_id: apartmentId,
       all_day: false,
       updated_at: new Date().toISOString()
     };
