@@ -3374,13 +3374,21 @@ function answerVoiceQuestion(phrase){
     }).join(' ; ')+'.';
   }
   // Recherche directe d'une réservation à partir du nom du client.
+  const normalizeSearch = value => String(value||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\\u0300-\\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim()
+    .replace(/\\s+/g,' ');
+  const spokenSearch = normalizeSearch(phrase);
   const matchingBookings = bookings.filter(b => {
-    const client = norm(b.client);
-    return client && client.length >= 2 && t.includes(client);
+    const client = normalizeSearch(b.client);
+    return client.length >= 2 && spokenSearch.includes(client);
   });
   if(matchingBookings.length &&
-     (/(reservation|reservations|client|sejour|dossier|retrouver|chercher|rechercher)/.test(t) ||
-      matchingBookings.some(b => norm(b.client) === t.trim()))){
+     (/(reservation|reservations|client|sejour|dossier|retrouver|retrouve|chercher|cherche|rechercher|recherche|nom)/.test(t) ||
+      matchingBookings.some(b => normalizeSearch(b.client) === spokenSearch))){
     return matchingBookings.slice(0,8).map(b=>{
       const status = (STATUSES.find(s=>s.key===b.status)||{}).label || b.status || 'statut non précisé';
       const details = [
