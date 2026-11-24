@@ -6308,11 +6308,14 @@ function prepareBookingWhatsApp(choiceOverride){
   const lodging = apt ? apt.name : 'votre logement';
   const arrival = fmtDateShort(b.checkin)+(b.checkinTime ? ' à '+b.checkinTime : '');
   const departure = fmtDateShort(b.checkout)+(b.checkoutTime ? ' à '+b.checkoutTime : '');
-  const choice = choiceOverride || prompt(
-    "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Remerciement et demande d'avis (ensemble)\\n0 - Activer le programme si le message de bienvenue a déjà été envoyé\\n\\nSaisis 0, 1, 2 ou 3 :",
-    "1"
-  );
-  if(choice===null) return;
+  const rawChoice = choiceOverride !== undefined && choiceOverride !== null
+    ? choiceOverride
+    : prompt(
+      "Quel message souhaites-tu préparer ?\\n\\n1 - Bienvenue / récapitulatif du séjour\\n2 - Rappel 3 jours avant l'arrivée\\n3 - Remerciement et demande d'avis (ensemble)\\n0 - Activer le programme si le message de bienvenue a déjà été envoyé\\n\\nSaisis 0, 1, 2 ou 3 :",
+      "1"
+    );
+  if(rawChoice===null) return;
+  const choice = String(rawChoice).trim();
   if(choice==='0'){
     showConfirm("Confirmer que le message de bienvenue a déjà été envoyé à ce client ? Le programme sera alors activé sans renvoyer ce message.",()=>{
       if(activateBookingWhatsAppWorkflow(b)) alert("Programme WhatsApp activé. Les prochains messages seront proposés aux dates prévues, avec validation manuelle de chaque envoi.");
