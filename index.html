@@ -1903,6 +1903,8 @@ async function sbAfterLogin(){
   syncUrl=SB_URL; _syncWriteUrl=null;
   // Ne jamais réutiliser les données en mémoire de l'utilisateur précédent.
   apartments=[]; bookings=[]; agendaEvents=[];
+  agendaPendingOps=readAgendaQueue();
+  agendaColorOverrides={};
   stopAutoRefresh();
   setSyncStatus('syncing'); renderAll();
   try{
@@ -6669,8 +6671,9 @@ document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
 let agendaEvents = [];
 let agendaPendingOps = [];
 
-const AGENDA_STORAGE_KEY = LS_PREFIX + 'agendaEvents';
-const AGENDA_QUEUE_KEY = LS_PREFIX + 'agendaPendingOps';
+// Calculer les clés à chaque accès : LS_PREFIX change lors d'un changement de compte.
+function agendaStorageKey(){ return LS_PREFIX + 'agendaEvents'; }
+function agendaQueueKey(){ return LS_PREFIX + 'agendaPendingOps'; }
 const AGENDA_COLOR_DEFAULTS = {personnel:'#8064A2',menage:'#26966D',maintenance:'#D17A27',proprietaire:'#3478B8',administratif:'#777777'};
 const AGENDA_CATEGORY_LABELS = {personnel:'Personnel',menage:'Ménage',maintenance:'Maintenance',proprietaire:'Propriétaire',administratif:'Administratif'};
 let agendaColorOverrides = {};
@@ -6743,7 +6746,7 @@ function renderAgendaColorEditor(){
 
 function readAgendaLocal(){
   try {
-    return JSON.parse(localStorage.getItem(AGENDA_STORAGE_KEY) || '[]');
+    return JSON.parse(localStorage.getItem(agendaStorageKey()) || '[]');
   } catch(e) {
     return [];
   }
@@ -6751,13 +6754,13 @@ function readAgendaLocal(){
 
 function saveAgendaLocal(){
   try {
-    localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(agendaEvents));
+    localStorage.setItem(agendaStorageKey(), JSON.stringify(agendaEvents));
   } catch(e) {}
 }
 
 function readAgendaQueue(){
   try {
-    return JSON.parse(localStorage.getItem(AGENDA_QUEUE_KEY) || '[]');
+    return JSON.parse(localStorage.getItem(agendaQueueKey()) || '[]');
   } catch(e) {
     return [];
   }
@@ -6766,9 +6769,9 @@ function readAgendaQueue(){
 function writeAgendaQueue(){
   try {
     if(agendaPendingOps.length){
-      localStorage.setItem(AGENDA_QUEUE_KEY, JSON.stringify(agendaPendingOps));
+      localStorage.setItem(agendaQueueKey(), JSON.stringify(agendaPendingOps));
     } else {
-      localStorage.removeItem(AGENDA_QUEUE_KEY);
+      localStorage.removeItem(agendaQueueKey());
     }
   } catch(e) {}
 }
