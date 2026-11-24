@@ -3347,12 +3347,159 @@ sources: SOURCES.map(s=>({key:s.key,label:s.label})),
       alert(result.clarification);
       return;
     }
+if(result.action === 'delete' && result.objectType === 'reservation'){
+  const targetBooking = bookings.find(
+    b => String(b.id) === String(result.target)
+  );
 
-    if(!['create','update'].includes(result.action) || result.objectType !== 'reservation'){
+  if(!targetBooking){
+    alert('Je ne trouve pas la réservation à supprimer. Précise le nom du client et le logement.');
+    return;
+  }
+
+  showConfirm(
+    'Confirmer la suppression de la réservation de ' +
+    (targetBooking.client || 'client sans nom') + ' ?',
+    ()=>{
+      const id = targetBooking.id;
+      bookings = bookings.filter(b=>b.id !== id);
+      saveBookings();
+
+      if(bookingIsOpen) closeBookingModal();
+
+      requestAnimationFrame(()=>renderAll());
+
+      if(syncUrl){
+        queueBookingDelete(id);
+        setSyncStatus('syncing');
+        flushPendingSync();
+      }
+    }
+  );
+  return;
+}
+    if(!['create','update','delete'].includes(result.action) ||
+   !['reservation','agenda'].includes(result.objectType)){
       alert('Cette commande sera prise en charge dans la prochaine étape.');
       return;
     }
+    
+if(result.objectType === 'agenda'){
+  const agendaForm = document.getElementById('agendaForm');
+  const agendaPanel = document.getElementById('agendaPanel');
 
+  const targetEvent = agendaEvents.find(
+    e => String(e.id) === String(result.target)
+  );
+
+  if(result.action === 'delete'){
+    if(!targetEvent){
+      alert('Je ne trouve pas cet événement dans l’Agenda.');
+      return;
+    }
+
+    showConfirm('Supprimer l’événement « ' + targetEvent.title + ' » ?', async ()=>{
+      await deleteAgendaEvent(targetEvent.id);
+      editingAgendaId = null;
+      agendaForm.hidden = true;
+      agendaPanel.hidden = true;
+      renderAgenda();
+      renderCalendar();
+    });
+    return;
+  }
+
+  if(result.action === 'update' && !targetEvent){
+    alert('Je ne trouve pas l’événement à modifier.');
+    return;
+  }
+
+  const fields = [];
+  if(result.title) fields.push('Titre : ' + result.title);
+  if(result.startDate) fields.push('Date : ' + result.startDate);
+  if(result.startTime) fields.push('Heure : ' + result.startTime);
+  if(result.endDate) fields.push('Fin : ' + result.endDate);
+  if(result.endTime) fields.push('Heure de fin : ' + result.endTime);
+  if(result.notes) fields.push('Description : ' + result.notes);
+
+  const apartment = apartments.find(a =>
+    a.name.trim().toLowerCase() ===
+    String(result.apartmentName || '').trim().toLowerCase()
+  );
+  if(apartment) fields.push('Logement : ' + apartment.name);
+
+  if(!fields.length){
+    alert('Je n’ai reconnu aucune information pour l’Agenda.');
+    return;
+  }
+
+  showConfirm(
+    'Appliquer ces informations à l’Agenda ?\n\n' + fields.join('\n'),
+    ()=>{
+      if(result.action === 'update'){
+        editingAgendaId = targetEvent.id;
+        agendaPanel.hidden = false;
+        document.getElementById('agendaAddBtn').hidden = true;
+        document.getElementById('agendaEventsList').hidden = true;
+
+        const start = targetEvent.start_at ? new Date(targetEvent.start_at) : null;
+        const end = targetEvent.end_at ? new Date(targetEvent.end_at) : null;
+
+        const frDate = d => d && !isNaN(d.getTime())
+          ? String(d.getDate()).padStart(2,'0') + '/' +
+            String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear()
+          : '';
+
+        document.getElementById('agendaTitle').value = targetEvent.title || '';
+        document.getElementById('agendaDescription').value = targetEvent.description || '';
+        document.getElementById('agendaStartDate').value = frDate(start);
+        document.getElementById('agendaStartTime').value = start
+          ? String(start.getHours()).padStart(2,'0') + ':' + String(start.getMinutes()).padStart(2,'0')
+          : '';
+        document.getElementById('agendaEndDate').value = frDate(end);
+        document.getElementById('agendaEndTime').value = end
+          ? String(end.getHours()).padStart(2,'0') + ':' + String(end.getMinutes()).padStart(2,'0')
+          : '';
+        document.getElementById('agendaCategory').value = targetEvent.category || 'personnel';
+        document.getElementById('agendaApartment').value = targetEvent.apartment_id || '';
+        agendaForm.hidden = false;
+      }else if(!agendaForm || agendaForm.hidden){
+        document.getElementById('agendaBtn').click();
+      }
+
+      if(result.title) document.getElementById('agendaTitle').value = result.title;
+      if(result.notes) document.getElementById('agendaDescription').value = result.notes;
+
+      const toFR = value => {
+        if(!value) return '';
+        const p = value.split('-');
+        return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '';
+      };
+
+      if(result.startDate) document.getElementById('agendaStartDate').value = toFR(result.startDate);
+      if(result.startTime) document.getElementById('agendaStartTime').value = result.startTime;
+      if(result.endDate) document.getElementById('agendaEndDate').value = toFR(result.endDate);
+      if(result.endTime) document.getElementById('agendaEndTime').value = result.endTime;
+      if(apartment) document.getElementById('agendaApartment').value = apartment.id;
+
+      agendaForm.hidden = false;
+    }
+  );
+  return;
+}
+
+let targetBooking = null;
+
+if(result.action === 'update'){
+  targetBooking = bookings.find(
+    b => String(b.id) === String(result.target)
+  );
+
+  if(!targetBooking){
+    alert('Je ne trouve pas la réservation à modifier. Précise le client et le logement.');
+    return;
+  }
+}
     const apartment = apartments.find(a =>
       a.name.trim().toLowerCase() ===
       String(result.apartmentName || '').trim().toLowerCase()
@@ -3408,8 +3555,14 @@ if(result.source && SOURCES.some(s=>s.key===result.source)){
     showConfirm(
       'Appliquer ces informations au formulaire ?\n\n' + changes.join('\n'),
       ()=>{
-        if(!bookingIsOpen){
-          openNewBookingForCell('', today);
+        if(result.action === 'update' && !bookingIsOpen){
+  openEditBooking(targetBooking.id);
+}else if(result.action === 'update' && editingBookingId !== targetBooking.id){
+  alert('Ferme ou enregistre d’abord la réservation actuellement ouverte pour éviter de perdre tes saisies.');
+  return;
+}else if(!bookingIsOpen){
+  openNewBookingForCell('', today);
+          
           document.getElementById('bkApartment').value = '';
           document.getElementById('bkCheckin').value = '';
           document.getElementById('bkCheckout').value = '';
