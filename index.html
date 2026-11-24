@@ -2021,6 +2021,7 @@ async function sbAfterLogin(){
     renderAll();
     setAppAccessVisible(true);
     hideAccountGate();
+    centerOnToday();
     startAutoRefresh();
     schedulePendingSync();
   }catch(e){
@@ -4042,6 +4043,7 @@ async function init(){
     renderAll();
     hideAccountGate();
     setAppAccessVisible(true);
+    centerOnToday();
   }
 
   startFlightAutoUpdate();
