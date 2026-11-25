@@ -2622,7 +2622,8 @@ function updateOwnerSiteActions(){
   share.disabled=!accepted||!ownerSiteEnabled;
   share.title=!ownerSiteEnabled?'Votre site doit être publié pour être partagé avec des clients.':'Partager le lien public de votre site';
   const notifications=document.getElementById('siteBookingNotificationsBtn');
-  if(notifications)notifications.hidden=!manager||!ownerSiteCreationAccepted();
+  // Le bouton reste masqué jusqu'au retour de la vérification des demandes en attente.
+  if(notifications)notifications.hidden=true;
 }
 async function requestOwnerSiteCreation(){
   if(!accountApproved||(accountRole!=='user'&&accountRole!=='admin')||!activeUserId)return;
