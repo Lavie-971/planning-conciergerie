@@ -284,7 +284,8 @@ async function renderManager(profile){
   const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0];
   const rows=await api('public_listings?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&order=display_order.asc');
   const siteUrl=currentSite.site_slug==='vacances-en-guadeloupe'?BASE_URL:BASE_URL+'?site='+encodeURIComponent(currentSite.site_slug);
-  const canManagePublication=['draft','approved'].includes(currentSite.site_review_status);
+  const creationAccepted=currentSite.site_review_status==='approved'||(currentSite.site_review_status==='draft'&&String(currentSite.site_review_note||'').includes('Création acceptée par l’administrateur'));
+  const canManagePublication=creationAccepted;
   $('adminContent').innerHTML=
   '<div class="admin-card"><h3>Mon site personnel</h3><p>Modifiez votre site librement. Une fois la création acceptée par l’administrateur, vous choisissez vous-même quand le publier ou le mettre en pause.</p><form id="siteForm"><div class="formgrid">'+
   field('Nom du site','site_name',currentSite.site_name)+field('Adresse personnalisée (slug)','site_slug',currentSite.site_slug)+
