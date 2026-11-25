@@ -500,16 +500,44 @@ if(/^#admin(?:\/|$)/i.test(location.hash||'')||new URLSearchParams(location.sear
  // soit l'espace propriétaire, soit le formulaire de connexion une fois la restauration terminée.
 }
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const OWNER_SESSION_KEY='vacances_guadeloupe_owner_session_v1';
+const PLANNING_SESSION_KEY='conciergerie_sb_session';
+const PLANNING_URL='https://lavie-971.github.io/planning-conciergerie/';
+let ownerAccessMessage='';
  let session=null,currentSite=null,currentUser=null,currentProfile=null,activePreviewSite=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
 let ownerRestorePromise=null;
 function restoreOwnerSession(){
  if(ownerRestorePromise)return ownerRestorePromise;
- ownerRestorePromise=(async()=>{try{const raw=localStorage.getItem(OWNER_SESSION_KEY);if(!raw)return;let saved=JSON.parse(raw);if(!saved?.user?.id||!saved?.access_token)throw new Error('Session invalide');if(Number(saved.expires_at||0)<=Math.floor(Date.now()/1000)+60){if(!saved.refresh_token)throw new Error('Session expirée');const rr=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:saved.refresh_token})});const renewed=await rr.json();if(!rr.ok||!renewed.access_token)throw new Error('Session expirée');saved=renewed;localStorage.setItem(OWNER_SESSION_KEY,JSON.stringify(saved));}session=saved;currentUser=saved.user;const profiles=await api('user_profiles?select=role,status,full_name&user_id=eq.'+encodeURIComponent(currentUser.id));const profile=profiles[0];if(!profile||profile.status!=='approved')throw new Error('Session invalide');currentProfile=profile;const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0]||null;}catch(e){
-  session=null;currentUser=null;currentProfile=null;currentSite=null;
-  // Une erreur réseau temporaire ne doit pas déconnecter le propriétaire.
-  if(/Session invalide|Session expirée/.test(String(e?.message||'')))localStorage.removeItem(OWNER_SESSION_KEY);
- }})();
+ ownerRestorePromise=(async()=>{
+  ownerAccessMessage='';
+  try{
+   const raw=localStorage.getItem(PLANNING_SESSION_KEY);
+   if(!raw){session=null;currentUser=null;currentProfile=null;currentSite=null;return;}
+   let saved=JSON.parse(raw);
+   if(!saved?.user?.id||!saved?.refresh_token)throw new Error('Session Planning introuvable ou invalide.');
+   if(Number(saved.expires_at||0)<=Math.floor(Date.now()/1000)+60){
+    const rr=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:saved.refresh_token})});
+    const renewed=await rr.json();
+    if(!rr.ok||!renewed.access_token)throw new Error('Votre session Planning a expiré. Reconnectez-vous à Planning Conciergerie.');
+    saved={access_token:renewed.access_token,refresh_token:renewed.refresh_token||saved.refresh_token,expires_at:renewed.expires_at||(Math.floor(Date.now()/1000)+(renewed.expires_in||3600)),user:{id:renewed.user?.id||saved.user.id,email:renewed.user?.email||saved.user.email}};
+    localStorage.setItem(PLANNING_SESSION_KEY,JSON.stringify(saved));
+   }
+   session=saved;currentUser=saved.user;
+   const profiles=await api('user_profiles?select=role,status,full_name&user_id=eq.'+encodeURIComponent(currentUser.id));
+   const profile=profiles[0];
+   if(!profile||profile.status!=='approved'){
+    currentProfile=null;currentSite=null;
+    ownerAccessMessage='Votre compte Planning Conciergerie ne dispose pas encore de l’autorisation nécessaire pour gérer un site.';
+    return;
+   }
+   currentProfile=profile;
+   const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));
+   currentSite=sites[0]||null;
+   if(!currentSite)ownerAccessMessage='Aucun espace propriétaire n’est encore associé à ce compte Planning Conciergerie.';
+  }catch(e){
+   session=null;currentUser=null;currentProfile=null;currentSite=null;
+   ownerAccessMessage=String(e?.message||'Impossible de vérifier votre connexion Planning Conciergerie.');
+  }
+ })();
  return ownerRestorePromise.finally(()=>{ownerRestorePromise=null;});
 }
 let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false;
@@ -704,25 +732,8 @@ function openPreviewListingEditor(item){
 
 function showAdmin(){$('publicApp').style.display='none';$('adminApp').style.display='block';renderLogin()}
 function renderLogin(){
- $('adminContent').innerHTML='<div class="owner-login-shell"><a class="owner-login-brand" href="'+BASE_URL+'" aria-label="Retour au site public"><span class="owner-login-mark">VG</span><span>Vacances en Guadeloupe<small>ESPACE PROPRIÉTAIRE</small></span></a><section class="login-box"><div class="login-icon">⌂</div><div class="login-eyebrow">VOTRE ESPACE PERSONNEL</div><h2>Bienvenue</h2><p>Connectez-vous pour personnaliser votre vitrine et choisir les hébergements que vous souhaitez présenter.</p><form id="loginForm"><div class="field"><label for="adminEmail">Adresse e-mail</label><input id="adminEmail" type="email" placeholder="vous@exemple.fr" required autocomplete="username"></div><div class="field"><label for="adminPassword">Mot de passe</label><input id="adminPassword" type="password" placeholder="Votre mot de passe" required autocomplete="current-password"></div><button class="btn" type="submit">Se connecter <span aria-hidden="true">→</span></button><div id="loginStatus" class="admin-note" aria-live="polite"></div></form><div class="login-security"><span>🔒</span> Connexion sécurisée avec votre compte Planning Conciergerie</div></section><a class="owner-login-back" href="'+BASE_URL+'">← Retour au site public</a></div>';
- $('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();const st=$('loginStatus');st.textContent='Connexion…';
-  try{
-   const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:$('adminEmail').value,password:$('adminPassword').value})});
-   const j=await r.json();if(!r.ok||!j.access_token)throw new Error(j.msg||j.message||'Identifiants incorrects.');
-   session=j;currentUser=j.user;localStorage.setItem(OWNER_SESSION_KEY,JSON.stringify(j));
-   const profiles=await api('user_profiles?select=role,status,full_name&user_id=eq.'+encodeURIComponent(j.user.id));
-   const profile=profiles[0];if(!profile||profile.status!=='approved')throw new Error('Votre compte doit être approuvé pour gérer un site.');
-   const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(j.user.id));
-   if(sites.length)currentSite=sites[0];
-   else{
-    const slug='proprietaire-'+j.user.id.slice(0,8).toLowerCase();
-    await api('public_owner_sites','POST',{user_id:j.user.id,site_slug:slug,site_name:profile.full_name||'Mon site de vacances',site_enabled:false});
-    currentSite=(await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(j.user.id)))[0];
-   }
-   await renderManager(profile);
-  }catch(err){st.textContent=err.message;session=null;currentUser=null;localStorage.removeItem(OWNER_SESSION_KEY)}
- });
+ const message=ownerAccessMessage||'Pour accéder à votre espace propriétaire, connectez-vous d’abord à Planning Conciergerie avec votre compte habituel.';
+ $('adminContent').innerHTML='<div class="owner-login-shell"><a class="owner-login-brand" href="'+BASE_URL+'" aria-label="Retour au site public"><span class="owner-login-mark">VG</span><span>Vacances en Guadeloupe<small>ESPACE PROPRIÉTAIRE</small></span></a><section class="login-box"><div class="login-icon">⌂</div><div class="login-eyebrow">ACCÈS VIA PLANNING CONCIERGERIE</div><h2>Votre espace propriétaire</h2><p>'+esc(message)+'</p><a class="btn" href="'+PLANNING_URL+'" style="display:block;text-align:center;text-decoration:none;margin-top:20px">Ouvrir Planning Conciergerie <span aria-hidden="true">→</span></a><div class="login-security"><span>🔒</span> Une seule connexion : votre compte Planning Conciergerie.</div></section><a class="owner-login-back" href="'+BASE_URL+'">← Retour au site public</a></div>';
 }
 function field(label,name,value,type='text'){return '<div class="field"><label>'+label+'</label><input name="'+name+'" type="'+type+'" value="'+esc(value??'')+'" '+(type==='number'?'min="0" step="1"':'')+'></div>'}
 function imagePickerMarkup(name,label,value,multiple){
@@ -814,7 +825,7 @@ async function renderManager(profile){
   (rows.length?'':'<div class="admin-card"><p>Aucun logement n’est encore associé à votre compte. Contactez l’administrateur de Planning Conciergerie pour vérifier vos logements.</p></div>');
   decorateManagerWorkspace(profile);
   setupImageEditors();
-  $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;localStorage.removeItem(OWNER_SESSION_KEY);renderLogin()});
+  $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;localStorage.removeItem(PLANNING_SESSION_KEY);renderLogin()});
   $('previewSiteBtn').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!session?.access_token||!currentUser?.id){renderLogin();return;}const button=$('previewSiteBtn');button.disabled=true;try{const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));if(!sites.length)throw new Error('Aucun site propriétaire trouvé.');currentSite=sites[0];const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);document.documentElement.classList.remove('owner-entry');$('adminApp').style.display='none';$('publicApp').style.display='block';await loadPublic();}catch(err){button.disabled=false;const note=document.createElement('p');note.className='admin-note';note.textContent='Impossible d’ouvrir l’aperçu : '+err.message;button.insertAdjacentElement('afterend',note);}});
   $('siteForm').addEventListener('submit',saveSite);
   $('siteTextsForm')?.addEventListener('submit',saveSiteTexts);
