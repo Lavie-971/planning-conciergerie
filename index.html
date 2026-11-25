@@ -2073,14 +2073,14 @@ async function openAdminUsersPanel(){
   const old=document.getElementById('adminUsersPanel'); if(old){old.remove();return;}
   const panel=document.createElement('div'); panel.id='adminUsersPanel';
   panel.style.cssText='position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:16px;';
-  panel.innerHTML='<div style="background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:680px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font-family:Fraunces,serif">Gestion des utilisateurs</h2><button type="button" id="adminUsersClose" class="btn">Fermer</button></div><p style="font-size:13px;opacity:.75">Statut du compte Planning et statut du site de chaque gérant. Les deux validations sont indépendantes.</p><div id="adminUsersList">Chargement…</div></div>';
+  panel.innerHTML='<div style="background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:680px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font-family:Fraunces,serif">Gestion des gérants</h2><button type="button" id="adminUsersClose" class="btn">Fermer</button></div><p style="font-size:13px;opacity:.75">Pour chaque gérant, consulte le statut du Planning et celui de son site. Les validations du Planning et de la création du site sont totalement indépendantes.</p><div id="adminUsersList">Chargement…</div></div>';
   document.body.appendChild(panel);
   panel.querySelector('#adminUsersClose').onclick=()=>panel.remove();
   const list=panel.querySelector('#adminUsersList');
   try{
     const [rows,sites]=await Promise.all([
       sbRest('GET','user_profiles?select=user_id,email,full_name,role,status,created_at&order=created_at.desc'),
-      sbRest('GET','public_owner_sites?select=user_id,site_name,site_enabled,site_review_status,site_review_note,site_slug')
+      sbRest('GET','public_owner_sites?select=id,user_id,site_name,site_slug,created_at,site_enabled,site_review_status,site_review_note')
     ]);
     list.innerHTML='';
     const users=(rows||[]).filter(u=>u.role==='user');
@@ -2105,74 +2105,47 @@ async function openAdminUsersPanel(){
       card.append(name,email,planning,siteLine);
       if(u.status==='pending'){
         const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
+        const heading=document.createElement('div');heading.style.cssText='width:100%;font-size:12px;font-weight:700;opacity:.75';heading.textContent='VALIDATION DU PLANNING';actions.append(heading);
         [['Accepter','approved'],['Refuser','rejected']].forEach(([label,value])=>{
           const b=document.createElement('button'); b.type='button'; b.className='btn'+(value==='approved'?' primary':''); b.textContent=label;
-          b.onclick=async()=>{b.disabled=true;b.textContent='…';try{await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});planning.textContent='Planning : '+(value==='approved'?'Actif':'Refusé');actions.remove();}catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}};
+          b.onclick=async()=>{b.disabled=true;b.textContent='…';try{await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});u.status=value;planning.textContent='Planning : '+(value==='approved'?'Actif':'Refusé');actions.remove();}catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}};
           actions.append(b);
         }); card.append(actions);
+      }
+      if(site && site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie'){
+        const siteActions=document.createElement('div');siteActions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
+        const heading=document.createElement('div');heading.style.cssText='width:100%;font-size:12px;font-weight:700;opacity:.75';heading.textContent='VALIDATION DE LA CRÉATION DU SITE';siteActions.append(heading);
+        [['Accepter la création','approve'],['Refuser','reject']].forEach(([label,decision])=>{
+          const b=document.createElement('button');b.type='button';b.className='btn'+(decision==='approve'?' primary':'');b.textContent=label;
+          b.onclick=async()=>{
+            const prompt=decision==='approve'?'Accepter la création de cet espace ? Le site restera non publié et invisible aux clients.':'Refuser cette demande de création ?';
+            if(!confirm(prompt))return;
+            b.disabled=true;b.textContent='…';
+            try{
+              await sbRest('PATCH','public_owner_sites?id=eq.'+encodeURIComponent(site.id),decision==='approve'
+                ?{site_enabled:false,site_review_status:'draft',site_review_note:'Création acceptée par l’administrateur depuis Planning Conciergerie',updated_at:new Date().toISOString()}
+                :{site_enabled:false,site_review_status:'rejected',site_review_note:'Demande de création refusée par l’administrateur',updated_at:new Date().toISOString()},
+                {'Prefer':'return=minimal'});
+              site.site_review_status=decision==='approve'?'draft':'rejected';
+              site.site_review_note=decision==='approve'?'Création acceptée par l’administrateur depuis Planning Conciergerie':'Demande de création refusée par l’administrateur';
+              siteLine.textContent='Site : '+(decision==='approve'?'Création acceptée — site non publié':'Création refusée');
+              siteActions.remove();
+            }catch(e){b.disabled=false;b.textContent=label;alert('Impossible de traiter la demande de création : '+e.message);}
+          };
+          siteActions.append(b);
+        });
+        card.append(siteActions);
       }
       list.append(card);
     });
   }catch(e){list.textContent='Impossible de charger les utilisateurs et leurs sites : '+e.message;}
 }
-async function openAdminSiteRequestsPanel(){
-  const old=document.getElementById('adminSiteRequestsPanel');if(old){old.remove();return;}
-  if(accountRole!=='admin'||!accountApproved)return;
-  const panel=document.createElement('div');panel.id='adminSiteRequestsPanel';
-  panel.style.cssText='position:fixed;inset:0;z-index:10003;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:16px;';
-  panel.innerHTML='<div style="background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:680px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font-family:Fraunces,serif">🌴 Demandes de création de sites</h2><button type="button" id="adminSiteRequestsClose" class="btn">Fermer</button></div><p style="font-size:13px;opacity:.75">Accepter crée l’espace du gérant, sans publier le site. La publication restera une validation séparée.</p><div id="adminSiteRequestsList">Chargement…</div></div>';
-  document.body.appendChild(panel);
-  panel.querySelector('#adminSiteRequestsClose').onclick=()=>panel.remove();
-  const list=panel.querySelector('#adminSiteRequestsList');
-  const load=async()=>{
-    list.textContent='Chargement des demandes…';
-    try{
-      const [requests,profiles]=await Promise.all([
-        sbRest('GET',"public_owner_sites?select=id,user_id,site_name,site_slug,created_at,site_review_status,site_review_note&site_review_status=eq.pending&site_review_note=eq.Demande%20de%20cr%C3%A9ation%20depuis%20Planning%20Conciergerie&order=created_at.asc"),
-        sbRest('GET','user_profiles?select=user_id,email,full_name')
-      ]);
-      const owners=new Map((profiles||[]).map(p=>[p.user_id,p]));
-      list.innerHTML='';
-      if(!requests||!requests.length){list.textContent='Aucune demande de création en attente.';return;}
-      requests.forEach(req=>{
-        const owner=owners.get(req.user_id)||{};
-        const card=document.createElement('div');card.style.cssText='border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0;';
-        const title=document.createElement('strong');title.textContent=req.site_name||'Site sans nom';
-        const details=document.createElement('p');details.style.cssText='font-size:13px;opacity:.8;margin:7px 0 12px;';
-        details.textContent=(owner.full_name||'Gérant')+' · '+(owner.email||'E-mail non renseigné')+' · Demande du '+new Date(req.created_at).toLocaleDateString('fr-FR');
-        const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
-        const accept=document.createElement('button');accept.type='button';accept.className='btn primary';accept.textContent='Accepter la création';
-        const reject=document.createElement('button');reject.type='button';reject.className='btn';reject.textContent='Refuser';
-        const setDecision=async(decision)=>{
-          if(decision==='approve'&&!confirm('Accepter la création de cet espace ? Le site restera non publié et invisible aux clients.'))return;
-          if(decision==='reject'&&!confirm('Refuser cette demande de création ?'))return;
-          accept.disabled=true;reject.disabled=true;
-          try{
-            await sbRest('PATCH','public_owner_sites?id=eq.'+encodeURIComponent(req.id),decision==='approve'
-              ?{site_enabled:false,site_review_status:'draft',site_review_note:'Création acceptée par l’administrateur depuis Planning Conciergerie',updated_at:new Date().toISOString()}
-              :{site_enabled:false,site_review_status:'rejected',site_review_note:'Demande de création refusée par l’administrateur',updated_at:new Date().toISOString()},
-              {'Prefer':'return=minimal'});
-            card.remove();
-            if(!list.children.length)list.textContent='Aucune demande de création en attente.';
-          }catch(e){accept.disabled=false;reject.disabled=false;alert('Impossible de traiter la demande : '+e.message);}
-        };
-        accept.onclick=()=>setDecision('approve');reject.onclick=()=>setDecision('reject');
-        actions.append(accept,reject);card.append(title,details,actions);list.append(card);
-      });
-    }catch(e){list.textContent='Impossible de charger les demandes : '+e.message;}
-  };
-  await load();
-}
 function addAdminUsersButton(){
   if(document.getElementById('adminUsersFloatingButton')) return;
-  const b=document.createElement('button'); b.id='adminUsersFloatingButton'; b.type='button'; b.className='btn primary'; b.textContent='👥 Gestion des utilisateurs';
+  const oldSitesButton=document.getElementById('adminSiteRequestsFloatingButton');if(oldSitesButton)oldSitesButton.remove();
+  const b=document.createElement('button'); b.id='adminUsersFloatingButton'; b.type='button'; b.className='btn primary'; b.textContent='👥 Gestion des gérants';
   b.style.cssText='position:fixed;right:16px;bottom:18px;z-index:9998;box-shadow:0 4px 18px rgba(0,0,0,.18);';
   b.addEventListener('click',openAdminUsersPanel); document.body.appendChild(b);
-  if(!document.getElementById('adminSiteRequestsFloatingButton')){
-    const sites=document.createElement('button');sites.id='adminSiteRequestsFloatingButton';sites.type='button';sites.className='btn primary';sites.textContent='🌴 Demandes de sites';
-    sites.style.cssText='position:fixed;right:16px;bottom:68px;z-index:9998;box-shadow:0 4px 18px rgba(0,0,0,.18);';
-    sites.addEventListener('click',openAdminSiteRequestsPanel);document.body.appendChild(sites);
-  }
 }
 
 async function sbSendPasswordRecovery(email){
