@@ -3402,6 +3402,71 @@ function answerVoiceQuestion(phrase){
     return 'Voici les informations du séjour retrouvé : '+details.join('. ')+'.';
   }
 
+  // Situation actuelle des logements et des voyageurs.
+  if(/\b(en ce moment|actuellement|maintenant|aujourd hui|ce soir)\b/.test(t) &&
+     (/\b(qui|log(e|ent)|present|presentes|occupe|occupes|libre|libres|disponible|disponibles)\b/.test(t))){
+    const list = mentioned.length ? mentioned : apartments;
+    if(!list.length) return 'Aucun logement enregistré.';
+    const lines = list.map(a=>{
+      const current = bookings
+        .filter(b=>b.apartmentId===a.id && BLOCKING_STATUSES.includes(b.status) && b.checkin<=today && b.checkout>today)
+        .sort((x,y)=>x.checkout.localeCompare(y.checkout))[0];
+      if(!current) return a.name+' : libre';
+      if(current.status==='indisponible') return a.name+' : indisponible';
+      return a.name+' : '+(current.client||'client non renseigné')+
+        (current.status==='option'?' (en option)':'')+', départ le '+fmtDateShort(current.checkout);
+    });
+    return 'Situation actuelle : '+lines.join(' ; ')+'.';
+  }
+
+  // Taux d’occupation mensuel, calculé avec les mêmes statuts bloquants que le planning.
+  if(/\b(taux d occupation|occupation)\b/.test(t)){
+    let y=ty, m=tm;
+    const explicitYear=t.match(/\b(20\d{2})\b/);
+    const idx=MOIS.findIndex(n=>new RegExp('\\\\b'+n+'\\\\b').test(t));
+    if(/mois (dernier|precedent)/.test(t)){ m=tm===0?11:tm-1; y=tm===0?ty-1:ty; }
+    else if(/mois prochain/.test(t)){ m=tm===11?0:tm+1; y=tm===11?ty+1:ty; }
+    else if(idx>=0) m=idx;
+    if(explicitYear) y=Number(explicitYear[1]);
+    const start=toISO(y,m,1), n=daysInMonth(y,m), end=addDaysISO(start,n);
+    const list=mentioned.length?mentioned:apartments;
+    if(!list.length) return 'Aucun logement enregistré.';
+    let usedTotal=0;
+    const details=list.map(a=>{
+      const used=Math.min(n,bookings.filter(b=>b.apartmentId===a.id && BLOCKING_STATUSES.includes(b.status) && b.checkin<end && b.checkout>start)
+        .reduce((sum,b)=>{
+          const s=b.checkin<start?start:b.checkin, e=b.checkout>end?end:b.checkout;
+          return sum+Math.max(0,Math.round((utcVal(e)-utcVal(s))/86400000));
+        },0));
+      usedTotal+=used;
+      return a.name+' : '+Math.round(used/n*100)+' %';
+    });
+    const rate=Math.round(usedTotal/(n*list.length)*100);
+    return 'Taux d’occupation de '+MOIS_FR[m]+' '+y+' : '+rate+' % ('+usedTotal+' nuitées sur '+(n*list.length)+').'+
+      (list.length>1?' Détail : '+details.join(' ; ')+'.':'');
+  }
+
+  // Départs à venir dans les sept prochains jours.
+  if(/\b(depart\w*)\b/.test(t) && /\b(prochain\w*|a venir|futur\w*|suivant\w*)\b/.test(t) && !/\b(arriv\w*)\b/.test(t)){
+    const limit=addDaysISO(today,8);
+    const list=bookings.filter(b=>active(b)&&b.checkout&&b.checkout>=today&&b.checkout<limit)
+      .sort((a,b)=>a.checkout.localeCompare(b.checkout));
+    if(!list.length) return 'Aucun départ prévu au cours des sept prochains jours.';
+    return 'Prochains départs : '+list.slice(0,12).map(b=>
+      fmtDateShort(b.checkout)+' : '+(b.client||'client sans nom')+' ('+aptLabel(b.apartmentId)+')'
+    ).join(' ; ')+(list.length>12?' ; et '+(list.length-12)+' autre(s)':'')+'.';
+  }
+
+  // Réservations toujours en option et à confirmer.
+  if(/\boptions?\b/.test(t) && /(attente|confirm|reste|quelles?|combien|liste|y a)/.test(t)){
+    const list=bookings.filter(b=>b.status==='option'&&b.checkout&&b.checkout>=today)
+      .sort((a,b)=>(a.checkin||'').localeCompare(b.checkin||''));
+    if(!list.length) return 'Aucune réservation en option à confirmer.';
+    return list.length+' réservation(s) en option : '+list.slice(0,12).map(b=>
+      (b.client||'client sans nom')+' ('+aptLabel(b.apartmentId)+', du '+fmtDateShort(b.checkin)+' au '+fmtDateShort(b.checkout)+')'
+    ).join(' ; ')+(list.length>12?' ; et '+(list.length-12)+' autre(s)':'')+'.';
+  }
+
   // 1) Logements libres / disponibles en <mois>
   if(/\b(libres?|disponibles?|dispo|vacants?|vides?)\b/.test(t)){
     let y = ty, m = tm;
