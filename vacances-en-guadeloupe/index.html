@@ -132,7 +132,7 @@ html.owner-entry #publicApp{display:none!important}html.owner-entry #adminApp{di
 #adminApp .login-box .field label{font-size:11px;color:#52695b}
 #adminApp .login-box .field input{border:1px solid #dce6dc;border-radius:10px;background:#fbfcfa;padding:14px 15px;font-size:14px}
 #adminApp .login-box .field input:focus{outline:0;border-color:#6b9879;box-shadow:0 0 0 3px #6b98791c}
-#adminApp .login-box .btn{height:48px;border-radius:10px;background:#245744;font-size:13px;display:flex;justify-content:center;gap:10px;align-items:center}
+#adminApp .login-box .btn{height:48px;border-radius:10px;background:#245744!important;color:#fff!important;border:2px solid #d9bd83!important;box-shadow:0 5px 14px #173f3633;font-size:13px;display:flex;justify-content:center;gap:10px;align-items:center;font-weight:800}
 #adminApp .login-security{border-top:1px solid #edf0eb;margin-top:23px;padding-top:16px;color:#849087;font-size:10px;line-height:1.6}
 #adminApp .login-security span{margin-right:5px}
 #adminApp .owner-login-back{margin-top:20px;color:#718077;text-decoration:none;font-size:11px}
@@ -438,7 +438,7 @@ function setSiteIdentity(site){
  put('heroText','hero_text',site.description||'Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme.');
  put('introEyebrow','intro_eyebrow','Bienvenue chez vous');put('introTitle','intro_title','Des séjours qui ont le goût des vacances');
  put('introText','intro_text','Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.');
- put('catalogEyebrow','catalog_eyebrow','Nos adresses');put('catalogText','catalog_text','Découvrez nos hébergements et choisissez votre prochaine escale.');
+ put('catalogEyebrow','catalog_eyebrow','Nos adresses');put('catalogTitle','catalog_title','Les logements de '+site.site_name);put('catalogText','catalog_text','Découvrez nos hébergements et choisissez votre prochaine escale.');
  put('destinationEyebrow','destination_eyebrow',"L'île papillon vous attend");put('destinationTitle','destination_title','Un concentré de nature, de soleil et de liberté');
  put('destinationText','destination_text','Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.');
  put('destinationText2','destination_text2','Installez-vous dans votre logement et partez explorer les trésors de l\'archipel, à votre rythme.');
@@ -446,16 +446,13 @@ function setSiteIdentity(site){
  put('contactText','contact_text','Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.');
  put('footerTagline','footer_tagline','Des vacances au rythme des îles.');
  $('siteTagline').textContent=site.tagline||'Votre séjour en Guadeloupe';
- $('heroTitle').innerHTML=esc(site.site_name)+'<br><em>'+esc(site.tagline||'comme chez vous')+'</em>';
- $('heroText').textContent=site.description||'Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme.';
- $('catalogTitle').textContent='Les logements de '+site.site_name;
+ put('catalogTitle','catalog_title','Les logements de '+site.site_name);
  if(site.hero_photo_url)$('heroTitle').closest('.hero').style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("'+site.hero_photo_url.replace(/["\\]/g,'')+'")';
  const contact=site.whatsapp?('https://wa.me/'+site.whatsapp.replace(/\D/g,'')):site.contact_email?('mailto:'+site.contact_email):site.contact_phone?('tel:'+site.contact_phone.replace(/[^+0-9]/g,'')):'';
  $('contactLink').href=contact||'#contact';
  $('contactLink').hidden=!contact;
  $('contactLink').innerHTML=site.whatsapp?'Contacter sur WhatsApp <span>→</span>':site.contact_email?'Nous contacter par e-mail <span>→</span>':'Nous appeler <span>→</span>';
- if(!contact)$('contactDetails').textContent='Les coordonnées de contact ne sont pas encore renseignées.';
- $('contactDetails').textContent=[site.contact_phone,site.contact_email].filter(Boolean).join(' · ');
+ $('contactDetails').textContent=[site.contact_phone,site.contact_email].filter(Boolean).join(' · ')||'Les coordonnées de contact ne sont pas encore renseignées.';
 }
 async function loadPublic(){
  try{
@@ -589,7 +586,7 @@ async function renderManager(profile){
   '<div class="field full form-section-heading"><h4>Présentation et ambiance</h4><p>Décrivez votre activité et choisissez la photo principale visible en haut de votre site.</p></div><div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
   imagePickerMarkup('hero_photo_url','Photo de couverture',currentSite.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
   '<div class="admin-card"><h3>Modifier les textes du site</h3><p>Modifiez les titres et paragraphes de chaque rubrique. Un champ vide conserve le texte par défaut.</p><form id="siteTextsForm"><div class="formgrid">'+
-  Object.entries({hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — paragraphe',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — paragraphe principal',destination_text2:'Destination — second paragraphe',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page — phrase'}).map(([k,label])=>'<div class="field full"><label>'+label+'</label><textarea name="'+k+'">'+esc((currentSite.site_texts||{})[k]||'')+'</textarea></div>').join('')+
+  Object.entries({hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — paragraphe',catalog_title:'Logements — titre principal',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — paragraphe principal',destination_text2:'Destination — second paragraphe',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page — phrase'}).map(([k,label])=>'<div class="field full"><label>'+label+'</label><textarea name="'+k+'">'+esc((currentSite.site_texts||{})[k]||'')+'</textarea></div>').join('')+
   '</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les textes</button><span class="status" id="siteTextsStatus" aria-live="polite"></span></div></form></div>'+ 
   (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
   '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="previewSiteBtn" type="button" style="margin:8px 8px 8px 0">Aperçu privé du site</button><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
@@ -658,7 +655,7 @@ function decorateManagerWorkspace(profile){
  if(profile?.role==='admin')$('backToPlatformAdmin')?.addEventListener('click',()=>renderPlatformAdmin(profile));
 }
 
-async async function saveSiteTexts(e){
+async function saveSiteTexts(e){
  e.preventDefault();const form=e.currentTarget,st=$('siteTextsStatus'),data=new FormData(form),texts={};
  for(const [key,value] of data.entries())texts[key]=String(value||'').trim();
  st.textContent='Enregistrement…';
