@@ -437,7 +437,7 @@ if(/^#admin(?:\/|$)/i.test(location.hash||'')||new URLSearchParams(location.sear
  if($('adminContent'))renderLogin();
 }
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let session=null,currentSite=null,currentUser=null,currentProfile=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
+let session=null,currentSite=null,currentUser=null,currentProfile=null,activePreviewSite=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
 let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false;
 async function api(path,method='GET',body=null){
  const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
@@ -533,8 +533,10 @@ function suggestListingText(item){
  ];
 }
 function enablePrivatePreviewEditing(site,rows){
- const banner=$('previewBanner');if(!banner||banner.querySelector('.preview-edit-site'))return;
- const btn=document.createElement('button');btn.type='button';btn.className='preview-edit-site';btn.textContent='Modifier les textes et la couverture';btn.onclick=()=>openPreviewSiteEditor(site);banner.append(' ',btn);
+ const banner=$('previewBanner');if(!banner)return;
+ activePreviewSite=site;
+ let btn=$('previewSiteEditorButton');
+ if(!btn){btn=document.createElement('button');btn.type='button';btn.id='previewSiteEditorButton';btn.className='preview-edit-site';btn.textContent='✎ Modifier les textes, la présentation et la couverture';btn.style.cssText='display:inline-block!important;position:relative!important;z-index:1002!important;visibility:visible!important;opacity:1!important;margin:8px 0 8px 12px!important;padding:9px 13px!important;cursor:pointer!important;';banner.appendChild(btn);}
 }
 function openPreviewSiteEditor(site){
  const t=site.site_texts||{},fields={nav_listings:'Menu — lien logements',nav_destination:'Menu — lien destination',nav_contact:'Menu — lien contact',hero_cta:'Accueil — bouton principal',hero_secondary_cta:'Accueil — bouton secondaire',perk1:'Destination — avantage 1',perk2:'Destination — avantage 2',perk3:'Destination — avantage 3',perk4:'Destination — avantage 4',hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — texte',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_title:'Logements — titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — texte',destination_text2:'Destination — second texte',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page'};
@@ -943,6 +945,8 @@ propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLi
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
 function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
+ const editSite=e.target.closest('#previewSiteEditorButton');
+ if(editSite){e.preventDefault();if(!activePreviewSite){alert('Les informations du site ne sont pas encore chargées. Actualisez l’aperçu puis réessayez.');return;}try{openPreviewSiteEditor(activePreviewSite);}catch(err){console.error('Ouverture de l’éditeur du site impossible',err);alert('Impossible d’ouvrir la modification : '+(err?.message||err));}return;}
  const open=e.target.closest('#previewSiteBtn');
  if(open){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();return;}
  const back=e.target.closest('#previewBackToOwner');
