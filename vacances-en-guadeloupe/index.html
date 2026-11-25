@@ -114,6 +114,28 @@
 #adminApp .login-box p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 20px}
 #adminApp .login-box .field{margin-bottom:13px}
 #adminApp .login-box .btn{width:100%;margin-top:6px}
+#adminApp{background:linear-gradient(145deg,#f1f5ef 0%,#e8efe8 52%,#f7f5ef 100%);padding:34px 0 70px}
+#adminApp .admin-wrap{width:min(100%,720px);padding:0 20px}
+#adminApp .admin-top{display:none}
+#adminApp .owner-login-shell{min-height:calc(100vh - 105px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0}
+#adminApp .owner-login-brand{display:flex;align-items:center;gap:12px;margin-bottom:25px;color:#244b3c;text-decoration:none;font:600 18px "Playfair Display",Georgia,serif}
+#adminApp .owner-login-brand small{display:block;margin-top:4px;font:700 9px Arial,sans-serif;letter-spacing:2px;color:#8c9c8e}
+#adminApp .owner-login-mark{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:#245744;color:#f1d7a4;font:600 15px Georgia,serif;box-shadow:0 7px 18px #24574430}
+#adminApp .login-box{width:min(100%,460px);max-width:460px;margin:0;background:#fff;padding:39px 42px 29px;border:1px solid #e5ebe3;border-radius:20px;box-shadow:0 20px 60px #234b3518}
+#adminApp .login-icon{width:47px;height:47px;display:grid;place-items:center;border-radius:15px;background:#edf4ed;color:#285b45;font-size:24px;margin-bottom:17px}
+#adminApp .login-eyebrow{font-size:9px;font-weight:800;letter-spacing:2px;color:#9b8051}
+#adminApp .login-box h2{font:600 31px "Playfair Display",Georgia,serif;color:#244b3c;margin:8px 0}
+#adminApp .login-box p{font-size:13px;line-height:1.75;color:#718077;margin-bottom:24px}
+#adminApp .login-box .field{gap:8px;margin-bottom:17px}
+#adminApp .login-box .field label{font-size:11px;color:#52695b}
+#adminApp .login-box .field input{border:1px solid #dce6dc;border-radius:10px;background:#fbfcfa;padding:14px 15px;font-size:14px}
+#adminApp .login-box .field input:focus{outline:0;border-color:#6b9879;box-shadow:0 0 0 3px #6b98791c}
+#adminApp .login-box .btn{height:48px;border-radius:10px;background:#245744;font-size:13px;display:flex;justify-content:center;gap:10px;align-items:center}
+#adminApp .login-security{border-top:1px solid #edf0eb;margin-top:23px;padding-top:16px;color:#849087;font-size:10px;line-height:1.6}
+#adminApp .login-security span{margin-right:5px}
+#adminApp .owner-login-back{margin-top:20px;color:#718077;text-decoration:none;font-size:11px}
+#adminApp .owner-login-back:hover{color:#245744}
+@media(max-width:520px){#adminApp .login-box{padding:29px 23px 24px;border-radius:16px}#adminApp .owner-login-shell{min-height:calc(100vh - 70px)}}
 #adminApp .admin-note{font-size:11px;color:var(--muted);margin-top:15px;line-height:1.6}
 .booking-modal{position:fixed;inset:0;z-index:20000;background:#102e28b8;display:none;align-items:center;justify-content:center;padding:18px}
 .booking-dialog{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;padding:25px;box-shadow:0 25px 80px #102e2840}
@@ -318,7 +340,7 @@
 <section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p>Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="cards" id="listingCards"><div class="empty"><div class="symbol">🌴</div><h3>Préparation de nos logements</h3><p>Nos hébergements seront bientôt présentés ici. Revenez découvrir nos premières adresses.</p></div></div></section>
 <section class="experience" id="destination"><div class="wrap experience-grid"><div class="experience-img" role="img" aria-label="Paysage de plage tropicale en Guadeloupe"></div><div><div class="eyebrow">L'île papillon vous attend</div><h2>Un concentré de nature, de soleil et de liberté</h2><p>Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.</p><p>Installez-vous dans votre logement et partez explorer les trésors de l'archipel, à votre rythme.</p><div class="perks"><div class="perk"><i>✦</i> Plages paradisiaques</div><div class="perk"><i>✦</i> Saveurs créoles</div><div class="perk"><i>✦</i> Nature préservée</div><div class="perk"><i>✦</i> Accueil chaleureux</div></div></div></div></section>
 <section class="contact" id="contact"><div class="wrap"><div class="eyebrow">Parlons de vos vacances</div><h2>Votre prochaine escapade commence ici</h2><p>Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.</p><a class="btn" id="contactLink" href="#logements">Découvrir les logements <span>→</span></a><div id="contactDetails" style="margin-top:14px;font-size:12px;color:#d8e5de"></div></div></section>
-<footer><div class="wrap footer-inner"><span class="footer-brand" id="footerBrand">Vacances en Guadeloupe</span><span>Des vacances au rythme des îles.</span><a class="admin-link" href="#admin" id="adminLink">Espace gestion</a></div></footer>
+<footer><div class="wrap footer-inner"><span class="footer-brand" id="footerBrand">Vacances en Guadeloupe</span><span>Des vacances au rythme des îles.</span></div></footer>
 </div>
 <div id="adminApp"><div class="admin-wrap"><div class="admin-top"><div><h1>Gestion des logements</h1><div style="color:#6c7c75;font-size:13px;margin-top:5px">Vacances en Guadeloupe · Administration</div></div><a href="#" class="details">← Voir le site public</a></div><div id="adminContent"></div></div></div>
 
@@ -417,7 +439,7 @@ async function loadPublic(){
 }
 function showAdmin(){$('publicApp').style.display='none';$('adminApp').style.display='block';renderLogin()}
 function renderLogin(){
- $('adminContent').innerHTML='<div class="login-box"><h2>Espace propriétaire</h2><p>Connectez-vous avec votre compte Planning Conciergerie pour personnaliser votre site et choisir les logements à présenter.</p><form id="loginForm"><div class="field"><label>Adresse e-mail</label><input id="adminEmail" type="email" required autocomplete="username"></div><div class="field"><label>Mot de passe</label><input id="adminPassword" type="password" required autocomplete="current-password"></div><button class="btn" type="submit">Se connecter</button><div id="loginStatus" class="admin-note" aria-live="polite"></div></form><div class="admin-note">Chaque propriétaire gère uniquement son propre site et ses propres logements.</div></div>';
+ $('adminContent').innerHTML='<div class="owner-login-shell"><a class="owner-login-brand" href="#" aria-label="Retour au site public"><span class="owner-login-mark">VG</span><span>Vacances en Guadeloupe<small>ESPACE PROPRIÉTAIRE</small></span></a><section class="login-box"><div class="login-icon">⌂</div><div class="login-eyebrow">VOTRE ESPACE PERSONNEL</div><h2>Bienvenue</h2><p>Connectez-vous pour personnaliser votre vitrine et choisir les hébergements que vous souhaitez présenter.</p><form id="loginForm"><div class="field"><label for="adminEmail">Adresse e-mail</label><input id="adminEmail" type="email" placeholder="vous@exemple.fr" required autocomplete="username"></div><div class="field"><label for="adminPassword">Mot de passe</label><input id="adminPassword" type="password" placeholder="Votre mot de passe" required autocomplete="current-password"></div><button class="btn" type="submit">Se connecter <span aria-hidden="true">→</span></button><div id="loginStatus" class="admin-note" aria-live="polite"></div></form><div class="login-security"><span>🔒</span> Connexion sécurisée avec votre compte Planning Conciergerie</div></section><a class="owner-login-back" href="#">← Retour au site public</a></div>';
  $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();const st=$('loginStatus');st.textContent='Connexion…';
   try{
