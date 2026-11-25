@@ -127,6 +127,11 @@ input,select,textarea{font-family:inherit;font-size:14px;}
   background:var(--accent);color:#fff;border-color:var(--accent);
 }
 .actions button.primary:hover{background:var(--accent-dark);}
+.actions button.owner-site-action{border-color:#b9d0c5;background:#edf5f0;color:#1f594b;}
+.actions button.owner-site-action.primary{background:#2f6f62;border-color:#2f6f62;color:#fff;}
+.actions button.owner-site-action:hover{filter:brightness(.96);}
+@media(max-width:600px){.actions button.owner-site-action{font-size:11px;padding:0 9px;height:32px;}}
+
 
 .menu-btn{
   border:1px solid var(--line);background:var(--surface);border-radius:8px;
@@ -735,6 +740,8 @@ body.printing-doc #printPanel{
 <button id="addBookingBtn" class="primary">+ Réservation</button>
 <button id="agendaBtn" class="primary">📅 Agenda</button>
       <button id="voiceCommandBtn" class="primary" type="button">🎙️ Assistant vocal</button>
+      <button id="ownerSiteAccessBtn" class="owner-site-action" type="button" hidden>🌴 Espace site</button>
+      <button id="ownerSiteShareBtn" class="owner-site-action primary" type="button" hidden>↗ Partager le site</button>
     </div>
   </header>
 
@@ -2009,8 +2016,20 @@ async function sbAfterLogin(){
     accountApproved=true;
     const accessScreen=document.getElementById('accountAccessScreen');
     if(accessScreen) accessScreen.remove();
+    accountRole=profile.role;
+    ownerSiteSlug=null;ownerSiteEnabled=false;
+    if(profile.role==='user'){
+      try{
+        const ownerSites=await sbRest('GET','public_owner_sites?select=site_slug,site_enabled&user_id=eq.'+encodeURIComponent(userId)+'&limit=1');
+        if(ownerSites&&ownerSites[0]){
+          ownerSiteSlug=String(ownerSites[0].site_slug||'');
+          ownerSiteEnabled=ownerSites[0].site_enabled===true;
+        }
+      }catch(siteError){console.warn('Chargement du site propriétaire indisponible',siteError);}
+    }
     if(profile.role==='admin') addAdminUsersButton();
     else { const adminButton=document.getElementById('adminUsersFloatingButton'); if(adminButton) adminButton.remove(); }
+    updateOwnerSiteActions();
     setAccountGateStage('Chargement des logements et réservations…');
     await loadData();
     setAccountGateStage('Chargement des préférences de l’agenda…');
@@ -2490,6 +2509,48 @@ function onVisibilityRefresh(){
 /* ---------------- storage ---------------- */
 /* Stockage distant Supabase, avec cache local pour préserver l'accès hors ligne. */
 let activeUserId = (sbSession() && sbSession().user && sbSession().user.id) ? String(sbSession().user.id) : null;
+let accountRole=null;
+let ownerSiteSlug=null;
+let ownerSiteEnabled=false;
+const OWNER_PUBLIC_SITE_BASE='https://lavie-971.github.io/planning-conciergerie/vacances-en-guadeloupe/';
+function ownerPublicSiteUrl(){return ownerSiteSlug?OWNER_PUBLIC_SITE_BASE+'?site='+encodeURIComponent(ownerSiteSlug):'';}
+function updateOwnerSiteActions(){
+  const access=document.getElementById('ownerSiteAccessBtn');
+  const share=document.getElementById('ownerSiteShareBtn');
+  if(!access||!share)return;
+  const visible=accountApproved&&accountRole==='user'&&!!ownerSiteSlug;
+  access.hidden=!visible;share.hidden=!visible;
+  access.title=visible?'Ouvrir votre espace de gestion du site':'';
+  share.disabled=!visible||!ownerSiteEnabled;
+  share.title=!ownerSiteEnabled?'Votre site doit être publié pour être partagé avec des clients.':'Partager le lien public de votre site';
+}
+function openOwnerSiteSpace(){
+  if(!ownerSiteSlug)return;
+  const url=OWNER_PUBLIC_SITE_BASE+'?site='+encodeURIComponent(ownerSiteSlug)+'#admin';
+  window.open(url,'_blank','noopener');
+}
+async function shareOwnerPublicSite(){
+  if(!ownerSiteSlug||!ownerSiteEnabled){
+    alert('Votre site doit d’abord être publié par l’administrateur avant de pouvoir être partagé avec des clients.');
+    return;
+  }
+  const url=ownerPublicSiteUrl();
+  const payload={title:'Découvrez nos locations en Guadeloupe',text:'Découvrez notre site de locations de vacances en Guadeloupe et nos hébergements disponibles.',url};
+  try{
+    if(navigator.share){await navigator.share(payload);return;}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      alert('Lien du site copié. Vous pouvez maintenant le coller dans un message à vos clients.');
+      return;
+    }
+    window.prompt('Copiez le lien de votre site pour l’envoyer à vos clients :',url);
+  }catch(e){
+    if(e&&e.name==='AbortError')return;
+    try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);alert('Lien du site copié.');return;}}catch(x){}
+    window.prompt('Copiez le lien de votre site :',url);
+  }
+}
+
 let LS_PREFIX = activeUserId ? ('conciergerie_user_'+activeUserId+'_') : 'conciergerie_locked_';
 function setAccountScope(userId){
   activeUserId = userId ? String(userId) : null;
@@ -7449,6 +7510,8 @@ function bindEvents(){
     planningScroll.addEventListener('pointerdown', markPlanningScrollIntent, {passive:true});
   }
   document.getElementById('voiceCommandBtn').addEventListener('click', startVoiceCommand);
+  document.getElementById('ownerSiteAccessBtn').addEventListener('click',openOwnerSiteSpace);
+  document.getElementById('ownerSiteShareBtn').addEventListener('click',shareOwnerPublicSite);
   document.getElementById('prevMonth').addEventListener('click', goToPrevPeriod);
   document.getElementById('nextMonth').addEventListener('click', goToNextPeriod);
   document.getElementById('todayBtn').addEventListener('click', ()=>{
