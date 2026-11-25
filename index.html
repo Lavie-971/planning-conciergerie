@@ -2095,7 +2095,7 @@ async function openAdminUsersPanel(){
       let siteStatus='Aucun site demandé';
       if(site){
         if(site.site_enabled) siteStatus='Site activé';
-        else if(site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') siteStatus='Création en attente de validation';
+        else if((site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') || (site.site_review_status==='draft' && !String(site.site_review_note||'').includes('Création acceptée par l’administrateur'))) siteStatus='Création en attente de validation';
         else if(site.site_review_status==='draft') siteStatus='Création acceptée — site non publié';
         else if(site.site_review_status==='rejected') siteStatus='Création refusée';
         else if(site.site_review_status==='pending') siteStatus='Publication en attente de validation';
@@ -2112,7 +2112,7 @@ async function openAdminUsersPanel(){
           actions.append(b);
         }); card.append(actions);
       }
-      if(site && site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie'){
+      if(site && ((site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') || (site.site_review_status==='draft' && !String(site.site_review_note||'').includes('Création acceptée par l’administrateur')))){
         const siteActions=document.createElement('div');siteActions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
         const heading=document.createElement('div');heading.style.cssText='width:100%;font-size:12px;font-weight:700;opacity:.75';heading.textContent='VALIDATION DE LA CRÉATION DU SITE';siteActions.append(heading);
         [['Accepter la création','approve'],['Refuser','reject']].forEach(([label,decision])=>{
