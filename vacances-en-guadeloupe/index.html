@@ -1103,7 +1103,7 @@ document.addEventListener('click',e=>{
  if(open){e.preventDefault();return;}
 
 });
-function finishOwnerRestore(){return restoreOwnerSession().finally(()=>{ownerSessionReady=true;route();});}window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',()=>{if(!ownerSessionReady)finishOwnerRestore();else route();});finishOwnerRestore();
+let ownerBootPromise=null;function finishOwnerRestore(){if(ownerBootPromise)return ownerBootPromise;ownerBootPromise=restoreOwnerSession().then(()=>{ownerSessionReady=true;route();}).catch(e=>{ownerAccessMessage=String(e?.message||'Impossible de vérifier votre connexion Planning Conciergerie.');ownerSessionReady=true;route();});return ownerBootPromise;}window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',()=>{if(ownerSessionReady)route();else finishOwnerRestore();});finishOwnerRestore();
 </script>
 
 </body></html>
