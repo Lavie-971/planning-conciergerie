@@ -4282,8 +4282,10 @@ function centerOnToday(){
     const scrollRect = scrollEl.getBoundingClientRect();
     const todayRect = todayHead.getBoundingClientRect();
     const todayOffsetInContent = (todayRect.left - scrollRect.left) + scrollEl.scrollLeft;
-    const visibleWidth = scrollEl.clientWidth - infoWidth;
-    const target = todayOffsetInContent - infoWidth - (visibleWidth/2) + (todayRect.width/2);
+    // À l'ouverture, placer le début de la zone visible trois jours avant aujourd'hui.
+    // Le scroll est limité au début du mois si les trois jours précédents ne sont pas affichés.
+    const daysBeforeToday = 3;
+    const target = todayOffsetInContent - infoWidth - (todayRect.width * daysBeforeToday);
     scrollEl.scrollLeft = Math.max(0, target);
   });
 }
