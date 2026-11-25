@@ -5630,14 +5630,16 @@ function renderApartmentStats(){
     });
   }
   html += `
-    <div class="card" style="margin-top:18px;border:1px solid var(--accent);">
-      <h3 style="margin:0 0 8px;">🧾 Facture mensuelle — Services et avances</h3>
-      <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;">Une seule facture regroupe les services et les avances de ce logement pour le mois sélectionné.</p>
-      <div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth" value="${todayISO().slice(0,7)}"></div>
-      <div id="monthlyInvoicePreview" style="margin:10px 0;"></div>
-      <button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:4px 0 12px;">Générer la facture mensuelle</button>
-      <h3 style="margin:10px 0 6px;">Historique des factures</h3>
-      <div id="monthlyInvoicesHistory"></div>
+    <div style="margin-top:18px;">
+      <button class="btn" id="toggleMonthlyServicesInvoiceBtn" type="button" aria-expanded="false" style="width:100%;text-align:left;padding:12px 14px;font-weight:700;">🧾 Facture mensuelle — Services et avances <span id="monthlyServicesInvoiceToggleIcon" style="float:right;">＋</span></button>
+      <div id="monthlyServicesInvoicePanel" hidden class="card" style="margin-top:8px;border:1px solid var(--accent);">
+        <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;">Une seule facture regroupe les services et les avances de ce logement pour le mois sélectionné.</p>
+        <div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth" value="${todayISO().slice(0,7)}"></div>
+        <div id="monthlyInvoicePreview" style="margin:10px 0;"></div>
+        <button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:4px 0 12px;">Générer la facture mensuelle</button>
+        <h3 style="margin:10px 0 6px;">Historique des factures</h3>
+        <div id="monthlyInvoicesHistory"></div>
+      </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn primary" id="ownerMonthlyInvoiceBtn" style="flex:1;">🧾 Facture mensuelle du logement</button>
@@ -5650,6 +5652,18 @@ if(syncUrl){
 }
   content.innerHTML = html;
   renderMonthlyInvoicesPanel();
+  const toggleServicesInvoiceBtn = document.getElementById('toggleMonthlyServicesInvoiceBtn');
+  const servicesInvoicePanel = document.getElementById('monthlyServicesInvoicePanel');
+  if(toggleServicesInvoiceBtn && servicesInvoicePanel){
+    toggleServicesInvoiceBtn.addEventListener('click',()=>{
+      const isOpening = servicesInvoicePanel.hidden;
+      servicesInvoicePanel.hidden = !isOpening;
+      toggleServicesInvoiceBtn.setAttribute('aria-expanded',String(isOpening));
+      const icon = document.getElementById('monthlyServicesInvoiceToggleIcon');
+      if(icon) icon.textContent = isOpening ? '－' : '＋';
+      if(isOpening) renderMonthlyInvoicesPanel();
+    });
+  }
   const serviceMonth = document.getElementById('serviceInvoiceMonth');
   if(serviceMonth) serviceMonth.addEventListener('change', renderMonthlyInvoicesPanel);
   const generateServiceInvoiceBtn = document.getElementById('generateMonthlyServiceInvoiceBtn');
