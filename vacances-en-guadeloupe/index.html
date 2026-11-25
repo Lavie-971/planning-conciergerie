@@ -330,18 +330,20 @@ function setSiteIdentity(site){
 }
 async function loadPublic(){
  try{
-  const slug=currentSlug();
-  const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp&site_slug=eq.'+encodeURIComponent(slug)+'');
+  const params=new URLSearchParams(location.search),slug=currentSlug(),preview=params.get('preview')==='1';
+  if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
+  const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug));
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
-  const site=sites[0];setSiteIdentity(site);
-  const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');setSiteIdentity(site);
+  const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+(preview?'':'&is_published=eq.true')+'&order=display_order.asc');
+  if(preview){let banner=$('previewBanner');if(!banner){banner=document.createElement('div');banner.id='previewBanner';banner.style.cssText='position:sticky;top:0;z-index:1000;background:#173f35;color:white;padding:10px 16px;text-align:center;font-weight:600';$('publicApp').prepend(banner);}banner.innerHTML='APERÇU PRIVÉ — site non publié · <a href="#admin" style="color:white;text-decoration:underline">Retour à la gestion</a>';}
   $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
   $('listingCards').innerHTML=rows.map(x=>{
    const photo=(x.photo_urls||[])[0],image=photo?'<img src="'+esc(photo)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
    const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
    const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
-   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
+   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
   }).join('');
   const detailId=new URLSearchParams(location.search).get('logement');
   if(detailId){
@@ -411,7 +413,7 @@ async function renderManager(profile){
   '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
   '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
   (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
-  '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
+  '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="previewSiteBtn" type="button" style="margin:8px 8px 8px 0">Aperçu privé du site</button><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
   '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
   '<div class="admin-card"><h3>Choisir les logements à afficher</h3><p>Cochez uniquement les logements de votre Planning Conciergerie que vous souhaitez présenter aux voyageurs. Vous pouvez modifier cette sélection à tout moment.</p><div class="property-selection">'+
   (rows.length?rows.map(x=>'<label class="checkline property-choice"><input type="checkbox" data-publish-toggle="'+esc(x.id)+'" '+(x.is_published?'checked':'')+'> <span><strong>'+esc(x.title||'Logement sans nom')+'</strong><small>'+esc(x.location||'Commune à préciser')+' · '+esc(x.property_type||'Type non précisé')+'</small></span><em class="status">'+(x.is_published?'Visible sur le site':'Non affiché')+'</em></label>').join(''):'<p>Aucun logement disponible dans votre compte Planning Conciergerie.</p>')+
@@ -445,6 +447,7 @@ async function renderManager(profile){
    }catch(err){st.textContent='Impossible de modifier la publication : '+err.message;}
    finally{publicationButton.disabled=false;}
   });
+  $('previewSiteBtn')?.addEventListener('click',()=>{const u=new URL(siteUrl);u.searchParams.set('preview','1');history.pushState({},'',u.pathname+u.search);route();});
   loadManagerRequests();
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
   document.querySelectorAll('[data-publish-toggle]').forEach(toggle=>toggle.addEventListener('change',async()=>{
@@ -626,7 +629,7 @@ async function openBooking(id,title){
  $('bookingModal').style.display='flex';renderBookingCalendar();
  try{
   const from=isoLocalDate(today),to=isoLocalDate(new Date(today.getFullYear()+1,today.getMonth(),today.getDate()));
-  const result=await bookingService({action:'availability',listing_id:id,from,to});
+  const result=await bookingService({action:'availability',listing_id:id,from,to},new URLSearchParams(location.search).get('preview')==='1'?session?.access_token||'':'');
   if($('bookingListingId').value!==id)return;
   bookingAvailabilityRanges=result.ranges||[];bookingCalendarLoading=false;
   $('bookingAvailability').textContent='Calendrier à jour : choisissez vos dates de séjour.';
@@ -643,7 +646,7 @@ async function refreshBookingAvailability(){
  if(!checkin||!checkout||checkout<=checkin){$('bookingAvailability').textContent='Sélectionnez une arrivée et un départ valides.';return false;}
  $('bookingAvailability').textContent='Vérification des disponibilités…';
  try{
-  const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout});
+  const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout},new URLSearchParams(location.search).get('preview')==='1'?session?.access_token||'':'');
   const freshRanges=result.ranges||[];const rangeKeys=new Set(bookingAvailabilityRanges.map(r=>[r.start,r.end,r.kind].join('|')));freshRanges.forEach(r=>{const key=[r.start,r.end,r.kind].join('|');if(!rangeKeys.has(key)){bookingAvailabilityRanges.push(r);rangeKeys.add(key);}});
   const clash=freshRanges.some(r=>r.kind==='booking'&&checkin<r.end&&checkout>r.start);
   if(clash){$('bookingAvailability').textContent='Ces dates ne sont pas disponibles. Choisissez une autre période.';return false;}
@@ -657,7 +660,7 @@ $('bookingModal').addEventListener('click',e=>{if(e.target.id==='bookingModal')c
 $('bookingCheckin').addEventListener('change',()=>{if($('bookingCheckin').value)$('bookingCheckout').min=$('bookingCheckin').value;renderBookingCalendar();refreshBookingAvailability();});
 $('bookingCheckout').addEventListener('change',()=>{renderBookingCalendar();refreshBookingAvailability();});
 $('bookingForm').addEventListener('submit',async e=>{
- e.preventDefault();$('bookingResult').textContent='Envoi de votre demande…';$('bookingSubmit').disabled=true;
+ e.preventDefault();if(new URLSearchParams(location.search).get('preview')==='1'){$('bookingResult').textContent='Aperçu privé : aucun envoi de demande n’est effectué.';return;}$('bookingResult').textContent='Envoi de votre demande…';$('bookingSubmit').disabled=true;
  try{
   if(!bookingDatesAvailable && !(await refreshBookingAvailability()))throw new Error('Veuillez choisir des dates disponibles.');
   const result=await bookingService({
