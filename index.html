@@ -2728,7 +2728,7 @@ async function refreshSiteBookingRequests(){
   const count=document.getElementById('siteBookingNotificationCount');
   // Afficher uniquement lorsqu'un propriétaire avec site accepté a des demandes en attente.
   if(button)button.hidden=pending.length===0;
-  if(count){count.textContent=String(pending.length);count.hidden=true;}
+  if(count){count.textContent=String(pending.length);count.hidden=pending.length===0;}
   if(button)button.title=pending.length+' demande(s) en attente';
   if(!document.getElementById('siteBookingRequestsBackdrop').hidden)renderSiteBookingRequests();
   if(newRequests.length)showSiteBookingToast(newRequests.length);
