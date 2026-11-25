@@ -45,6 +45,27 @@ footer{background:#103b33;color:#d5e1da;padding:27px 0}.footer-inner{display:fle
 .request-actions .reject{background:#f8e8e5;color:#8d332a}
 @media(max-width:600px){.booking-dialog{padding:19px}.booking-dialog .formgrid{grid-template-columns:1fr}.booking-dialog .field.full{grid-column:auto}}
 
+
+.platform-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.platform-stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.platform-stat strong{display:block;font:600 25px "Playfair Display",serif;color:var(--green)}
+.platform-stat span{font-size:11px;color:var(--muted)}
+.platform-site{background:#fff;border:1px solid var(--line);border-radius:14px;padding:19px;margin:12px 0}
+.platform-site-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.platform-site h3{font:600 20px "Playfair Display",serif;color:var(--green);margin:0 0 4px}
+.platform-site p{font-size:12px;color:var(--muted);line-height:1.6;margin:5px 0}
+.platform-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.platform-actions button{border:0;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:700;cursor:pointer}
+.platform-actions .approve{background:#e2efe8;color:#174d43}
+.platform-actions .reject{background:#f8e8e5;color:#8d332a}
+.platform-actions .neutral{background:#edf1ed;color:#40594f}
+.platform-domain{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.platform-domain input{flex:1;min-width:180px;border:1px solid #dce4dd;border-radius:8px;padding:10px}
+.platform-tag{display:inline-block;padding:5px 9px;border-radius:30px;background:#edf1ed;color:#40594f;font-size:10px;font-weight:700}
+.platform-tag.active{background:#e2efe8;color:#174d43}
+.platform-tag.wait{background:#fff2d9;color:#805b16}
+@media(max-width:600px){.platform-summary{grid-template-columns:1fr 1fr}.platform-site{padding:15px}}
+
 </style>
 </head>
 <body>
@@ -156,7 +177,7 @@ function renderLogin(){
     await api('public_owner_sites','POST',{user_id:j.user.id,site_slug:slug,site_name:profile.full_name||'Mon site de vacances',site_enabled:false});
     currentSite=(await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(j.user.id)))[0];
    }
-   await renderManager(profile);
+   if(profile.role==='admin')await renderPlatformAdmin(profile);else await renderManager(profile);
   }catch(err){st.textContent=err.message;session=null}
  });
 }
@@ -172,10 +193,10 @@ async function renderManager(profile){
   '<div class="admin-card"><h3>Mon site personnel</h3><p>Vous choisissez librement d’activer ou non votre site. Vos réglages et vos logements restent séparés de ceux des autres propriétaires.</p><form id="siteForm"><div class="formgrid">'+
   field('Nom du site','site_name',currentSite.site_name)+field('Adresse personnalisée (slug)','site_slug',currentSite.site_slug)+
   field('Accroche','tagline',currentSite.tagline)+field('E-mail de contact','contact_email',currentSite.contact_email,'email')+
-  field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+
+  field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+field('Nom de domaine souhaité (ex. www.monsite.fr)','domain_requested',currentSite.domain_requested||'')+
   '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
-  '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div>'+
-  (profile.role==='admin' ? '<div class="field full"><label class="checkline"><input type="checkbox" name="site_enabled" '+(currentSite.site_enabled?'checked':'')+'> Site validé et visible publiquement</label></div>' : '<div class="field full"><label>Validation de la plateforme</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_enabled?'Site validé et actif':'Site en attente de validation par l’administrateur. Vous pouvez préparer vos logements, mais leur site reste invisible aux voyageurs.')+'</p></div>')+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form><p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
+  '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div>'+'<div class="field full"><label>État de validation</label><p style="margin:0">'+(currentSite.site_enabled?'Site publié':currentSite.site_review_status==='pending'?'Demande de validation envoyée':currentSite.site_review_status==='rejected'?'Demande refusée':'Brouillon — site non public')+'</p></div>'+
+  (profile.role==='admin' ? '<div class="field full"><label class="checkline"><input type="checkbox" name="site_enabled" '+(currentSite.site_enabled?'checked':'')+'> Site validé et visible publiquement</label></div>' : '<div class="field full"><label>Validation de la plateforme</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_enabled?'Site validé et actif':'Site en attente de validation par l’administrateur. Vous pouvez préparer vos logements, mais leur site reste invisible aux voyageurs.')+'</p></div>')+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form><button class="btn" id="submitSiteReview" type="button" style="margin-top:12px">Envoyer mon site pour validation</button><p id="reviewStatus" class="status" aria-live="polite"></p><p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
   '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
   '<div class="admin-card"><h3>Mes logements ('+rows.length+')</h3><p>Publiez uniquement les hébergements que vous souhaitez présenter sur votre site personnel. Les autres propriétaires ne peuvent pas consulter ni modifier ces fiches.</p></div>'+
   rows.map(x=>'<form class="admin-card listingForm" data-id="'+esc(x.id)+'"><h3>'+esc(x.title||'Nouveau logement')+'</h3><p>Logement de votre compte Planning Conciergerie · '+esc(x.location||'Localisation à compléter')+'</p><div class="formgrid">'+
@@ -191,6 +212,8 @@ async function renderManager(profile){
   (rows.length?'':'<div class="admin-card"><p>Aucun logement n’est encore associé à votre compte. Contactez l’administrateur de Planning Conciergerie pour vérifier vos logements.</p></div>');
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;renderLogin()});
   $('siteForm').addEventListener('submit',saveSite);
+  $('submitSiteReview')?.addEventListener('click',submitSiteForReview);
+  if(currentSite.site_enabled||currentSite.site_review_status==='pending')$('submitSiteReview').disabled=true;
   loadManagerRequests();
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
  }catch(e){$('adminContent').innerHTML='<div class="admin-card"><h3>Impossible de charger votre espace</h3><p>'+esc(e.message)+'</p></div>'}
@@ -199,7 +222,7 @@ async function saveSite(e){
  e.preventDefault();const form=e.currentTarget,st=$('siteStatus'),d=new FormData(form),v=n=>String(d.get(n)||'').trim();
  const slug=v('site_slug').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
  if(!slug){st.textContent='Choisissez une adresse valide.';return}
- const payload={site_name:v('site_name')||'Mon site de vacances',site_slug:slug,tagline:v('tagline'),description:v('description'),hero_photo_url:v('hero_photo_url'),contact_email:v('contact_email'),contact_phone:v('contact_phone'),whatsapp:v('whatsapp'),updated_at:new Date().toISOString()};
+ const payload={site_name:v('site_name')||'Mon site de vacances',site_slug:slug,tagline:v('tagline'),description:v('description'),hero_photo_url:v('hero_photo_url'),contact_email:v('contact_email'),contact_phone:v('contact_phone'),whatsapp:v('whatsapp'),domain_requested:v('domain_requested'),updated_at:new Date().toISOString()};
  if(currentProfile?.role==='admin')payload.site_enabled=!!form.querySelector('[name=site_enabled]')?.checked;
  st.textContent='Enregistrement…';
  try{
@@ -215,6 +238,85 @@ async function saveListing(e){
  st.textContent='Enregistrement…';
  try{await api('public_listings?id=eq.'+encodeURIComponent(form.dataset.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);st.textContent='Enregistré ✓';}
  catch(err){st.textContent=err.message}
+}
+
+
+async function submitSiteForReview(){
+ const status=$('reviewStatus');if(!currentSite||currentProfile?.role==='admin')return;
+ if(currentSite.site_enabled||currentSite.site_review_status==='pending'){status.textContent='Votre site est déjà publié ou en attente.';return;}
+ if(!confirm('Envoyer votre site à l’administrateur pour validation ?'))return;
+ status.textContent='Envoi…';
+ try{
+  await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_review_status:'pending',updated_at:new Date().toISOString()});
+  currentSite.site_review_status='pending';status.textContent='Votre demande de validation a été envoyée.';
+  const b=$('submitSiteReview');if(b)b.disabled=true;
+ }catch(e){status.textContent=e.message;}
+}
+async function renderPlatformAdmin(profile){
+ currentProfile=profile;
+ $('adminContent').innerHTML='<div class="admin-card"><h3>Administration de la plateforme</h3><p>Chargement des sites et demandes de validation…</p></div>';
+ try{
+  const [sites,profiles,listings]=await Promise.all([
+   api('public_owner_sites?select=*&order=created_at.desc'),
+   api('user_profiles?select=user_id,email,full_name,role,status'),
+   api('public_listings?select=id,user_id,site_slug,title,is_published')
+  ]);
+  const byUser=new Map(profiles.map(p=>[p.user_id,p]));
+  const grouped=new Map();
+  listings.forEach(l=>{const k=l.user_id+'|'+l.site_slug;if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(l);});
+  const pending=sites.filter(x=>x.site_review_status==='pending'&&!x.site_enabled).length;
+  const active=sites.filter(x=>x.site_enabled).length;
+  $('adminContent').innerHTML=
+   '<div class="admin-card"><h3>Administration des sites propriétaires</h3><p>Tu contrôles ici les mises en ligne. Un propriétaire ne peut jamais activer lui-même son site. La validation d’un domaine reste distincte de la publication du site.</p><div class="platform-summary"><div class="platform-stat"><strong>'+sites.length+'</strong><span>Sites enregistrés</span></div><div class="platform-stat"><strong>'+pending+'</strong><span>En attente de validation</span></div><div class="platform-stat"><strong>'+active+'</strong><span>Sites actuellement publiés</span></div></div><button class="btn" id="adminRefresh" type="button">Actualiser la liste</button><button class="btn" id="adminLogout" type="button" style="margin-left:8px;background:#e9eee9">Se déconnecter</button></div>'+
+   '<div class="admin-card"><h3>Sites et demandes</h3><p>Vérifie les coordonnées, le contenu et les logements avant d’autoriser la publication. Les domaines demandés sont listés séparément.</p>'+
+   (sites.length?sites.map(site=>{
+    const p=byUser.get(site.user_id)||{},key=site.user_id+'|'+site.site_slug,ls=grouped.get(key)||[];
+    const review=site.site_enabled?'Publié':site.site_review_status==='pending'?'À valider':site.site_review_status==='rejected'?'Refusé':'Brouillon';
+    const owner=esc(p.full_name||p.email||site.user_id);
+    const approve=site.site_enabled?'':'<button class="approve" data-site-action="approve" data-site-id="'+esc(site.id)+'">Approuver et publier</button>';
+    const reject=site.site_enabled?'':'<button class="reject" data-site-action="reject" data-site-id="'+esc(site.id)+'">Refuser la demande</button>';
+    const disable=site.site_enabled?'<button class="neutral" data-site-action="disable" data-site-id="'+esc(site.id)+'">Dépublier le site</button>':'';
+    const domainActions=site.domain_requested?
+     '<div class="platform-domain"><input data-domain-input="'+esc(site.id)+'" value="'+esc(site.domain_requested)+'" aria-label="Domaine personnalisé"><button class="neutral" data-domain-action="dns" data-site-id="'+esc(site.id)+'">Enregistrer / DNS à configurer</button>'+(site.domain_status==='dns_pending'?'<button class="approve" data-domain-action="verified" data-site-id="'+esc(site.id)+'">Marquer DNS vérifié</button>':'')+'<button class="reject" data-domain-action="reject" data-site-id="'+esc(site.id)+'">Refuser le domaine</button></div>'
+     :'<p>Aucune demande de domaine personnalisé.</p>';
+    return '<article class="platform-site"><div class="platform-site-head"><div><h3>'+esc(site.site_name||'Site sans nom')+'</h3><p>Propriétaire : '+owner+' · '+esc(p.role||'')+' · compte '+esc(p.status||'inconnu')+'</p><p>Slug : '+esc(site.site_slug)+' · '+ls.length+' logement(s), '+ls.filter(x=>x.is_published).length+' publié(s)</p><p>Contact : '+esc(site.contact_email||'non renseigné')+' · '+esc(site.contact_phone||'non renseigné')+'</p><p>Domaine : '+esc(site.domain_requested||'non demandé')+' · '+esc(site.domain_status||'none')+'</p></div><span class="platform-tag '+(site.site_enabled?'active':site.site_review_status==='pending'?'wait':'')+'">'+review+'</span></div><p>Présentation : '+esc(site.description||'Non renseignée')+'</p><div class="platform-actions">'+approve+reject+disable+'</div>'+domainActions+'</article>';
+   }).join(''):'<p>Aucun site enregistré.</p>')+'</div>';
+  $('adminRefresh').addEventListener('click',()=>renderPlatformAdmin(profile));
+  $('adminLogout').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;renderLogin()});
+  document.querySelectorAll('[data-site-action]').forEach(btn=>btn.addEventListener('click',async()=>{
+   const id=btn.dataset.siteId,action=btn.dataset.siteAction;
+   if(action==='approve'&&!confirm('Approuver et rendre ce site public ? Vérifie auparavant ses logements et ses informations.'))return;
+   if(action==='reject'&&!confirm('Refuser la demande de publication de ce site ?'))return;
+   if(action==='disable'&&!confirm('Dépublier ce site ? Il ne sera plus accessible publiquement.'))return;
+   btn.disabled=true;
+   try{
+    const patch=action==='approve'?{site_enabled:true,site_review_status:'approved',site_review_note:'Site approuvé par l’administrateur',updated_at:new Date().toISOString()}:
+     action==='reject'?{site_enabled:false,site_review_status:'rejected',site_review_note:'Demande refusée par l’administrateur',updated_at:new Date().toISOString()}:
+     {site_enabled:false,updated_at:new Date().toISOString()};
+    await api('public_owner_sites?id=eq.'+encodeURIComponent(id),'PATCH',patch);
+    await renderPlatformAdmin(profile);
+   }catch(e){alert(e.message);btn.disabled=false;}
+  }));
+  document.querySelectorAll('[data-domain-action]').forEach(btn=>btn.addEventListener('click',async()=>{
+   const id=btn.dataset.siteId,action=btn.dataset.domainAction;
+   const domainInput=document.querySelector('[data-domain-input="'+id+'"]');
+   const domain=(domainInput?.value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/$/,'');
+   if(!domain||!/^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain)){alert('Saisis un nom de domaine valide, sans https:// ni chemin.');return;}
+   if(action==='verified'&&!confirm('As-tu réellement configuré les DNS et vérifié leur propagation ? Cette action ne configure pas les DNS automatiquement.'))return;
+   if(action==='reject'&&!confirm('Refuser cette demande de domaine ?'))return;
+   btn.disabled=true;
+   try{
+    const patch=action==='dns'?{domain_requested:domain,custom_domain:domain,domain_status:'dns_pending',domain_note:'DNS à configurer par l’administrateur'}:
+     action==='verified'?{domain_requested:domain,custom_domain:domain,domain_status:'verified',domain_note:'DNS marqué comme vérifié par l’administrateur'}:
+     {domain_status:'rejected',domain_note:'Demande de domaine refusée par l’administrateur'};
+    await api('public_owner_sites?id=eq.'+encodeURIComponent(id),'PATCH',patch);
+    await renderPlatformAdmin(profile);
+   }catch(e){alert(e.message);btn.disabled=false;}
+  }));
+ }catch(e){
+  $('adminContent').innerHTML='<div class="admin-card"><h3>Erreur de chargement</h3><p>'+esc(e.message)+'</p><button class="btn" id="adminRetry">Réessayer</button></div>';
+  $('adminRetry')?.addEventListener('click',()=>renderPlatformAdmin(profile));
+ }
 }
 
 async function bookingService(payload,token=''){
