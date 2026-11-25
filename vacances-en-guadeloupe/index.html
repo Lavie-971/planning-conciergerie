@@ -225,6 +225,38 @@
 .calendar-hint{font-size:12px;color:var(--muted);margin:9px 0 0}
 @media(max-width:560px){.booking-calendar{padding:9px}.calendar-weekdays,.calendar-days{gap:3px}.calendar-day,.calendar-empty{border-radius:7px;font-size:12px}}
 
+/* Finition du calendrier et du parcours de réservation */
+.booking-modal{backdrop-filter:blur(5px);padding:14px}
+.booking-dialog{position:relative;border-radius:18px;padding:30px;box-shadow:0 28px 90px #071d18a8}
+#closeBookingModal{position:absolute;top:18px;right:18px;float:none!important;display:grid;place-items:center;transition:background .2s,transform .2s}
+#closeBookingModal:hover{background:#dfe9e1!important;transform:rotate(90deg)}
+.booking-dialog>.eyebrow{padding-right:48px;color:#a17a42}
+.booking-dialog h2{font-size:30px;line-height:1.15;padding-right:38px;margin:12px 0 8px}
+.booking-dialog>p{margin:0 0 20px;max-width:500px}
+.booking-dialog .field label{font-size:11px;letter-spacing:.35px;text-transform:uppercase;color:#53685d}
+.booking-dialog .field input,.booking-dialog .field textarea{border:1px solid #dce5dc;border-radius:10px;padding:13px 14px;background:#fcfdfb;font-size:14px;transition:border-color .18s,box-shadow .18s}
+.booking-dialog .field input:focus,.booking-dialog .field textarea:focus{outline:0;border-color:#6b9a7c;box-shadow:0 0 0 3px #6b9a7c20}
+.booking-dialog .field input[readonly]{background:#f3f6f1;color:#294f3f;font-weight:700}
+.booking-dialog .field textarea{min-height:92px;resize:vertical}
+.booking-dialog .availability-legend{gap:15px;padding:10px 12px;border-radius:10px;background:#f7f8f4}
+.booking-dialog .booking-calendar{border:1px solid #e1e8df;border-radius:13px;padding:14px;background:#fff}
+.booking-dialog .calendar-day{border-radius:9px!important;background:#e5f2e9!important;color:#246b45!important;font-weight:700!important;transition:transform .12s,filter .12s}
+.booking-dialog .calendar-day.available:not(:disabled):hover{filter:brightness(.96);transform:scale(1.05)}
+.booking-dialog .calendar-day.booked,.booking-dialog .calendar-day.booked:disabled{background:#f7dada!important;background-image:repeating-linear-gradient(135deg,#f7dada 0,#f7dada 6px,#f2cccc 6px,#f2cccc 8px)!important;color:#9f2525!important;text-decoration:line-through!important;cursor:not-allowed!important}
+.booking-dialog .calendar-day.pending,.booking-dialog .calendar-day.pending:disabled{background:#fff0d5!important;color:#8b5b12!important;cursor:not-allowed!important}
+.booking-dialog .calendar-day.selected{background:var(--forest)!important;color:#fff!important;outline:2px solid #b6d7c3}
+.booking-dialog .calendar-day.in-range{background:#dcece2!important;color:#245d3d!important}
+.booking-dialog .calendar-day:disabled{opacity:1!important}
+.booking-dialog .calendar-hint{padding:10px 12px;border-radius:9px;background:#f6f8f4;color:#52675b}
+.booking-dialog .booking-status{line-height:1.55}
+.booking-dialog #bookingAvailability{padding:10px 12px;border-radius:9px;background:#f5f7f2;margin-top:12px}
+.booking-dialog .booking-actions{padding-top:14px;border-top:1px solid #edf0e9}
+.booking-dialog #bookingSubmit{border-radius:10px;padding:14px 22px;background:var(--forest);color:white;box-shadow:0 6px 15px #173f3620}
+.booking-dialog #bookingSubmit:hover:not(:disabled){background:#285f50}
+.booking-dialog #bookingResult{flex:1;min-width:180px}
+@media(max-width:560px){.booking-dialog{padding:24px 17px 19px;border-radius:15px}.booking-dialog h2{font-size:25px}.booking-dialog .formgrid{gap:9px}.booking-dialog .booking-actions{align-items:stretch}.booking-dialog #bookingSubmit{width:100%}.booking-dialog #bookingResult{width:100%}}
+
+
 /* Pages individuelles des logements */
 #publicApp.detail-mode .hero,#publicApp.detail-mode .intro,#publicApp.detail-mode .listings,#publicApp.detail-mode .experience{display:none}
 #listingDetail{display:none;padding:125px 0 70px;background:var(--paper);min-height:70vh}
