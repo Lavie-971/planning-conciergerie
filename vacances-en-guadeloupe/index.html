@@ -311,7 +311,7 @@ function renderLogin(){
     await api('public_owner_sites','POST',{user_id:j.user.id,site_slug:slug,site_name:profile.full_name||'Mon site de vacances',site_enabled:false});
     currentSite=(await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(j.user.id)))[0];
    }
-   if(profile.role==='admin')await renderPlatformAdmin(profile);else await renderManager(profile);
+   await renderManager(profile);
   }catch(err){st.textContent=err.message;session=null}
  });
 }
@@ -389,7 +389,7 @@ function decorateManagerWorkspace(profile){
  cards.forEach((el,i)=>{if(i<ids.length)el.id=ids[i];else el.id='listing-edit-'+i;});
  const hero=document.createElement('section');hero.className='manager-hero';
  hero.innerHTML='<div class="eyebrow">Vacances en Guadeloupe · Espace privé</div><h1>Personnalisez votre site de vacances</h1><p>Gérez votre présentation, choisissez les logements à mettre en avant et suivez les demandes de réservation depuis un seul espace.</p>'+
- (profile?.role==='admin'?'<button type="button" class="manager-return" id="backToPlatformAdmin">← Retour à l’administration des sites</button>':'');
+ (profile?.role==='admin'?'<button type="button" class="manager-return" id="backToPlatformAdmin">Ouvrir l’administration des sites</button>':'');
  host.prepend(hero);
  const nav=document.createElement('nav');nav.className='manager-nav';
  nav.innerHTML='<a href="#site-settings">Mon site</a><a href="#listing-selection">Mes logements</a><a href="#listing-intro">Fiches logements</a><a href="#booking-requests">Réservations</a>';
