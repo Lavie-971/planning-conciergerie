@@ -2018,13 +2018,13 @@ async function sbAfterLogin(){
     const accessScreen=document.getElementById('accountAccessScreen');
     if(accessScreen) accessScreen.remove();
     accountRole=profile.role;
-    ownerSiteSlug=null;ownerSiteEnabled=false;
+    ownerSiteSlug=null;ownerSiteEnabled=false;ownerSiteReviewStatus=null;ownerSiteReviewNote='';
     if(profile.role==='user'){
       try{
-        const ownerSites=await sbRest('GET','public_owner_sites?select=site_slug,site_enabled&user_id=eq.'+encodeURIComponent(userId)+'&limit=1');
+        const ownerSites=await sbRest('GET','public_owner_sites?select=site_slug,site_enabled,site_review_status,site_review_note&user_id=eq.'+encodeURIComponent(userId)+'&limit=1');
         if(ownerSites&&ownerSites[0]){
           ownerSiteSlug=String(ownerSites[0].site_slug||'');
-          ownerSiteEnabled=ownerSites[0].site_enabled===true;
+          ownerSiteEnabled=ownerSites[0].site_enabled===true;ownerSiteReviewStatus=ownerSites[0].site_review_status||null;ownerSiteReviewNote=ownerSites[0].site_review_note||'';
         }
       }catch(siteError){console.warn('Chargement du site propriétaire indisponible',siteError);}
     }
@@ -2095,8 +2095,9 @@ async function openAdminUsersPanel(){
       let siteStatus='Aucun site demandé';
       if(site){
         if(site.site_enabled) siteStatus='Site activé';
-        else if((site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') || (site.site_review_status==='draft' && !String(site.site_review_note||'').includes('Création acceptée par l’administrateur'))) siteStatus='Création en attente de validation';
-        else if(site.site_review_status==='draft') siteStatus='Création acceptée — site non publié';
+        else if(site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') siteStatus='Création en attente de validation';
+        else if(site.site_review_status==='draft' && String(site.site_review_note||'').includes('Création acceptée par l’administrateur')) siteStatus='Création acceptée — site non publié';
+        else if(site.site_review_status==='draft') siteStatus='Aucune demande de création';
         else if(site.site_review_status==='rejected') siteStatus='Création refusée';
         else if(site.site_review_status==='pending') siteStatus='Publication en attente de validation';
         else siteStatus='Espace créé — site non activé';
@@ -2112,7 +2113,7 @@ async function openAdminUsersPanel(){
           actions.append(b);
         }); card.append(actions);
       }
-      if(site && ((site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') || (site.site_review_status==='draft' && !String(site.site_review_note||'').includes('Création acceptée par l’administrateur')))){
+      if(site && site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie'){
         const siteActions=document.createElement('div');siteActions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
         const heading=document.createElement('div');heading.style.cssText='width:100%;font-size:12px;font-weight:700;opacity:.75';heading.textContent='VALIDATION DE LA CRÉATION DU SITE';siteActions.append(heading);
         [['Accepter la création','approve'],['Refuser','reject']].forEach(([label,decision])=>{
@@ -2554,6 +2555,8 @@ let activeUserId = (sbSession() && sbSession().user && sbSession().user.id) ? St
 let accountRole=null;
 let ownerSiteSlug=null;
 let ownerSiteEnabled=false;
+let ownerSiteReviewStatus=null;
+let ownerSiteReviewNote='';
 const OWNER_PUBLIC_SITE_BASE='https://lavie-971.github.io/planning-conciergerie/vacances-en-guadeloupe/';
 function ownerPublicSiteUrl(){return ownerSiteSlug?OWNER_PUBLIC_SITE_BASE+'?site='+encodeURIComponent(ownerSiteSlug):'';}
 function updateOwnerSiteActions(){
@@ -2562,16 +2565,19 @@ function updateOwnerSiteActions(){
   const share=document.getElementById('ownerSiteShareBtn');
   if(!access||!share||!request)return;
   const manager=accountApproved&&accountRole==='user';
-  const hasSite=manager&&!!ownerSiteSlug;
-  request.hidden=!manager||hasSite;
-  access.hidden=!hasSite;share.hidden=!hasSite;
-  access.title=hasSite?'Ouvrir votre espace de gestion du site':'';
-  share.disabled=!hasSite||!ownerSiteEnabled;
+  const accepted=ownerSiteReviewStatus==='approved'||(ownerSiteReviewStatus==='draft'&&String(ownerSiteReviewNote||'').includes('Création acceptée par l’administrateur'));
+  const requested=ownerSiteReviewStatus==='pending'&&ownerSiteReviewNote==='Demande de création depuis Planning Conciergerie';
+  request.hidden=!manager||accepted||requested;
+  request.textContent=ownerSiteReviewStatus==='rejected'?'＋ Faire une nouvelle demande de site':'＋ Demander la création de mon site';
+  access.hidden=!manager||!accepted;
+  share.hidden=!manager||!accepted;
+  access.title=accepted?'Ouvrir votre espace de gestion du site':'';
+  share.disabled=!accepted||!ownerSiteEnabled;
   share.title=!ownerSiteEnabled?'Votre site doit être publié pour être partagé avec des clients.':'Partager le lien public de votre site';
 }
 async function requestOwnerSiteCreation(){
   if(!accountApproved||accountRole!=='user'||!activeUserId)return;
-  if(ownerSiteSlug){openOwnerSiteSpace();return;}
+  if(ownerSiteReviewStatus==='pending'&&ownerSiteReviewNote==='Demande de création depuis Planning Conciergerie'){alert('Votre demande de création est déjà en attente de validation.');return;}
   const name=window.prompt('Quel nom souhaitez-vous donner à votre site de locations ?','Mon site de vacances');
   if(name===null)return;
   const siteName=name.trim();
@@ -2579,16 +2585,15 @@ async function requestOwnerSiteCreation(){
   const btn=document.getElementById('ownerSiteRequestBtn');
   if(btn)btn.disabled=true;
   try{
-    const slug='proprietaire-'+activeUserId.toLowerCase();
-    const created=await sbRest('POST','public_owner_sites',{
-      user_id:activeUserId,site_slug:slug,site_name:siteName,
-      site_review_status:'pending',site_review_note:'Demande de création depuis Planning Conciergerie',site_enabled:false,
-      tagline:'Votre séjour en Guadeloupe'
-    });
+    const slug=ownerSiteSlug||('proprietaire-'+activeUserId.toLowerCase());
+    const payload={site_name:siteName,site_review_status:'pending',site_review_note:'Demande de création depuis Planning Conciergerie',site_enabled:false,tagline:'Votre séjour en Guadeloupe',updated_at:new Date().toISOString()};
+    let created;
+    if(ownerSiteSlug) created=await sbRest('PATCH','public_owner_sites?user_id=eq.'+encodeURIComponent(activeUserId)+'&site_slug=eq.'+encodeURIComponent(ownerSiteSlug),payload);
+    else created=await sbRest('POST','public_owner_sites',Object.assign({user_id:activeUserId,site_slug:slug},payload));
     ownerSiteSlug=String((Array.isArray(created)?created[0]:created)?.site_slug||slug);
-    ownerSiteEnabled=false;
+    ownerSiteEnabled=false;ownerSiteReviewStatus='pending';ownerSiteReviewNote='Demande de création depuis Planning Conciergerie';
     updateOwnerSiteActions();
-    alert('Votre demande de création de site a bien été envoyée. Vous pouvez déjà préparer votre site dans « Espace site ». Il restera invisible aux voyageurs jusqu’à validation par l’administrateur.');
+    alert('Votre demande de création de site a bien été envoyée. Elle sera visible par l’administrateur dans « Gestion des gérants ».');
   }catch(e){
     console.error('Demande de création du site',e);
     alert('Impossible d’envoyer la demande : '+(e.message||'erreur inconnue'));
