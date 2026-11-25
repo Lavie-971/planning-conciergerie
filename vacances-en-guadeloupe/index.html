@@ -286,6 +286,27 @@
 .booking-dialog .calendar-day.selected{background:var(--forest)!important;color:#fff!important;outline:2px solid #b6d7c3}
 .booking-dialog .calendar-day.in-range{background:#dcece2!important;color:#245d3d!important}
 .booking-dialog .calendar-day:disabled{opacity:1!important}
+
+/* Les indisponibilités sont indiquées uniquement par une couleur unie */
+.booking-dialog .calendar-day,
+.booking-dialog .calendar-day:disabled,
+.booking-dialog .calendar-day.booked,
+.booking-dialog .calendar-day.pending{
+ background-image:none!important;
+ text-decoration:none!important;
+ -webkit-text-decoration:none!important;
+ box-shadow:none!important;
+ text-shadow:none!important;
+}
+.booking-dialog .calendar-day::before,
+.booking-dialog .calendar-day::after{content:none!important;display:none!important}
+.booking-dialog .calendar-day.booked,
+.booking-dialog .calendar-day.booked:disabled{background:#f3caca!important;color:#8f2020!important}
+.booking-dialog .calendar-day.pending,
+.booking-dialog .calendar-day.pending:disabled{background:#ffe6b8!important;color:#82520d!important}
+.booking-dialog .calendar-day.available,
+.booking-dialog .calendar-day.available:disabled{background:#dff0e4!important;color:#205f3b!important}
+
 .booking-dialog .calendar-hint{padding:10px 12px;border-radius:9px;background:#f6f8f4;color:#52675b}
 .booking-dialog .booking-status{line-height:1.55}
 .booking-dialog #bookingAvailability{padding:10px 12px;border-radius:9px;background:#f5f7f2;margin-top:12px}
@@ -716,7 +737,7 @@ function renderBookingCalendar(){
   const checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||value<today||(blocked&&!checkoutAllowed);
   const state=blocked?'booked':pending?'pending':'available';
   const cls=['calendar-day',state,isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
-  const dayStyle=blocked?'background:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;':pending?'background:#ffe6b8!important;color:#82520d!important;text-decoration:none!important;':'background:#dff0e4!important;color:#205f3b!important;text-decoration:none!important;';
+  const dayStyle=blocked?'background:#f3caca!important;background-color:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':pending?'background:#ffe6b8!important;background-color:#ffe6b8!important;background-image:none!important;color:#82520d!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':'background:#dff0e4!important;background-color:#dff0e4!important;background-image:none!important;color:#205f3b!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;';
   html+='<button type="button" class="'+cls+'" style="'+dayStyle+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
  }
  $('bookingCalendarDays').innerHTML=html;
