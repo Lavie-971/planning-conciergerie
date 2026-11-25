@@ -2021,7 +2021,7 @@ async function sbAfterLogin(){
     renderAll();
     setAppAccessVisible(true);
     hideAccountGate();
-    centerOnToday();
+    centerOnToday(3);
     startAutoRefresh();
     schedulePendingSync();
   }catch(e){
@@ -4064,7 +4064,7 @@ async function init(){
     renderAll();
     hideAccountGate();
     setAppAccessVisible(true);
-    centerOnToday();
+    centerOnToday(3);
   }
 
   startFlightAutoUpdate();
@@ -4272,7 +4272,7 @@ function bindCalendarSwipe(){
   }, {passive:true});
 }
 
-function centerOnToday(){
+function centerOnToday(daysBeforeToday = 0){
   requestAnimationFrame(()=>{
     const scrollEl = document.getElementById('calendarScroll');
     const todayHead = scrollEl.querySelector('.day-head.today');
@@ -4282,10 +4282,11 @@ function centerOnToday(){
     const scrollRect = scrollEl.getBoundingClientRect();
     const todayRect = todayHead.getBoundingClientRect();
     const todayOffsetInContent = (todayRect.left - scrollRect.left) + scrollEl.scrollLeft;
-    // À l'ouverture, placer le début de la zone visible trois jours avant aujourd'hui.
-    // Le scroll est limité au début du mois si les trois jours précédents ne sont pas affichés.
-    const daysBeforeToday = 3;
-    const target = todayOffsetInContent - infoWidth - (todayRect.width * daysBeforeToday);
+    // À l'ouverture seulement : laisser trois jours visibles avant aujourd'hui.
+    // Le bouton « Aujourd'hui » conserve le centrage habituel.
+    const target = daysBeforeToday > 0
+      ? todayOffsetInContent - infoWidth - (todayRect.width * daysBeforeToday)
+      : todayOffsetInContent - infoWidth - ((scrollEl.clientWidth - infoWidth)/2) + (todayRect.width/2);
     scrollEl.scrollLeft = Math.max(0, target);
   });
 }
