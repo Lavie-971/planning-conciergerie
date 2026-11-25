@@ -481,7 +481,7 @@ async function loadPublic(){
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
   const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');setSiteIdentity(site);
   const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+(preview?'':'&is_published=eq.true')+'&order=display_order.asc');
-  if(preview){let banner=$('previewBanner');if(!banner){banner=document.createElement('div');banner.id='previewBanner';banner.style.cssText='position:sticky;top:0;z-index:1000;background:#173f35;color:white;padding:10px 16px;text-align:center;font-weight:600';$('publicApp').prepend(banner);}banner.innerHTML='APERÇU PRIVÉ — site non publié · <a href="#admin" style="color:white;text-decoration:underline">Retour à la gestion</a>';}
+  if(preview){let banner=$('previewBanner');if(!banner){banner=document.createElement('div');banner.id='previewBanner';banner.style.cssText='position:sticky;top:0;z-index:1000;background:#173f35;color:white;padding:10px 16px;text-align:center;font-weight:600';$('publicApp').prepend(banner);}banner.innerHTML='APERÇU PRIVÉ — site non publié · <button type="button" id="previewBackToOwner" style="border:0;background:transparent;color:white;text-decoration:underline;font:inherit;cursor:pointer">Retour à mon espace propriétaire</button>';}
   $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
   if(preview)enablePrivatePreviewEditing(site,rows);
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
@@ -693,7 +693,7 @@ async function renderManager(profile){
    }catch(err){st.textContent='Impossible de modifier la publication : '+err.message;}
    finally{publicationButton.disabled=false;}
   });
-  $('previewSiteBtn')?.addEventListener('click',()=>{const u=new URL(siteUrl,location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({},'',u.pathname+u.search);route();});
+
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
   document.querySelectorAll('[data-publish-toggle]').forEach(toggle=>toggle.addEventListener('change',async()=>{
    const id=toggle.dataset.publishToggle,choice=toggle.closest('.property-choice'),status=choice?.querySelector('.status');
@@ -941,7 +941,13 @@ document.getElementById('publicApp').addEventListener('click',e=>{const photo=e.
 document.getElementById('propertyPhotoLightboxClose').addEventListener('click',closePropertyPhotoLightbox);
 propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLightbox)closePropertyPhotoLightbox();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
-function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(!isPrivatePreview&&(adminHash||adminQuery)){showAdmin();return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
+function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
+document.addEventListener('click',e=>{
+ const open=e.target.closest('#previewSiteBtn');
+ if(open){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();return;}
+ const back=e.target.closest('#previewBackToOwner');
+ if(back){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();}
+});
 window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',route);route();
 </script>
 
