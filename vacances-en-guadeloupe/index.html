@@ -365,12 +365,15 @@ body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:1px das
 .preview-edit-dialog h2{font:600 27px "Playfair Display",serif;color:#173f36;margin:0 0 8px}
 .preview-edit-dialog>p{color:#718078;font-size:13px;line-height:1.6;margin:0 0 20px}
 .preview-edit-close{position:sticky;float:right;top:0;border:0;border-radius:50%;background:#edf2ee;color:#173f36;width:38px;height:38px;font-size:25px;cursor:pointer;z-index:2}
-.preview-amenities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:10px 0 18px}
-.preview-amenities label{display:flex;align-items:center;gap:7px;background:#f5f7f3;border:1px solid #e2e9e1;padding:9px;border-radius:7px;font-size:12px}
+.preview-amenities{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 14px}
+.preview-amenities label{display:inline-flex;align-items:center;gap:6px;width:auto;min-height:0;background:#f5f7f3;border:1px solid #e2e9e1;padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.25;cursor:pointer;white-space:nowrap}
+.preview-amenities input{width:14px;height:14px;margin:0;accent-color:#285f50;cursor:pointer}
+body.private-preview-editing [data-site-edit-key][contenteditable="true"]{cursor:text;outline:2px solid #c49b55;background:#fff8e9;user-select:text}
+#previewBanner,#previewSiteEditorButton{display:none!important}
 .suggestion-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .suggestion-list strong{width:100%;font-size:12px;color:#285f50}
 .suggestion-list button{border:1px solid #cbd9cc;background:#f5f8f4;color:#285f50;padding:8px 11px;border-radius:7px;cursor:pointer;font-size:11px}
-@media(max-width:600px){.preview-edit-dialog{padding:20px 15px}.preview-amenities{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.preview-edit-dialog{padding:20px 15px}}
 
 </style>
 </head>
@@ -453,13 +456,36 @@ function enableIndividualTextEditing(site){
  Object.entries(fields).forEach(([id,v])=>{const el=$(id);if(el){el.dataset.siteEditKey=v[0];el.dataset.siteEditLabel=v[1];el.title='Cliquer pour modifier ce texte';}});
 }
 function openIndividualTextEditor(key,label,element){
- const site=activePreviewSite;if(!site)return;
- const value=(site.site_texts||{})[key]||element.textContent.trim();
- const modal=previewModal('<h2>Modifier : '+esc(label)+'</h2><p>Modifiez uniquement ce bloc de texte. Le changement sera enregistré sans publier le site.</p><form id="singleSiteTextForm"><div class="field full"><label>'+esc(label)+'</label><textarea name="text" rows="4">'+esc(value)+'</textarea></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer ce texte</button><span class="status" id="singleSiteTextStatus"></span></div></form>');
- modal.querySelector('#singleSiteTextForm').addEventListener('submit',async e=>{
-  e.preventDefault();const st=$('singleSiteTextStatus'),textValue=String(new FormData(e.currentTarget).get('text')||'').trim();st.textContent='Enregistrement…';
-  try{const texts={...(site.site_texts||{}),[key]:textValue};await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts});site.site_texts=texts;const target=$(element.id);if(target)target.textContent=textValue;modal.hidden=true;}catch(err){st.textContent='Erreur : '+err.message;}
+ const site=activePreviewSite;if(!site||element.isContentEditable)return;
+ const original=element.textContent.trim(),stored=(site.site_texts||{})[key];
+ element.dataset.editOriginal=original;
+ element.contentEditable='true';
+ element.setAttribute('role','textbox');
+ element.setAttribute('aria-label','Modifier '+label);
+ element.style.outline='2px solid #c49b55';
+ element.style.background='#fff8e9';
+ element.focus();
+ const range=document.createRange();range.selectNodeContents(element);
+ const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+ let finished=false;
+ const finish=async(save)=>{
+  if(finished)return;finished=true;
+  const next=element.textContent.trim();
+  element.contentEditable='false';element.removeAttribute('role');element.style.outline='';element.style.background='';
+  if(!save||next===original){element.textContent=original;return;}
+  element.style.opacity='.55';
+  try{
+   const texts={...(site.site_texts||{}),[key]:next};
+   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
+   site.site_texts=texts;element.textContent=next;element.title='Texte enregistré — cliquer pour modifier';
+  }catch(err){element.textContent=original;alert('Impossible d’enregistrer ce texte : '+err.message);}
+  finally{element.style.opacity='';}
+ };
+ element.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();finish(false);}
+  else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();finish(true);}
  });
+ element.addEventListener('blur',()=>finish(true),{once:true});
 }
 function setSiteIdentity(site){
  const t=site.site_texts||{};
@@ -497,7 +523,7 @@ async function loadPublic(){
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
   const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');setSiteIdentity(site);
   const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+(preview?'':'&is_published=eq.true')+'&order=display_order.asc');
-  if(preview){let banner=$('previewBanner');if(!banner){banner=document.createElement('div');banner.id='previewBanner';banner.style.cssText='position:sticky;top:0;z-index:1000;background:#173f35;color:white;padding:10px 16px;text-align:center;font-weight:600';$('publicApp').prepend(banner);}banner.innerHTML='APERÇU PRIVÉ — site non publié · <button type="button" id="previewBackToOwner" style="border:0;background:transparent;color:white;text-decoration:underline;font:inherit;cursor:pointer">Retour à mon espace propriétaire</button>';}
+  if(preview){const banner=$('previewBanner');if(banner)banner.remove();}
   $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
   if(preview)enablePrivatePreviewEditing(site,rows);
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
@@ -549,13 +575,9 @@ function suggestListingText(item){
  ];
 }
 function enablePrivatePreviewEditing(site,rows){
- const banner=$('previewBanner');if(!banner)return;
  activePreviewSite=site;
- let btn=$('previewSiteEditorButton');
- if(!btn){btn=document.createElement('button');btn.type='button';btn.id='previewSiteEditorButton';btn.className='preview-edit-site';banner.appendChild(btn);}
- btn.textContent='✎ Modifier les textes, la présentation et la couverture';
- btn.style.cssText='display:inline-block!important;position:relative!important;z-index:1002!important;visibility:visible!important;opacity:1!important;margin:8px 0 8px 12px!important;padding:9px 13px!important;cursor:pointer!important;';
- btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!activePreviewSite){alert('Les informations du site ne sont pas encore chargées.');return;}openPreviewSiteEditor(activePreviewSite);};
+ const banner=$('previewBanner');if(banner)banner.remove();
+ const oldButton=$('previewSiteEditorButton');if(oldButton)oldButton.remove();
 }
 function openPreviewSiteEditor(site){
  const t=site.site_texts||{},fields={nav_listings:'Menu — lien logements',nav_destination:'Menu — lien destination',nav_contact:'Menu — lien contact',hero_cta:'Accueil — bouton principal',hero_secondary_cta:'Accueil — bouton secondaire',perk1:'Destination — avantage 1',perk2:'Destination — avantage 2',perk3:'Destination — avantage 3',perk4:'Destination — avantage 4',hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — texte',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_title:'Logements — titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — texte',destination_text2:'Destination — second texte',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page'};
@@ -965,11 +987,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLight
 function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
  const textBlock=e.target.closest('[data-site-edit-key]');
- if(textBlock&&new URLSearchParams(location.search).get('preview')==='1'){e.preventDefault();e.stopPropagation();openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);return;}
+ if(textBlock&&new URLSearchParams(location.search).get('preview')==='1'&&!textBlock.isContentEditable){e.preventDefault();e.stopPropagation();openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);return;}
  const open=e.target.closest('#previewSiteBtn');
  if(open){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();return;}
- const back=e.target.closest('#previewBackToOwner');
- if(back){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();}
+
 });
 window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',route);route();
 </script>
