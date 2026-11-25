@@ -6,11 +6,13 @@
 <meta name="theme-color" content="#174d43">
 <title>Vacances en Guadeloupe — Séjours & locations de vacances</title>
 <meta name="description" content="Découvrez nos locations saisonnières en Guadeloupe : des séjours authentiques entre plages, nature et douceur des Caraïbes.">
+<script>try{if(/^#admin(?:\/|$)/i.test(location.hash||'')||new URLSearchParams(location.search).get('espace')==='proprietaire')document.documentElement.classList.add('owner-entry')}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+html.owner-entry #publicApp{display:none!important}html.owner-entry #adminApp{display:block!important}
 :root{--forest:#173f36;--forest2:#285f50;--ink:#243b34;--muted:#718078;--sand:#f5f1e8;--paper:#fffefa;--line:#e8e5dc;--gold:#d8b77b;--shadow:0 18px 50px rgba(27,54,43,.10)}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}
 #publicApp .wrap{width:min(1180px,calc(100% - 56px));margin:0 auto}
@@ -361,17 +363,17 @@
 <nav class="navlinks"><a href="#logements">Nos logements</a><a href="#destination">La Guadeloupe</a><a class="nav-cta" href="#contact">Nous contacter</a></nav>
 </div></header>
 <section class="hero"><div class="wrap"><div class="hero-content">
-<div class="eyebrow">Votre parenthèse au soleil</div>
+<div class="eyebrow" id="heroEyebrow">Votre parenthèse au soleil</div>
 <h1 id="heroTitle">La Guadeloupe<br>comme <em>chez vous.</em></h1>
 <p id="heroText">Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme. Trouvez le logement idéal pour vos prochaines vacances.</p>
 <a class="btn" href="#logements">Découvrir nos logements <span>→</span></a><a class="btn btn-outline" href="#destination">Explorer la destination</a>
 </div></div></section>
 <section id="listingDetail"><div class="wrap" id="listingDetailContent"></div></section>
-<section class="intro wrap"><div class="eyebrow">Bienvenue chez vous</div><h2>Des séjours qui ont le goût des vacances</h2><p>Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.</p></section>
-<section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p>Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="cards" id="listingCards"><div class="empty"><div class="symbol">🌴</div><h3>Préparation de nos logements</h3><p>Nos hébergements seront bientôt présentés ici. Revenez découvrir nos premières adresses.</p></div></div></section>
-<section class="experience" id="destination"><div class="wrap experience-grid"><div class="experience-img" role="img" aria-label="Paysage de plage tropicale en Guadeloupe"></div><div><div class="eyebrow">L'île papillon vous attend</div><h2>Un concentré de nature, de soleil et de liberté</h2><p>Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.</p><p>Installez-vous dans votre logement et partez explorer les trésors de l'archipel, à votre rythme.</p><div class="perks"><div class="perk"><i>✦</i> Plages paradisiaques</div><div class="perk"><i>✦</i> Saveurs créoles</div><div class="perk"><i>✦</i> Nature préservée</div><div class="perk"><i>✦</i> Accueil chaleureux</div></div></div></div></section>
-<section class="contact" id="contact"><div class="wrap"><div class="eyebrow">Parlons de vos vacances</div><h2>Votre prochaine escapade commence ici</h2><p>Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.</p><a class="btn" id="contactLink" href="#logements">Découvrir les logements <span>→</span></a><div id="contactDetails" style="margin-top:14px;font-size:12px;color:#d8e5de"></div></div></section>
-<footer><div class="wrap footer-inner"><span class="footer-brand" id="footerBrand">Vacances en Guadeloupe</span><span>Des vacances au rythme des îles.</span></div></footer>
+<section class="intro wrap"><div class="eyebrow" id="introEyebrow">Bienvenue chez vous</div><h2 id="introTitle">Des séjours qui ont le goût des vacances</h2><p id="introText">Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.</p></section>
+<section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow" id="catalogEyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p id="catalogText">Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="cards" id="listingCards"><div class="empty"><div class="symbol">🌴</div><h3>Préparation de nos logements</h3><p>Nos hébergements seront bientôt présentés ici. Revenez découvrir nos premières adresses.</p></div></div></section>
+<section class="experience" id="destination"><div class="wrap experience-grid"><div class="experience-img" role="img" aria-label="Paysage de plage tropicale en Guadeloupe"></div><div><div class="eyebrow" id="destinationEyebrow">L'île papillon vous attend</div><h2 id="destinationTitle">Un concentré de nature, de soleil et de liberté</h2><p id="destinationText">Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.</p><p id="destinationText2">Installez-vous dans votre logement et partez explorer les trésors de l'archipel, à votre rythme.</p><div class="perks"><div class="perk"><i>✦</i> Plages paradisiaques</div><div class="perk"><i>✦</i> Saveurs créoles</div><div class="perk"><i>✦</i> Nature préservée</div><div class="perk"><i>✦</i> Accueil chaleureux</div></div></div></div></section>
+<section class="contact" id="contact"><div class="wrap"><div class="eyebrow" id="contactEyebrow">Parlons de vos vacances</div><h2 id="contactTitle">Votre prochaine escapade commence ici</h2><p id="contactText">Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.</p><a class="btn" id="contactLink" href="#logements">Découvrir les logements <span>→</span></a><div id="contactDetails" style="margin-top:14px;font-size:12px;color:#d8e5de"></div></div></section>
+<footer><div class="wrap footer-inner"><span class="footer-brand" id="footerBrand">Vacances en Guadeloupe</span><span id="footerTagline">Des vacances au rythme des îles.</span></div></footer>
 </div>
 <div id="adminApp"><div class="admin-wrap"><div class="admin-top"><div><h1>Gestion des logements</h1><div style="color:#6c7c75;font-size:13px;margin-top:5px">Vacances en Guadeloupe · Administration</div></div><a href="#" class="details">← Voir le site public</a></div><div id="adminContent"></div></div></div>
 
@@ -428,15 +430,31 @@ async function api(path,method='GET',body=null){
 }
 function currentSlug(){return new URLSearchParams(location.search).get('site')||'vacances-en-guadeloupe'}
 function setSiteIdentity(site){
+ const t=site.site_texts||{};
  $('siteBrand').textContent=site.site_name;$('footerBrand').textContent=site.site_name;
+ const put=(id,key,fallback)=>{const el=$(id);if(el)el.textContent=t[key]||fallback;};
+ put('heroEyebrow','hero_eyebrow','Votre parenthèse au soleil');
+ $('heroTitle').textContent=t.hero_title||site.site_name+' — '+(site.tagline||'comme chez vous');
+ put('heroText','hero_text',site.description||'Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme.');
+ put('introEyebrow','intro_eyebrow','Bienvenue chez vous');put('introTitle','intro_title','Des séjours qui ont le goût des vacances');
+ put('introText','intro_text','Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.');
+ put('catalogEyebrow','catalog_eyebrow','Nos adresses');put('catalogText','catalog_text','Découvrez nos hébergements et choisissez votre prochaine escale.');
+ put('destinationEyebrow','destination_eyebrow',"L'île papillon vous attend");put('destinationTitle','destination_title','Un concentré de nature, de soleil et de liberté');
+ put('destinationText','destination_text','Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.');
+ put('destinationText2','destination_text2','Installez-vous dans votre logement et partez explorer les trésors de l\'archipel, à votre rythme.');
+ put('contactEyebrow','contact_eyebrow','Parlons de vos vacances');put('contactTitle','contact_title','Votre prochaine escapade commence ici');
+ put('contactText','contact_text','Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.');
+ put('footerTagline','footer_tagline','Des vacances au rythme des îles.');
  $('siteTagline').textContent=site.tagline||'Votre séjour en Guadeloupe';
  $('heroTitle').innerHTML=esc(site.site_name)+'<br><em>'+esc(site.tagline||'comme chez vous')+'</em>';
  $('heroText').textContent=site.description||'Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme.';
  $('catalogTitle').textContent='Les logements de '+site.site_name;
  if(site.hero_photo_url)$('heroTitle').closest('.hero').style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("'+site.hero_photo_url.replace(/["\\]/g,'')+'")';
- const contact=site.whatsapp?('https://wa.me/'+site.whatsapp.replace(/\\D/g,'')):site.contact_email?('mailto:'+site.contact_email):site.contact_phone?('tel:'+site.contact_phone.replace(/[^+0-9]/g,'')):'#logements';
- $('contactLink').href=contact;
- $('contactLink').innerHTML=site.whatsapp?'Contacter sur WhatsApp <span>→</span>':site.contact_email?'Nous contacter par e-mail <span>→</span>':site.contact_phone?'Nous appeler <span>→</span>':'Découvrir les logements <span>→</span>';
+ const contact=site.whatsapp?('https://wa.me/'+site.whatsapp.replace(/\D/g,'')):site.contact_email?('mailto:'+site.contact_email):site.contact_phone?('tel:'+site.contact_phone.replace(/[^+0-9]/g,'')):'';
+ $('contactLink').href=contact||'#contact';
+ $('contactLink').hidden=!contact;
+ $('contactLink').innerHTML=site.whatsapp?'Contacter sur WhatsApp <span>→</span>':site.contact_email?'Nous contacter par e-mail <span>→</span>':'Nous appeler <span>→</span>';
+ if(!contact)$('contactDetails').textContent='Les coordonnées de contact ne sont pas encore renseignées.';
  $('contactDetails').textContent=[site.contact_phone,site.contact_email].filter(Boolean).join(' · ');
 }
 async function loadPublic(){
@@ -444,7 +462,7 @@ async function loadPublic(){
   const params=new URLSearchParams(location.search),slug=currentSlug(),preview=params.get('preview')==='1';
   $('publicApp').classList.remove('detail-mode');$('listingDetailContent').innerHTML='';document.title='Vacances en Guadeloupe';
   if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
-  const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug));
+  const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,site_texts,hero_photo_url,contact_email,contact_phone,whatsapp'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug));
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
   const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');setSiteIdentity(site);
   const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+(preview?'':'&is_published=eq.true')+'&order=display_order.asc');
@@ -570,6 +588,9 @@ async function renderManager(profile){
   field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+field('Nom de domaine personnalisé (facultatif, uniquement en cas d’achat)','domain_requested',currentSite.domain_requested||'')+'<div class="field full"><p style="margin:0">À renseigner uniquement si vous souhaitez acheter votre propre nom de domaine (ex. www.monsite.fr). Cet achat est à votre charge. Sinon, laissez ce champ vide : votre site restera accessible gratuitement à l’adresse fournie par la plateforme.</p><p style="margin:8px 0 0">État du domaine : '+esc(currentSite.domain_status||'aucune demande')+'. La saisie ne rend pas encore le domaine accessible : une configuration DNS et hébergement sera nécessaire.</p></div>'+
   '<div class="field full form-section-heading"><h4>Présentation et ambiance</h4><p>Décrivez votre activité et choisissez la photo principale visible en haut de votre site.</p></div><div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
   imagePickerMarkup('hero_photo_url','Photo de couverture',currentSite.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
+  '<div class="admin-card"><h3>Modifier les textes du site</h3><p>Modifiez les titres et paragraphes de chaque rubrique. Un champ vide conserve le texte par défaut.</p><form id="siteTextsForm"><div class="formgrid">'+
+  Object.entries({hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — paragraphe',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — paragraphe principal',destination_text2:'Destination — second paragraphe',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page — phrase'}).map(([k,label])=>'<div class="field full"><label>'+label+'</label><textarea name="'+k+'">'+esc((currentSite.site_texts||{})[k]||'')+'</textarea></div>').join('')+
+  '</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les textes</button><span class="status" id="siteTextsStatus" aria-live="polite"></span></div></form></div>'+ 
   (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
   '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="previewSiteBtn" type="button" style="margin:8px 8px 8px 0">Aperçu privé du site</button><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
   '<div class="admin-card"><h3>Choisir les logements à afficher</h3><p>Cochez uniquement les logements de votre Planning Conciergerie que vous souhaitez présenter aux voyageurs. Vous pouvez modifier cette sélection à tout moment.</p><div class="property-selection">'+
@@ -592,6 +613,7 @@ async function renderManager(profile){
   setupImageEditors();
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;renderLogin()});
   $('siteForm').addEventListener('submit',saveSite);
+  $('siteTextsForm')?.addEventListener('submit',saveSiteTexts);
   const publicationButton=$('toggleSitePublication');
   publicationButton?.addEventListener('click',async()=>{
    const next=!currentSite.site_enabled,st=$('publicationStatus');
@@ -636,6 +658,13 @@ function decorateManagerWorkspace(profile){
  if(profile?.role==='admin')$('backToPlatformAdmin')?.addEventListener('click',()=>renderPlatformAdmin(profile));
 }
 
+async async function saveSiteTexts(e){
+ e.preventDefault();const form=e.currentTarget,st=$('siteTextsStatus'),data=new FormData(form),texts={};
+ for(const [key,value] of data.entries())texts[key]=String(value||'').trim();
+ st.textContent='Enregistrement…';
+ try{await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});currentSite.site_texts=texts;setSiteIdentity(currentSite);st.textContent='Textes enregistrés ✓';}
+ catch(err){st.textContent='Erreur : '+err.message;}
+}
 async function saveSite(e){
  e.preventDefault();const form=e.currentTarget,st=$('siteStatus'),d=new FormData(form),v=n=>String(d.get(n)||'').trim();
  const slug=v('site_slug').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
