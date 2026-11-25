@@ -532,7 +532,7 @@ function suggestListingText(item){
  ];
 }
 function enablePrivatePreviewEditing(site,rows){
- const banner=$('previewBanner');if(!banner||banner.dataset.editEnabled)return;banner.dataset.editEnabled='1';
+ const banner=$('previewBanner');if(!banner||banner.querySelector('.preview-edit-site'))return;
  const btn=document.createElement('button');btn.type='button';btn.className='preview-edit-site';btn.textContent='Modifier les textes et la couverture';btn.onclick=()=>openPreviewSiteEditor(site);banner.append(' ',btn);
 }
 function openPreviewSiteEditor(site){
