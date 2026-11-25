@@ -630,8 +630,10 @@ function renderBookingCalendar(){
   const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
   const checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||value<today||(blocked&&!checkoutAllowed);
-  const cls=['calendar-day',blocked?'booked':pending?'pending':'available',isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
-  html+='<button type="button" class="'+cls+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
+  const state=blocked?'booked':pending?'pending':'available';
+  const cls=['calendar-day',state,isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
+  const dayStyle=blocked?'background:#f3caca!important;background-image:repeating-linear-gradient(135deg,#f3caca 0,#f3caca 6px,#e9b8b8 6px,#e9b8b8 9px)!important;color:#8f2020!important;':pending?'background:#ffe6b8!important;color:#82520d!important;':'background:#dff0e4!important;color:#205f3b!important;';
+  html+='<button type="button" class="'+cls+'" style="'+dayStyle+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
  }
  $('bookingCalendarDays').innerHTML=html;
  $('bookingCalendarDays').querySelectorAll('[data-calendar-date]').forEach(btn=>btn.addEventListener('click',()=>selectBookingCalendarDate(btn.dataset.calendarDate)));
