@@ -1252,7 +1252,6 @@ body.printing-doc #printPanel{
     <div class="modal-content">
     <div class="tab-bar" style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
       <button class="tab-btn" id="tabStatsBtn" data-tab="stats">📊 Statistiques</button>
-      <button class="tab-btn active" id="tabInvoicesBtn" data-tab="invoices">🧾 Facture mensuelle</button>
       <button class="tab-btn" id="tabAdvancesBtn" data-tab="advances">💶 Avances</button>
       <button class="tab-btn" id="tabServicesGlobalBtn" data-tab="servicesGlobal">🧾 Services</button><button class="tab-btn" id="tabCommentBtn" data-tab="comment">📝 Commentaire</button>
     </div>
@@ -1330,7 +1329,7 @@ body.printing-doc #printPanel{
       <button class="btn primary" id="addGlobalServiceBtn" style="width:100%;">+ Ajouter un service</button>
     </div>
 
-    <div id="invoicesTabPanel" style="display:none;"><h3 style="margin-top:0;">Facture mensuelle — Services et avances</h3><p>Une seule facture regroupe tous les services et toutes les avances du logement pour le mois sélectionné.</p><div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth"></div><button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:8px 0">Générer la facture mensuelle</button><div id="monthlyInvoicePreview"></div><h3>Historique des factures</h3><div id="monthlyInvoicesHistory"></div></div>
+    
     <div id="commentTabPanel" style="display:none;">
       <p style="font-size:12.5px;color:var(--ink-soft);margin-top:0;">Notes libres propres à ce logement (code d'accès, particularités, consignes du propriétaire…).</p>
       <textarea id="aptCommentText" rows="10" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13.5px;"></textarea>
@@ -5327,14 +5326,13 @@ function buildSelfFiscalRecapHtml(year){
 
 function switchStatsTab(tab){
   statsTab = tab;
-  ['stats','advances','servicesGlobal','invoices','comment'].forEach(t=>{
+  ['stats','advances','servicesGlobal','comment'].forEach(t=>{
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)+'Btn').classList.toggle('active', t===tab);
     document.getElementById(t+'TabPanel').style.display = (t===tab) ? '' : 'none';
   });
   if(tab==='stats') renderApartmentStats();
   if(tab==='advances') renderAdvances();
   if(tab==='servicesGlobal') renderGlobalServices();
-  if(tab==='invoices') renderMonthlyInvoicesPanel();
   if(tab==='comment') renderComment();
 }
 
@@ -5631,10 +5629,19 @@ function renderApartmentStats(){
       html += `<div class="stats-source-row"><span><span class="source-dot" style="background:${s.color};box-shadow:none;margin-right:6px;"></span>${s.label} (${maskNum(d.count)})</span><span class="mono">${maskEuro(d.revenue)}</span></div>`;
     });
   }
-  html += `<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
-    <button class="btn" id="ownerTaxRecapBtn" style="flex:1;">📄 Récap annuel propriétaire</button>
-    <button class="btn primary" id="ownerMonthlyInvoiceBtn" style="flex:1;">🧾 Facture mensuelle</button>
-  </div>`;
+  html += `
+    <div class="card" style="margin-top:18px;border:1px solid var(--accent);">
+      <h3 style="margin:0 0 8px;">🧾 Facture mensuelle — Services et avances</h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;">Une seule facture regroupe les services et les avances de ce logement pour le mois sélectionné.</p>
+      <div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth" value="${todayISO().slice(0,7)}"></div>
+      <div id="monthlyInvoicePreview" style="margin:10px 0;"></div>
+      <button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:4px 0 12px;">Générer la facture mensuelle</button>
+      <h3 style="margin:10px 0 6px;">Historique des factures</h3>
+      <div id="monthlyInvoicesHistory"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn primary" id="ownerMonthlyInvoiceBtn" style="flex:1;">🧾 Facture mensuelle du logement</button>
+    </div>`;
 if(syncUrl){
   html += `
     <button class="btn" id="ownerLinkBtn" style="width:100%;margin-top:8px;">🔗 Copier le lien à envoyer au propriétaire</button>
@@ -5642,11 +5649,11 @@ if(syncUrl){
   `;
 }
   content.innerHTML = html;
-  const btn = document.getElementById('ownerTaxRecapBtn');
-  if(btn) btn.addEventListener('click', ()=>{
-    const a = apartments.find(x=>x.id===statsApartmentId);
-    if(a) openPrintDocument(buildOwnerTaxRecapHtml(a, statsYear));
-  });
+  renderMonthlyInvoicesPanel();
+  const serviceMonth = document.getElementById('serviceInvoiceMonth');
+  if(serviceMonth) serviceMonth.addEventListener('change', renderMonthlyInvoicesPanel);
+  const generateServiceInvoiceBtn = document.getElementById('generateMonthlyServiceInvoiceBtn');
+  if(generateServiceInvoiceBtn) generateServiceInvoiceBtn.addEventListener('click', generateMonthlyServiceInvoice);
   const monthlyBtn = document.getElementById('ownerMonthlyInvoiceBtn');
   if(monthlyBtn) monthlyBtn.addEventListener('click', ()=>{
     const a = apartments.find(x=>x.id===statsApartmentId);
@@ -7757,7 +7764,7 @@ document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
   document.getElementById('tabServicesGlobalBtn').addEventListener('click', ()=> switchStatsTab('servicesGlobal'));
   document.getElementById('tabInvoicesBtn').addEventListener('click', ()=> switchStatsTab('invoices'));
   document.getElementById('tabCommentBtn').addEventListener('click', ()=> switchStatsTab('comment'));
-  document.getElementById('generateMonthlyServiceInvoiceBtn').addEventListener('click', generateMonthlyServiceInvoice);
+  
   document.getElementById('serviceInvoiceMonth').addEventListener('change', renderMonthlyInvoicesPanel);
   document.getElementById('serviceInvoiceMonth').value=todayISO().slice(0,7);
   document.getElementById('addAdvanceBtn').addEventListener('click', addAdvance);
