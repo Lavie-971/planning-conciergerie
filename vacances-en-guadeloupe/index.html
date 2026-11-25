@@ -192,6 +192,9 @@
 #adminApp .manager-workspace .status{font-size:11px;font-weight:600}
 #adminApp .manager-workspace .details{overflow-wrap:anywhere}
 
+#adminApp .form-section-heading{border-top:1px solid #e8eee7;padding-top:16px;margin-top:5px}
+#adminApp .form-section-heading h4{margin:0;color:#244f3e;font:600 17px "Playfair Display",Georgia,serif}
+#adminApp .form-section-heading p{margin:4px 0 0;color:#748278;font-size:11px;line-height:1.5}
 #adminApp .image-editor{display:grid;gap:10px}
 #adminApp .image-editor textarea{min-height:74px}
 #adminApp .image-dropzone{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;padding:20px;border:1.5px dashed #a9c4ad;border-radius:12px;background:#f6faf5;color:#315b49;text-align:center;cursor:pointer;transition:.18s}
@@ -496,11 +499,14 @@ async function renderManager(profile){
   const creationAccepted=profile?.role==='admin'||currentSite.site_review_status==='approved'||(currentSite.site_review_status==='draft'&&String(currentSite.site_review_note||'').includes('Création acceptée par l’administrateur'));
   const canManagePublication=creationAccepted;
   $('adminContent').innerHTML=
-  '<div class="admin-card"><h3>Mon site personnel</h3><p>Modifiez votre site librement. Une fois la création acceptée par l’administrateur, vous choisissez vous-même quand le publier ou le mettre en pause.</p><form id="siteForm"><div class="formgrid">'+
+  '<div class="admin-card"><h3>Mon site personnel</h3><p>Créez une vitrine accueillante pour vos voyageurs. Renseignez les informations, ajoutez une belle photo et prévisualisez le résultat avant toute publication.</p><form id="siteForm"><div class="formgrid">'+
+  '<div class="field full form-section-heading"><h4>Identité de votre site</h4><p>Le nom, l’adresse et la phrase qui accueilleront vos visiteurs.</p></div>'+
   field('Nom du site','site_name',currentSite.site_name)+field('Adresse personnalisée (slug)','site_slug',currentSite.site_slug)+
-  field('Accroche','tagline',currentSite.tagline)+field('E-mail de contact','contact_email',currentSite.contact_email,'email')+
+  field('Accroche','tagline',currentSite.tagline)+
+  '<div class="field full form-section-heading"><h4>Vos coordonnées</h4><p>Les voyageurs pourront vous contacter directement avec ces informations.</p></div>'+
+  field('E-mail de contact','contact_email',currentSite.contact_email,'email')+
   field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+field('Nom de domaine personnalisé (facultatif, uniquement en cas d’achat)','domain_requested',currentSite.domain_requested||'')+'<div class="field full"><p style="margin:0">À renseigner uniquement si vous souhaitez acheter votre propre nom de domaine (ex. www.monsite.fr). Cet achat est à votre charge. Sinon, laissez ce champ vide : votre site restera accessible gratuitement à l’adresse fournie par la plateforme.</p><p style="margin:8px 0 0">État du domaine : '+esc(currentSite.domain_status||'aucune demande')+'. La saisie ne rend pas encore le domaine accessible : une configuration DNS et hébergement sera nécessaire.</p></div>'+
-  '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
+  '<div class="field full form-section-heading"><h4>Présentation et ambiance</h4><p>Décrivez votre activité et choisissez la photo principale visible en haut de votre site.</p></div><div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
   imagePickerMarkup('hero_photo_url','Photo de couverture',currentSite.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
   (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
   '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="previewSiteBtn" type="button" style="margin:8px 8px 8px 0">Aperçu privé du site</button><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
@@ -510,11 +516,12 @@ async function renderManager(profile){
   '</div></div>'+
   '<div class="admin-card"><h3>Fiches des logements ('+rows.length+')</h3><p>Complétez les descriptions, photos, tarifs et équipements des logements sélectionnés.</p></div>'+
   rows.map(x=>'<form class="admin-card listingForm" data-id="'+esc(x.id)+'"><h3>'+esc(x.title||'Nouveau logement')+'</h3><p>Logement de votre compte Planning Conciergerie · '+esc(x.location||'Localisation à compléter')+'</p><div class="formgrid">'+
-  field('Titre','title',x.title)+field('Commune / secteur','location',x.location)+
+  '<div class="field full form-section-heading"><h4>Informations du logement</h4><p>Présentez les caractéristiques essentielles de cet hébergement.</p></div>'+
+  field('Titre','title',x.title)+field('Commune / secteur', 'location',x.location)+
   field('Type de logement','property_type',x.property_type)+field('Voyageurs maximum','max_guests',x.max_guests,'number')+
   field('Nombre de chambres','bedroom_count',x.bedroom_count,'number')+field('Nombre de salles de bain','bathroom_count',x.bathroom_count,'number')+
   field('Prix à partir de (€ / nuit)','price_from',x.price_from,'number')+
-  '<div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(x.summary)+'" placeholder="Ex. Un cocon paisible à deux pas du lagon"></div>'+
+  '<div class="field full form-section-heading"><h4>Description et photos</h4><p>Donnez envie aux voyageurs avec une description claire et plusieurs photos de qualité.</p></div><div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(x.summary)+'" placeholder="Ex. Un cocon paisible à deux pas du lagon"></div>'+
   '<div class="field full"><label>Description</label><textarea name="description">'+esc(x.description)+'</textarea></div>'+
   imagePickerMarkup('photo_urls','Photos du logement',(x.photo_urls||[]).join('\n'),true)+
   '<div class="field full"><label>Équipements — séparés par des virgules</label><input name="amenities" value="'+esc((x.amenities||[]).join(', '))+'"></div>'+
