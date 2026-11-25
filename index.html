@@ -2614,7 +2614,7 @@ function updateOwnerSiteActions(){
   share.disabled=!accepted||!ownerSiteEnabled;
   share.title=!ownerSiteEnabled?'Votre site doit être publié pour être partagé avec des clients.':'Partager le lien public de votre site';
   const notifications=document.getElementById('siteBookingNotificationsBtn');
-  if(notifications)notifications.hidden=!manager||!accepted;
+  if(notifications)notifications.hidden=!manager||!ownerSiteCreationAccepted();
 }
 async function requestOwnerSiteCreation(){
   if(!accountApproved||(accountRole!=='user'&&accountRole!=='admin')||!activeUserId)return;
@@ -2651,7 +2651,7 @@ let siteBookingRequests=[];
 let siteBookingRequestKnownIds=new Set();
 let siteBookingRequestsInitialized=false;
 function ownerSiteCreationAccepted(){
- return accountRole==='admin'||ownerSiteReviewStatus==='approved'||(ownerSiteReviewStatus==='draft'&&String(ownerSiteReviewNote||'').includes('Création acceptée par l’administrateur'));
+ return ownerSiteReviewStatus==='approved'||(ownerSiteReviewStatus==='draft'&&String(ownerSiteReviewNote||'').includes('Création acceptée par l’administrateur'));
 }
 async function siteBookingRequestApi(payload){
  const token=await sbToken();
