@@ -513,7 +513,7 @@ function openIndividualTextEditor(key,label,element){
  element.style.outline='2px solid #c49b55';
  element.style.background='#fff8e9';element.style.color='#173f36';
  element.focus();
- const range=document.createRange();range.selectNodeContents(element);
+ const range=document.createRange();range.selectNodeContents(element);range.collapse(false);
  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
  let finished=false;
  const finish=async(save)=>{
