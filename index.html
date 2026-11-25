@@ -1251,10 +1251,10 @@ body.printing-doc #printPanel{
     </div>
     <div class="modal-content">
     <div class="tab-bar" style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
-      <button class="tab-btn active" id="tabStatsBtn" data-tab="stats">📊 Statistiques</button>
+      <button class="tab-btn" id="tabStatsBtn" data-tab="stats">📊 Statistiques</button>
+      <button class="tab-btn active" id="tabInvoicesBtn" data-tab="invoices">🧾 Facture mensuelle</button>
       <button class="tab-btn" id="tabAdvancesBtn" data-tab="advances">💶 Avances</button>
-      <button class="tab-btn" id="tabServicesGlobalBtn" data-tab="servicesGlobal">🧾 Services</button>
-      <button class="tab-btn" id="tabInvoicesBtn" data-tab="invoices">🧾 Factures</button><button class="tab-btn" id="tabCommentBtn" data-tab="comment">📝 Commentaire</button>
+      <button class="tab-btn" id="tabServicesGlobalBtn" data-tab="servicesGlobal">🧾 Services</button><button class="tab-btn" id="tabCommentBtn" data-tab="comment">📝 Commentaire</button>
     </div>
 
     <div id="statsTabPanel">
@@ -1268,11 +1268,11 @@ body.printing-doc #printPanel{
 
     <div id="advancesTabPanel" style="display:none;">
       <p style="font-size:12.5px;color:var(--ink-soft);margin-top:0;">
-        Avances engagées pour ce logement — à rembourser par le propriétaire.
+        Avances enregistrées pour ce logement.
       </p>
       <div class="stats-grid" style="grid-template-columns:1fr;margin-bottom:14px;">
         <div class="card" style="border-color:var(--accent);">
-          <div class="label">Total à te faire rembourser (avances uniquement)</div>
+          <div class="label">Total des avances enregistrées</div>
           <div class="value" style="color:var(--accent);font-size:22px;" id="advancesTotal">0 €</div>
         </div>
       </div>
@@ -1330,7 +1330,7 @@ body.printing-doc #printPanel{
       <button class="btn primary" id="addGlobalServiceBtn" style="width:100%;">+ Ajouter un service</button>
     </div>
 
-    <div id="invoicesTabPanel" style="display:none;"><p>Une facture mensuelle unique regroupe les services et les avances.</p><div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth"></div><button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:8px 0">Générer la facture mensuelle</button><div id="monthlyInvoicePreview"></div><h3>Historique des factures</h3><div id="monthlyInvoicesHistory"></div></div>
+    <div id="invoicesTabPanel" style="display:none;"><h3 style="margin-top:0;">Facture mensuelle — Services et avances</h3><p>Une seule facture regroupe tous les services et toutes les avances du logement pour le mois sélectionné.</p><div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth"></div><button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:8px 0">Générer la facture mensuelle</button><div id="monthlyInvoicePreview"></div><h3>Historique des factures</h3><div id="monthlyInvoicesHistory"></div></div>
     <div id="commentTabPanel" style="display:none;">
       <p style="font-size:12.5px;color:var(--ink-soft);margin-top:0;">Notes libres propres à ce logement (code d'accès, particularités, consignes du propriétaire…).</p>
       <textarea id="aptCommentText" rows="10" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13.5px;"></textarea>
@@ -1393,7 +1393,7 @@ body.printing-doc #printPanel{
     <div class="modal-content">
     <div class="stats-grid" style="grid-template-columns:1fr;margin-bottom:14px;">
       <div class="card" style="border-color:var(--accent);">
-        <div class="label">Total à te faire rembourser (tous logements)</div>
+        <div class="label">Total des avances enregistrées (tous logements)</div>
         <div class="value" style="color:var(--accent);font-size:24px;" id="advancesRecapTotal">0 €</div>
       </div>
     </div>
