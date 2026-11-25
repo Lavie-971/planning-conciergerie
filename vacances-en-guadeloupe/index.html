@@ -793,6 +793,7 @@ async function renderManager(profile){
   decorateManagerWorkspace(profile);
   setupImageEditors();
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;localStorage.removeItem(OWNER_SESSION_KEY);renderLogin()});
+  $('previewSiteBtn').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!session?.access_token||!currentUser?.id){renderLogin();return;}const button=$('previewSiteBtn');button.disabled=true;try{const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));if(!sites.length)throw new Error('Aucun site propriétaire trouvé.');currentSite=sites[0];const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);$('adminApp').style.display='none';$('publicApp').style.display='block';await loadPublic();}catch(err){button.disabled=false;const note=document.createElement('p');note.className='admin-note';note.textContent='Impossible d’ouvrir l’aperçu : '+err.message;button.insertAdjacentElement('afterend',note);}});
   $('siteForm').addEventListener('submit',saveSite);
   $('siteTextsForm')?.addEventListener('submit',saveSiteTexts);
   const publicationButton=$('toggleSitePublication');
@@ -1066,7 +1067,7 @@ document.addEventListener('click',e=>{
  const textBlock=e.target.closest('[data-site-edit-key]');
  if(textBlock&&new URLSearchParams(location.search).get('preview')==='1'&&!textBlock.isContentEditable){e.preventDefault();e.stopPropagation();openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);return;}
  const open=e.target.closest('#previewSiteBtn');
- if(open){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();return;}
+ if(open){e.preventDefault();return;}
 
 });
 window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',()=>{if(!session?.access_token)restoreOwnerSession().finally(route);else route();});restoreOwnerSession().finally(route);
