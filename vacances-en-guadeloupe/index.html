@@ -410,6 +410,13 @@ const SB_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
 const BASE_URL='https://lavie-971.github.io/planning-conciergerie/vacances-en-guadeloupe/';
 const BOOKING_API=SB_URL+'/functions/v1/public-booking-requests';
 const $=id=>document.getElementById(id);
+// Initialisation prioritaire de l’espace propriétaire : ne dépend pas du routeur exécuté en fin de fichier.
+if(/^#admin(?:\/|$)/i.test(location.hash||'')||new URLSearchParams(location.search).get('espace')==='proprietaire'){
+ const publicRoot=$('publicApp'),adminRoot=$('adminApp');
+ if(publicRoot)publicRoot.style.display='none';
+ if(adminRoot)adminRoot.style.display='block';
+ if($('adminContent'))renderLogin();
+}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session=null,currentSite=null,currentUser=null,currentProfile=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
 let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false;
