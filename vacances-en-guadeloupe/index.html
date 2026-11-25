@@ -200,6 +200,30 @@
  #adminApp .manager-workspace .admin-card{padding:18px;border-radius:13px}
 }
 
+
+/* Calendrier des disponibilités */
+.availability-legend{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 12px;font-size:12px;color:var(--muted)}
+.availability-legend span{display:inline-flex;align-items:center;gap:6px}
+.availability-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.available-dot{background:#3b9b69}.booked-dot{background:#d85b5b}.pending-dot{background:#e4a23b}
+.booking-calendar{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.calendar-head strong{text-transform:capitalize;font-size:15px}
+.calendar-head button{border:0;border-radius:9px;background:#edf3ee;color:var(--forest);width:34px;height:34px;font-size:23px;line-height:1}
+.calendar-weekdays,.calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.calendar-weekdays span{text-align:center;font-size:11px;color:var(--muted);padding:5px 0;font-weight:700}
+.calendar-day,.calendar-empty{min-width:0;aspect-ratio:1;border-radius:9px;display:grid;place-items:center}
+.calendar-day{border:0;background:#e8f5ed;color:#246b45;font-weight:700;font-size:13px}
+.calendar-day.booked{background:#f9e1e1;color:#a52d2d;cursor:not-allowed;text-decoration:line-through}
+.calendar-day.pending{background:#fff0d8;color:#966016;cursor:not-allowed;text-decoration:line-through}
+.calendar-day:disabled{opacity:1}
+.calendar-day.selected{background:var(--forest);color:#fff;outline:2px solid #b6d7c3}
+.calendar-day.in-range{background:#dcece2;color:#245d3d;border-radius:0}
+.calendar-day.range-start{border-radius:9px 0 0 9px}
+.calendar-day.range-end{border-radius:0 9px 9px 0}
+.calendar-day:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.calendar-hint{font-size:12px;color:var(--muted);margin:9px 0 0}
+@media(max-width:560px){.booking-calendar{padding:9px}.calendar-weekdays,.calendar-days{gap:3px}.calendar-day,.calendar-empty{border-radius:7px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -231,8 +255,9 @@
   <form id="bookingForm">
    <input type="hidden" id="bookingListingId">
    <div class="formgrid">
-    <div class="field"><label for="bookingCheckin">Arrivée</label><input id="bookingCheckin" type="date" required></div>
-    <div class="field"><label for="bookingCheckout">Départ</label><input id="bookingCheckout" type="date" required></div>
+    <div class="field full"><label>Choisissez vos dates sur le calendrier</label><div class="availability-legend"><span><i class="available-dot"></i> Disponible</span><span><i class="booked-dot"></i> Indisponible</span><span><i class="pending-dot"></i> Demande en attente</span></div><div class="booking-calendar"><div class="calendar-head"><button type="button" id="calendarPrev" aria-label="Mois précédent">‹</button><strong id="calendarMonth"></strong><button type="button" id="calendarNext" aria-label="Mois suivant">›</button></div><div class="calendar-weekdays"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div><div class="calendar-days" id="bookingCalendarDays"></div></div><p class="calendar-hint" id="calendarHint">Sélectionnez d’abord votre jour d’arrivée, puis votre jour de départ.</p></div>
+    <div class="field"><label for="bookingCheckin">Arrivée</label><input id="bookingCheckin" type="date" required readonly></div>
+    <div class="field"><label for="bookingCheckout">Départ</label><input id="bookingCheckout" type="date" required readonly></div>
     <div class="field"><label for="bookingAdults">Adultes</label><input id="bookingAdults" type="number" min="1" max="20" value="2" required></div>
     <div class="field"><label for="bookingChildren">Enfants</label><input id="bookingChildren" type="number" min="0" max="20" value="0"></div>
     <div class="field"><label for="bookingBabies">Bébés</label><input id="bookingBabies" type="number" min="0" max="20" value="0"></div>
@@ -256,6 +281,7 @@ const BOOKING_API=SB_URL+'/functions/v1/public-booking-requests';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session=null,currentSite=null,currentUser=null,currentProfile=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
+let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false;
 async function api(path,method='GET',body=null){
  const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
  if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
@@ -504,18 +530,66 @@ async function bookingService(payload,token=''){
  if(!r.ok||data.error)throw new Error(data.error||'Une erreur est survenue.');
  return data;
 }
-function openBooking(id,title){
+function isoLocalDate(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
+function dateFromIso(value){const [y,m,d]=value.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(date,n){const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());d.setDate(d.getDate()+n);return d;}
+function rangeForDay(value){return bookingAvailabilityRanges.find(r=>value>=r.start&&value<r.end);}
+function dayIsBlocked(value){return !!rangeForDay(value);}
+function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>value===r.end);}
+function bookingCheckinValue(){return $('bookingCheckin').value;}
+function renderBookingCalendar(){
+ const today=isoLocalDate(new Date()),month=bookingCalendarMonth,first=new Date(month.getFullYear(),month.getMonth(),1),last=new Date(month.getFullYear(),month.getMonth()+1,0);
+ $('calendarMonth').textContent=month.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+ $('calendarPrev').disabled=month.getFullYear()===new Date().getFullYear()&&month.getMonth()===new Date().getMonth();
+ $('calendarNext').disabled=month>=new Date(new Date().getFullYear(),new Date().getMonth()+12,1);
+ const offset=(first.getDay()+6)%7;let html='';
+ for(let i=0;i<offset;i++)html+='<span class="calendar-empty"></span>';
+ for(let day=1;day<=last.getDate();day++){
+  const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=rangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
+  const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
+  const checkoutAllowed=dayCanBeCheckout(value),disabled=value<today||(blocked&&!checkoutAllowed);
+  const cls=['calendar-day',range?.kind==='request'?'pending':blocked?'booked':'available',isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
+  html+='<button type="button" class="'+cls+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(range?' indisponible':' disponible')+'">'+day+'</button>';
+ }
+ $('bookingCalendarDays').innerHTML=html;
+ $('bookingCalendarDays').querySelectorAll('[data-calendar-date]').forEach(btn=>btn.addEventListener('click',()=>selectBookingCalendarDate(btn.dataset.calendarDate)));
+}
+function selectBookingCalendarDate(value){
+ const checkin=$('bookingCheckin'),checkout=$('bookingCheckout');
+ if(!checkin.value||checkout.value||value<=checkin.value){
+  if(dayIsBlocked(value))return;
+  checkin.value=value;checkout.value='';
+  $('calendarHint').textContent='Arrivée sélectionnée. Choisissez maintenant votre départ.';
+ }else{
+  const clash=bookingAvailabilityRanges.some(r=>checkin.value<r.end&&value>r.start);
+  if(clash){$('calendarHint').textContent='Cette période chevauche une indisponibilité. Choisissez un autre jour de départ.';return;}
+  checkout.value=value;
+  $('calendarHint').textContent='Séjour sélectionné. Vérification des disponibilités…';
+ }
+ renderBookingCalendar();refreshBookingAvailability();
+}
+async function openBooking(id,title){
  const form=$('bookingForm');form.reset();form.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=false);
  $('bookingListingId').value=id;
  $('bookingModalTitle').textContent='Demander une réservation — '+title;
- $('bookingCheckin').min=new Date().toISOString().slice(0,10);
- $('bookingCheckout').min=new Date().toISOString().slice(0,10);
- $('bookingAvailability').textContent='Choisissez vos dates pour vérifier les disponibilités.';
- $('bookingResult').textContent='';
- $('bookingSubmit').disabled=false;
- bookingDatesAvailable=false;bookingAvailabilityRanges=[];
- $('bookingModal').style.display='flex';
+ const today=new Date();bookingCalendarMonth=new Date(today.getFullYear(),today.getMonth(),1);
+ $('bookingCheckin').min=isoLocalDate(today);$('bookingCheckout').min=isoLocalDate(today);
+ $('bookingAvailability').textContent='Chargement du calendrier des disponibilités…';
+ $('calendarHint').textContent='Sélectionnez d’abord votre jour d’arrivée, puis votre jour de départ.';
+ $('bookingResult').textContent='';$('bookingSubmit').disabled=true;
+ bookingDatesAvailable=false;bookingAvailabilityRanges=[];bookingCalendarLoading=true;
+ $('bookingModal').style.display='flex';renderBookingCalendar();
+ try{
+  const from=isoLocalDate(today),to=isoLocalDate(new Date(today.getFullYear()+1,today.getMonth(),today.getDate()));
+  const result=await bookingService({action:'availability',listing_id:id,from,to});
+  if($('bookingListingId').value!==id)return;
+  bookingAvailabilityRanges=result.ranges||[];bookingCalendarLoading=false;
+  $('bookingAvailability').textContent='Calendrier à jour : choisissez vos dates de séjour.';
+  renderBookingCalendar();
+ }catch(e){bookingCalendarLoading=false;$('bookingAvailability').textContent='Impossible de charger les disponibilités : '+e.message;renderBookingCalendar();}
 }
+$('calendarPrev').addEventListener('click',()=>{bookingCalendarMonth=new Date(bookingCalendarMonth.getFullYear(),bookingCalendarMonth.getMonth()-1,1);renderBookingCalendar();});
+$('calendarNext').addEventListener('click',()=>{bookingCalendarMonth=new Date(bookingCalendarMonth.getFullYear(),bookingCalendarMonth.getMonth()+1,1);renderBookingCalendar();});
 function closeBooking(){ $('bookingModal').style.display='none'; }
 async function refreshBookingAvailability(){
  const checkin=$('bookingCheckin').value,checkout=$('bookingCheckout').value;
@@ -535,8 +609,8 @@ async function refreshBookingAvailability(){
 }
 $('closeBookingModal').addEventListener('click',closeBooking);
 $('bookingModal').addEventListener('click',e=>{if(e.target.id==='bookingModal')closeBooking();});
-$('bookingCheckin').addEventListener('change',()=>{if($('bookingCheckin').value)$('bookingCheckout').min=$('bookingCheckin').value;refreshBookingAvailability();});
-$('bookingCheckout').addEventListener('change',refreshBookingAvailability);
+$('bookingCheckin').addEventListener('change',()=>{if($('bookingCheckin').value)$('bookingCheckout').min=$('bookingCheckin').value;renderBookingCalendar();refreshBookingAvailability();});
+$('bookingCheckout').addEventListener('change',()=>{renderBookingCalendar();refreshBookingAvailability();});
 $('bookingForm').addEventListener('submit',async e=>{
  e.preventDefault();$('bookingResult').textContent='Envoi de votre demande…';$('bookingSubmit').disabled=true;
  try{
