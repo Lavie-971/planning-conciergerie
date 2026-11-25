@@ -135,6 +135,14 @@ input,select,textarea{font-family:inherit;font-size:14px;}
 .site-notification-btn b{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#d84b3e;color:#fff;font-size:11px;line-height:1}
 .site-request-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 11px;background:#fff}
 .site-request-card h3{margin:0 0 7px;font-size:15px;color:var(--ink)}
+.site-request-contact{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.site-request-contact a{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;text-decoration:none}
+.site-request-contact .whatsapp{background:#e4f4e8;color:#21663b}
+.site-request-contact .email{background:#edf2f8;color:#345575}
+.site-request-contact .phone{background:#f2f0e9;color:#665b3c}
+.site-request-actions .accept{background:#245744;color:#fff}
+.site-request-help{margin-top:11px;font-size:11px;line-height:1.55;color:var(--ink-soft)}
+
 .site-request-meta{font-size:12.5px;line-height:1.65;color:var(--ink-soft)}
 .site-request-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .site-request-actions button{border:0;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700}
@@ -2680,9 +2688,26 @@ function renderSiteBookingRequests(){
   const meta=document.createElement('div');meta.className='site-request-meta';
   meta.textContent=fmt(request.checkin)+' → '+fmt(request.checkout)+' · '+(Number(request.adults||0)+Number(request.children||0)+Number(request.babies||0))+' voyageur(s)\n'+(request.guest_email||'E-mail non renseigné')+' · '+(request.guest_phone||'Téléphone non renseigné')+(request.message?'\nMessage : '+request.message:'');
   meta.style.whiteSpace='pre-line';card.appendChild(meta);
+  const contacts=document.createElement('div');contacts.className='site-request-contact';
+  const email=String(request.guest_email||'').trim();
+  if(email){
+   const link=document.createElement('a');link.className='email';link.href='mailto:'+email+'?subject='+encodeURIComponent('Votre demande de séjour - '+(request.listing_title||'Vacances en Guadeloupe'))+'&body='+encodeURIComponent('Bonjour '+(request.guest_name||'')+',\n\nMerci pour votre demande de séjour du '+fmt(request.checkin)+' au '+fmt(request.checkout)+'.\n\nJe reviens vers vous avec notre proposition tarifaire.\n\nBien cordialement.');link.textContent='✉ Envoyer un e-mail';contacts.appendChild(link);
+  }
+  const rawPhone=String(request.guest_phone||'').trim();
+  const digits=rawPhone.replace(/\D/g,'');
+  if(digits){
+   const link=document.createElement('a');link.className='phone';link.href='tel:'+rawPhone;link.textContent='☎ Appeler';contacts.appendChild(link);
+   let waNumber=digits;
+   if(rawPhone.startsWith('+'))waNumber=digits;
+   else if(digits.length===10&&digits.startsWith('0690')||digits.length===10&&digits.startsWith('0691'))waNumber='590'+digits.slice(1);
+   else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);
+   const wa=document.createElement('a');wa.className='whatsapp';wa.href='https://wa.me/'+waNumber+'?text='+encodeURIComponent('Bonjour '+(request.guest_name||'')+', merci pour votre demande pour '+(request.listing_title||'notre logement')+' du '+fmt(request.checkin)+' au '+fmt(request.checkout)+'. Je vous contacte pour vous communiquer notre tarif et les modalités du séjour.');wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='◉ Contacter sur WhatsApp';contacts.appendChild(wa);
+  }
+  if(contacts.children.length)card.appendChild(contacts);
+  const help=document.createElement('div');help.className='site-request-help';help.textContent='Vous pouvez contacter le voyageur pour lui communiquer votre tarif et convenir des modalités. Ajoutez ensuite la demande au planning après son accord.';card.appendChild(help);
   const actions=document.createElement('div');actions.className='site-request-actions';
-  const accept=document.createElement('button');accept.type='button';accept.className='accept';accept.textContent='Accepter et ajouter au planning';
-  const reject=document.createElement('button');reject.type='button';reject.className='reject';reject.textContent='Refuser';
+  const accept=document.createElement('button');accept.type='button';accept.className='accept';accept.textContent='Ajouter au planning après accord';
+  const reject=document.createElement('button');reject.type='button';reject.className='reject';reject.textContent='Refuser la demande';
   accept.addEventListener('click',()=>decideSiteBookingRequest(request,'accept',accept,reject));
   reject.addEventListener('click',()=>decideSiteBookingRequest(request,'reject',reject,accept));
   actions.append(accept,reject);card.appendChild(actions);target.appendChild(card);
@@ -2743,7 +2768,7 @@ async function openSiteBookingRequests(){
  await refreshSiteBookingRequests();
 }
 async function decideSiteBookingRequest(request,decision,button,otherButton){
- const message=decision==='accept'?'Accepter cette demande et créer une réservation en option dans le planning ?':'Refuser cette demande de réservation ?';
+ const message=decision==='accept'?'Le voyageur a-t-il accepté votre tarif et les conditions du séjour ? La demande sera ajoutée au planning avec le statut Option.':'Refuser cette demande de réservation ?';
  if(!confirm(message))return;
  button.disabled=true;if(otherButton)otherButton.disabled=true;
  try{
