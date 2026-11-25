@@ -331,6 +331,7 @@ function setSiteIdentity(site){
 async function loadPublic(){
  try{
   const params=new URLSearchParams(location.search),slug=currentSlug(),preview=params.get('preview')==='1';
+  $('publicApp').classList.remove('detail-mode');$('listingDetailContent').innerHTML='';document.title='Vacances en Guadeloupe';
   if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
   const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug));
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
