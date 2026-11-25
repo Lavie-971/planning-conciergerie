@@ -697,7 +697,7 @@ async function renderManager(profile){
    }catch(err){st.textContent='Impossible de modifier la publication : '+err.message;}
    finally{publicationButton.disabled=false;}
   });
-  $('previewSiteBtn')?.addEventListener('click',()=>{const u=new URL(siteUrl);u.searchParams.set('preview','1');history.pushState({},'',u.pathname+u.search);route();});
+  $('previewSiteBtn')?.addEventListener('click',()=>{const u=new URL(siteUrl,location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({},'',u.pathname+u.search);route();});
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
   document.querySelectorAll('[data-publish-toggle]').forEach(toggle=>toggle.addEventListener('change',async()=>{
    const id=toggle.dataset.publishToggle,choice=toggle.closest('.property-choice'),status=choice?.querySelector('.status');
@@ -945,7 +945,7 @@ document.getElementById('publicApp').addEventListener('click',e=>{const photo=e.
 document.getElementById('propertyPhotoLightboxClose').addEventListener('click',closePropertyPhotoLightbox);
 propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLightbox)closePropertyPhotoLightbox();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
-function route(){const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=new URLSearchParams(location.search).get('espace')==='proprietaire';if(adminHash||adminQuery){showAdmin();return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
+function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(!isPrivatePreview&&(adminHash||adminQuery)){showAdmin();return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',route);route();
 </script>
 
