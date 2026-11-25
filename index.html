@@ -5510,6 +5510,7 @@ function addAdvance(){
   document.getElementById('newAdvanceAmount').value = '';
   document.getElementById('newAdvanceDesc').value = '';
   renderAdvances();
+  renderCalendar();
 }
 
 function getGlobalServicesTotal(apt, startISO, endExclISO){
@@ -5568,6 +5569,7 @@ function addGlobalService(){
   document.getElementById('newGlobalServiceAmount').value = '';
   document.getElementById('newGlobalServiceDesc').value = '';
   renderGlobalServices();
+  renderCalendar();
 }
 
 function renderComment(){
@@ -7834,6 +7836,7 @@ document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
   document.getElementById('tabInvoicesBtn').addEventListener('click', ()=> switchStatsTab('invoices'));
   document.getElementById('tabCommentBtn').addEventListener('click', ()=> switchStatsTab('comment'));
   document.getElementById('generateMonthlyServiceInvoiceBtn').addEventListener('click', generateMonthlyServiceInvoice);
+  document.getElementById('serviceInvoiceMonth').addEventListener('change', renderMonthlyInvoicesPanel);
   document.getElementById('serviceInvoiceMonth').value=todayISO().slice(0,7);
   document.getElementById('addAdvanceBtn').addEventListener('click', addAdvance);
   document.getElementById('addGlobalServiceBtn').addEventListener('click', addGlobalService);
