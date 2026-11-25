@@ -321,6 +321,15 @@ async function renderManager(profile){
  $('adminContent').innerHTML='<div class="admin-card"><h3>Chargement…</h3><p>Récupération de vos paramètres et logements.</p></div>';
  try{
   const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0];
+  // Synchroniser les logements du Planning vers les fiches du site sans écraser les fiches déjà complétées.
+  const apartmentRows=await api('apartments?select=id,data,deleted&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
+  const existingRows=await api('public_listings?select=apartment_id&user_id=eq.'+encodeURIComponent(currentUser.id));
+  const linkedApartments=new Set(existingRows.map(x=>String(x.apartment_id||'')));
+  const missingListings=apartmentRows.filter(a=>!linkedApartments.has(String(a.id))).map(a=>{
+   const d=a.data||{};
+   return {user_id:currentUser.id,apartment_id:a.id,site_slug:currentSite.site_slug,title:d.name||'Logement sans nom',location:d.commune||'',property_type:d.propertyType||'',max_guests:Number.isFinite(Number(d.maxGuests))&&d.maxGuests!==null?Number(d.maxGuests):null,bedroom_count:Number.isFinite(Number(d.bedroomCount))&&d.bedroomCount!==null?Number(d.bedroomCount):null,display_order:Number.isFinite(Number(d.sortOrder))?Number(d.sortOrder):0,is_published:false};
+  });
+  if(missingListings.length)await api('public_listings','POST',missingListings);
   const rows=await api('public_listings?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&order=display_order.asc');
   const siteUrl=currentSite.site_slug==='vacances-en-guadeloupe'?BASE_URL:BASE_URL+'?site='+encodeURIComponent(currentSite.site_slug);
   const creationAccepted=profile?.role==='admin'||currentSite.site_review_status==='approved'||(currentSite.site_review_status==='draft'&&String(currentSite.site_review_note||'').includes('Création acceptée par l’administrateur'));
