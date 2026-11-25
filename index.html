@@ -130,6 +130,20 @@ input,select,textarea{font-family:inherit;font-size:14px;}
 .actions button.owner-site-action{border-color:#b9d0c5;background:#edf5f0;color:#1f594b;}
 .actions button.owner-site-action.primary{background:#2f6f62;border-color:#2f6f62;color:#fff;}
 .actions button.owner-site-action:hover{filter:brightness(.96);}
+.site-notification-btn{position:relative!important;display:inline-flex;align-items:center;gap:7px;border-color:#e6c5a0!important;background:#fff8ed!important;color:#875319!important}
+.site-notification-btn[hidden]{display:none!important}
+.site-notification-btn b{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#d84b3e;color:#fff;font-size:11px;line-height:1}
+.site-request-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 11px;background:#fff}
+.site-request-card h3{margin:0 0 7px;font-size:15px;color:var(--ink)}
+.site-request-meta{font-size:12.5px;line-height:1.65;color:var(--ink-soft)}
+.site-request-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.site-request-actions button{border:0;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700}
+.site-request-actions .accept{background:#e2f1e7;color:#24623d}
+.site-request-actions .reject{background:#fbe8e6;color:#9a3028}
+.site-request-actions button:disabled{opacity:.55;cursor:wait}
+.site-request-empty{padding:22px;text-align:center;color:var(--ink-faint);background:var(--bg);border-radius:10px}
+.site-request-toast{position:fixed;right:18px;top:18px;z-index:10020;max-width:min(380px,calc(100vw - 36px));padding:13px 16px;border-radius:12px;background:#244f3e;color:#fff;box-shadow:0 8px 28px #0003;font-size:13px;font-weight:600}
+@media(max-width:600px){.site-notification-btn{font-size:11px!important;padding:0 9px!important;height:32px!important}.site-request-actions button{flex:1}}
 @media(max-width:600px){.actions button.owner-site-action{font-size:11px;padding:0 9px;height:32px;}}
 
 
@@ -747,12 +761,23 @@ body.printing-doc #printPanel{
       </div>
     </div>
     <div class="actions">
+     <button id="siteBookingNotificationsBtn" class="site-notification-btn" type="button" hidden aria-label="Demandes de réservation reçues"><span>🔔 Demandes</span><b id="siteBookingNotificationCount" hidden>0</b></button>
      <button id="manageApartmentsBtn">🏠 Logements</button>
 <button id="addBookingBtn" class="primary">+ Réservation</button>
 <button id="agendaBtn" class="primary">📅 Agenda</button>
       <button id="voiceCommandBtn" class="primary" type="button">🎙️ Assistant vocal</button>
     </div>
   </header>
+
+  <div class="modal-backdrop" id="siteBookingRequestsBackdrop" hidden>
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-head"><h2>🔔 Demandes de réservation du site</h2><button class="modal-close" id="closeSiteBookingRequestsBtn" type="button" aria-label="Fermer">✕</button></div>
+      <div class="modal-content">
+        <p style="font-size:13px;color:var(--ink-soft);margin-top:0;">Les demandes reçues depuis votre site apparaissent ici. Elles ne sont ajoutées au planning qu’après votre acceptation.</p>
+        <div id="siteBookingRequestsList" aria-live="polite">Chargement des demandes…</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Tiroir latéral : tableau de bord -->
   <div class="drawer-backdrop" id="drawerBackdrop" hidden>
@@ -2056,6 +2081,7 @@ async function sbAfterLogin(){
     // À l'ouverture, repartir du haut de la page ; les défilements manuels restent ensuite libres.
     window.scrollTo(0,0);
     startAutoRefresh();
+    startSiteBookingRequestNotifications();
     schedulePendingSync();
   }catch(e){
     console.error('Vérification du profil utilisateur',e);
@@ -2509,7 +2535,8 @@ function anyModalOpen(){
     || !document.getElementById('backupBackdrop').hidden
     || !document.getElementById('drawerBackdrop').hidden
     || !document.getElementById('detailBackdrop').hidden
-    || !document.getElementById('confirmBackdrop').hidden;
+    || !document.getElementById('confirmBackdrop').hidden
+    || !document.getElementById('siteBookingRequestsBackdrop').hidden;
 }
 function openModal(id){
   const el = document.getElementById(id);
@@ -2585,6 +2612,8 @@ function updateOwnerSiteActions(){
   access.title=accepted?'Ouvrir votre espace de gestion du site':'';
   share.disabled=!accepted||!ownerSiteEnabled;
   share.title=!ownerSiteEnabled?'Votre site doit être publié pour être partagé avec des clients.':'Partager le lien public de votre site';
+  const notifications=document.getElementById('siteBookingNotificationsBtn');
+  if(notifications)notifications.hidden=!manager||!accepted;
 }
 async function requestOwnerSiteCreation(){
   if(!accountApproved||(accountRole!=='user'&&accountRole!=='admin')||!activeUserId)return;
@@ -2614,6 +2643,98 @@ function openOwnerSiteSpace(){
   if(!ownerSiteSlug)return;
   const url=OWNER_PUBLIC_SITE_BASE+'?site='+encodeURIComponent(ownerSiteSlug)+'#admin';
   window.open(url,'_blank','noopener');
+}
+
+let siteBookingRequestPollTimer=null;
+let siteBookingRequests=[];
+let siteBookingRequestKnownIds=new Set();
+let siteBookingRequestsInitialized=false;
+function ownerSiteCreationAccepted(){
+ return accountRole==='admin'||ownerSiteReviewStatus==='approved'||(ownerSiteReviewStatus==='draft'&&String(ownerSiteReviewNote||'').includes('Création acceptée par l’administrateur'));
+}
+async function siteBookingRequestApi(payload){
+ const token=await sbToken();
+ const response=await fetch(SB_URL+'/functions/v1/public-booking-requests',{
+  method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+token,'Content-Type':'application/json'},
+  body:JSON.stringify(payload),signal:AbortSignal.timeout(20000)
+ });
+ let data={};try{data=await response.json();}catch(e){}
+ if(!response.ok||data.error)throw new Error(data.error||'Impossible de récupérer les demandes.');
+ return data;
+}
+function showSiteBookingToast(count){
+ let toast=document.getElementById('siteBookingToast');
+ if(!toast){toast=document.createElement('div');toast.id='siteBookingToast';toast.className='site-request-toast';document.body.appendChild(toast);}
+ toast.textContent=count===1?'Nouvelle demande de réservation reçue depuis votre site.':count+' nouvelles demandes de réservation reçues depuis votre site.';
+ clearTimeout(toast._timer);toast._timer=setTimeout(()=>toast.remove(),6500);
+}
+function renderSiteBookingRequests(){
+ const target=document.getElementById('siteBookingRequestsList');if(!target)return;
+ target.innerHTML='';
+ if(!siteBookingRequests.length){target.innerHTML='<div class="site-request-empty">Aucune demande de réservation en attente.</div>';return;}
+ const fmt=value=>{const p=String(value||'').split('-').map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2]).toLocaleDateString('fr-FR'):'—';};
+ siteBookingRequests.forEach(request=>{
+  const card=document.createElement('article');card.className='site-request-card';
+  const title=document.createElement('h3');title.textContent=(request.guest_name||'Voyageur')+' · '+(request.listing_title||request.apartment_id||'Logement');card.appendChild(title);
+  const meta=document.createElement('div');meta.className='site-request-meta';
+  meta.textContent=fmt(request.checkin)+' → '+fmt(request.checkout)+' · '+(Number(request.adults||0)+Number(request.children||0)+Number(request.babies||0))+' voyageur(s)\n'+(request.guest_email||'E-mail non renseigné')+' · '+(request.guest_phone||'Téléphone non renseigné')+(request.message?'\nMessage : '+request.message:'');
+  meta.style.whiteSpace='pre-line';card.appendChild(meta);
+  const actions=document.createElement('div');actions.className='site-request-actions';
+  const accept=document.createElement('button');accept.type='button';accept.className='accept';accept.textContent='Accepter et ajouter au planning';
+  const reject=document.createElement('button');reject.type='button';reject.className='reject';reject.textContent='Refuser';
+  accept.addEventListener('click',()=>decideSiteBookingRequest(request,'accept',accept,reject));
+  reject.addEventListener('click',()=>decideSiteBookingRequest(request,'reject',reject,accept));
+  actions.append(accept,reject);card.appendChild(actions);target.appendChild(card);
+ });
+}
+async function refreshSiteBookingRequests(){
+ if(!accountApproved||!activeUserId||!ownerSiteCreationAccepted()){
+  const button=document.getElementById('siteBookingNotificationsBtn');if(button)button.hidden=true;
+  return [];
+ }
+ try{
+  const result=await siteBookingRequestApi({action:'manager_list'});
+  const pending=(result.requests||[]).filter(r=>r.status==='pending');
+  const newRequests=siteBookingRequestsInitialized?pending.filter(r=>!siteBookingRequestKnownIds.has(String(r.id))):[];
+  pending.forEach(r=>siteBookingRequestKnownIds.add(String(r.id)));
+  siteBookingRequests=pending;siteBookingRequestsInitialized=true;
+  const button=document.getElementById('siteBookingNotificationsBtn');
+  const count=document.getElementById('siteBookingNotificationCount');
+  if(button)button.hidden=false;
+  if(count){count.textContent=String(pending.length);count.hidden=pending.length===0;}
+  if(button)button.title=pending.length+' demande(s) en attente';
+  if(!document.getElementById('siteBookingRequestsBackdrop').hidden)renderSiteBookingRequests();
+  if(newRequests.length)showSiteBookingToast(newRequests.length);
+  return pending;
+ }catch(error){console.warn('Notifications des demandes du site indisponibles',error);return siteBookingRequests;}
+}
+function startSiteBookingRequestNotifications(){
+ stopSiteBookingRequestNotifications();
+ if(!accountApproved||!ownerSiteCreationAccepted())return;
+ refreshSiteBookingRequests();
+ siteBookingRequestPollTimer=setInterval(()=>{if(document.visibilityState==='visible')refreshSiteBookingRequests();},20000);
+}
+function stopSiteBookingRequestNotifications(){
+ if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
+ siteBookingRequests=[];siteBookingRequestKnownIds=new Set();siteBookingRequestsInitialized=false;
+ const button=document.getElementById('siteBookingNotificationsBtn');if(button)button.hidden=true;
+ const count=document.getElementById('siteBookingNotificationCount');if(count){count.textContent='0';count.hidden=true;}
+}
+async function openSiteBookingRequests(){
+ if(!ownerSiteCreationAccepted())return;
+ document.getElementById('siteBookingRequestsBackdrop').hidden=false;
+ renderSiteBookingRequests();
+ await refreshSiteBookingRequests();
+}
+async function decideSiteBookingRequest(request,decision,button,otherButton){
+ const message=decision==='accept'?'Accepter cette demande et créer une réservation en option dans le planning ?':'Refuser cette demande de réservation ?';
+ if(!confirm(message))return;
+ button.disabled=true;if(otherButton)otherButton.disabled=true;
+ try{
+  await siteBookingRequestApi({action:'manager_decide',request_id:request.id,decision});
+  if(decision==='accept'){await loadData();renderAll();}
+  await refreshSiteBookingRequests();
+ }catch(error){alert('Impossible de traiter cette demande : '+error.message);button.disabled=false;if(otherButton)otherButton.disabled=false;}
 }
 async function shareOwnerPublicSite(){
   if(!ownerSiteSlug||!ownerSiteEnabled){
@@ -7552,6 +7673,9 @@ function bindEvents(){
   document.getElementById('ownerSiteRequestBtn').addEventListener('click',requestOwnerSiteCreation);
   document.getElementById('ownerSiteAccessBtn').addEventListener('click',openOwnerSiteSpace);
   document.getElementById('ownerSiteShareBtn').addEventListener('click',shareOwnerPublicSite);
+  document.getElementById('siteBookingNotificationsBtn').addEventListener('click',openSiteBookingRequests);
+  document.getElementById('closeSiteBookingRequestsBtn').addEventListener('click',()=>{document.getElementById('siteBookingRequestsBackdrop').hidden=true;});
+  document.getElementById('siteBookingRequestsBackdrop').addEventListener('click',e=>{if(e.target.id==='siteBookingRequestsBackdrop')e.currentTarget.hidden=true;});
   document.getElementById('prevMonth').addEventListener('click', goToPrevPeriod);
   document.getElementById('nextMonth').addEventListener('click', goToNextPeriod);
   document.getElementById('todayBtn').addEventListener('click', ()=>{
