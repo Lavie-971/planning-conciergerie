@@ -277,7 +277,7 @@ async function renderPlatformAdmin(profile){
     const reject=site.site_enabled?'':'<button class="reject" data-site-action="reject" data-site-id="'+esc(site.id)+'">Refuser la demande</button>';
     const disable=site.site_enabled?'<button class="neutral" data-site-action="disable" data-site-id="'+esc(site.id)+'">Dépublier le site</button>':'';
     const domainActions=site.domain_requested?
-     '<div class="platform-domain"><input data-domain-input="'+esc(site.id)+'" value="'+esc(site.domain_requested)+'" aria-label="Domaine personnalisé"><button class="neutral" data-domain-action="dns" data-site-id="'+esc(site.id)+'">Enregistrer / DNS à configurer</button>'+(site.domain_status==='dns_pending'?'<button class="approve" data-domain-action="verified" data-site-id="'+esc(site.id)+'">Marquer DNS vérifié</button>':'')+'<button class="reject" data-domain-action="reject" data-site-id="'+esc(site.id)+'">Refuser le domaine</button></div>'
+     '<div class="platform-domain"><input data-domain-input="'+esc(site.id)+'" value="'+esc(site.domain_requested)+'" aria-label="Domaine personnalisé"><button class="neutral" data-domain-action="dns" data-site-id="'+esc(site.id)+'">Enregistrer / DNS à configurer</button>'+'<span class="platform-tag wait">Configuration technique nécessaire</span>'+'<button class="reject" data-domain-action="reject" data-site-id="'+esc(site.id)+'">Refuser le domaine</button></div>'
      :'<p>Aucune demande de domaine personnalisé.</p>';
     return '<article class="platform-site"><div class="platform-site-head"><div><h3>'+esc(site.site_name||'Site sans nom')+'</h3><p>Propriétaire : '+owner+' · '+esc(p.role||'')+' · compte '+esc(p.status||'inconnu')+'</p><p>Slug : '+esc(site.site_slug)+' · '+ls.length+' logement(s), '+ls.filter(x=>x.is_published).length+' publié(s)</p><p>Contact : '+esc(site.contact_email||'non renseigné')+' · '+esc(site.contact_phone||'non renseigné')+'</p><p>Domaine : '+esc(site.domain_requested||'non demandé')+' · '+esc(site.domain_status||'none')+'</p></div><span class="platform-tag '+(site.site_enabled?'active':site.site_review_status==='pending'?'wait':'')+'">'+review+'</span></div><p>Présentation : '+esc(site.description||'Non renseignée')+'</p><div class="platform-actions">'+approve+reject+disable+'</div>'+domainActions+'</article>';
    }).join(''):'<p>Aucun site enregistré.</p>')+'</div>';
@@ -302,12 +302,10 @@ async function renderPlatformAdmin(profile){
    const domainInput=document.querySelector('[data-domain-input="'+id+'"]');
    const domain=(domainInput?.value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/$/,'');
    if(!domain||!/^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain)){alert('Saisis un nom de domaine valide, sans https:// ni chemin.');return;}
-   if(action==='verified'&&!confirm('As-tu réellement configuré les DNS et vérifié leur propagation ? Cette action ne configure pas les DNS automatiquement.'))return;
    if(action==='reject'&&!confirm('Refuser cette demande de domaine ?'))return;
    btn.disabled=true;
    try{
-    const patch=action==='dns'?{domain_requested:domain,custom_domain:domain,domain_status:'dns_pending',domain_note:'DNS à configurer par l’administrateur'}:
-     action==='verified'?{domain_requested:domain,custom_domain:domain,domain_status:'verified',domain_note:'DNS marqué comme vérifié par l’administrateur'}:
+    const patch=action==='dns'?{domain_requested:domain,custom_domain:'',domain_status:'dns_pending',domain_note:'Configuration DNS et hébergement non réalisée'}:
      {domain_status:'rejected',domain_note:'Demande de domaine refusée par l’administrateur'};
     await api('public_owner_sites?id=eq.'+encodeURIComponent(id),'PATCH',patch);
     await renderPlatformAdmin(profile);
