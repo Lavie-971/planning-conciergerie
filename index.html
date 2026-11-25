@@ -6751,12 +6751,29 @@ function openBookingDetail(id){
   document.getElementById('detailContent').innerHTML = html;
   openModal('detailBackdrop');
 }
+function ensureBookingWhatsAppWorkflow(b){
+  if(!b || !b.checkin)return false;
+  const today=toISO(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  if(b.checkin<=today && !b.whatsappWorkflow)return false;
+  const workflow=b.whatsappWorkflow||{activatedAt:null,welcomeSentAt:null,steps:{}};
+  workflow.steps=workflow.steps||{};
+  if(!workflow.welcomeSentAt&&!workflow.steps.welcome&&!workflow.steps.reminder){
+    workflow.steps.welcome={dueDate:addDaysISO(b.checkin,-3),template:'1',sentAt:null,promptedDate:null};
+  }
+  if(!b.whatsappWorkflow || b.whatsappWorkflow!==workflow) b.whatsappWorkflow=workflow;
+  if(!b.whatsappWorkflow.__savedAt){saveBookingWhatsAppWorkflow(b,workflow);}
+  return true;
+}
 function activateBookingWhatsAppWorkflow(b){
-  if(!b || b.whatsappWorkflow)return false;
-  const workflow={activatedAt:new Date().toISOString(),welcomeSentAt:new Date().toISOString(),steps:{
-    reminder:{dueDate:addDaysISO(b.checkin,-3),template:'2',sentAt:null,promptedDate:null},
-    afterStay:{dueDate:addDaysISO(b.checkout,1),template:'3',sentAt:null,promptedDate:null}
-  }};
+  if(!b)return false;
+  const now=new Date().toISOString();
+  const workflow=b.whatsappWorkflow||{activatedAt:null,welcomeSentAt:null,steps:{}};
+  workflow.activatedAt=workflow.activatedAt||now;
+  workflow.welcomeSentAt=now;
+  workflow.steps=workflow.steps||{};
+  workflow.steps.welcome=Object.assign({},workflow.steps.welcome||{template:'1'}, {dueDate:addDaysISO(b.checkin,-3),template:'1',sentAt:now});
+  workflow.steps.afterStay=workflow.steps.afterStay||{dueDate:addDaysISO(b.checkout,1),template:'3',sentAt:null,promptedDate:null};
+  workflow.steps.afterStay.dueDate=addDaysISO(b.checkout,1);
   saveBookingWhatsAppWorkflow(b,workflow);
   return true;
 }
@@ -6939,14 +6956,17 @@ function checkWhatsAppSchedules(){
   const now=new Date();
   const today=toISO(now.getFullYear(),now.getMonth(),now.getDate());
   for(const booking of bookings){
-    const steps=booking&&booking.whatsappWorkflow&&booking.whatsappWorkflow.steps;
+    if(!booking || !booking.checkin)continue;
+    if(!booking.whatsappWorkflow)ensureBookingWhatsAppWorkflow(booking);
+    const steps=booking.whatsappWorkflow&&booking.whatsappWorkflow.steps;
     if(!steps)continue;
-    for(const key of ['reminder','afterStay']){
+    for(const key of ['welcome','reminder','afterStay']){
       const step=steps[key];
       if(!step||step.sentAt||!step.dueDate||step.dueDate>today||step.promptedDate===today)continue;
+      if(key==='welcome' && booking.checkin<=today)continue;
       step.promptedDate=today;
       saveBookingWhatsAppWorkflow(booking,booking.whatsappWorkflow);
-      const labels={reminder:"Rappel avant l’arrivée",afterStay:"Remerciement et demande d’avis"};
+      const labels={welcome:"Message de bienvenue (3 jours avant l’arrivée)",reminder:"Rappel avant l’arrivée",afterStay:"Remerciement et demande d’avis"};
       _whatsappSchedulePromptOpen=true;
       showConfirm("Message WhatsApp programmé à préparer pour "+(booking.client||'ce client')+" : "+labels[key]+".\\n\\nSouhaites-tu le préparer maintenant ? Aucun envoi ne sera effectué automatiquement.",()=>{
         _whatsappSchedulePromptOpen=false;
@@ -7318,8 +7338,10 @@ function finalizeSaveBooking(data){
     savedBooking=Object.assign({id:generateId()},data,{history:[]});
     bookings.push(savedBooking);
   }
+  if(!savedBooking.whatsappWorkflow) ensureBookingWhatsAppWorkflow(savedBooking);
   if(savedBooking.whatsappWorkflow && savedBooking.whatsappWorkflow.steps){
     const steps=savedBooking.whatsappWorkflow.steps;
+    if(steps.welcome && !steps.welcome.sentAt) steps.welcome.dueDate=addDaysISO(data.checkin,-3);
     if(steps.reminder && !steps.reminder.sentAt) steps.reminder.dueDate=addDaysISO(data.checkin,-3);
     if(steps.afterStay && !steps.afterStay.sentAt) steps.afterStay.dueDate=addDaysISO(data.checkout,1);
   }
