@@ -3178,6 +3178,8 @@ async function submitVoicePhrase(phrase){
 }
 
 function startVoiceRecognition(){
+  // Ne jamais ouvrir le micro pendant que la synthèse vocale de l'assistante parle.
+  if(voiceSpeaking || ('speechSynthesis' in window && window.speechSynthesis.speaking)) return;
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition){
     voiceNotify("La reconnaissance vocale n'est pas disponible dans ce navigateur. Vous pouvez toujours écrire votre demande.");
@@ -3199,6 +3201,8 @@ function startVoiceRecognition(){
       if(topButton) topButton.textContent = '🎙️ Je t’écoute…';
     };
     voiceRecognition.onresult = async event=>{
+      // Ignore tout résultat tardif provenant du micro pendant une réponse vocale.
+      if(voiceSpeaking || ('speechSynthesis' in window && window.speechSynthesis.speaking)) return;
       let finalText = '', interim = '';
       for(let i=event.resultIndex;i<event.results.length;i++){
         const part=event.results[i];
@@ -3365,6 +3369,7 @@ function speakAnswer(text){
     if(frenchVoice) u.voice = frenchVoice;
     const finishSpeaking = ()=>{
       voiceSpeaking = false;
+      // Reprendre l'écoute uniquement après la fin réelle de la lecture audio.
       resumeVoiceListening();
     };
     u.onend = finishSpeaking;
