@@ -2073,32 +2073,47 @@ async function openAdminUsersPanel(){
   const old=document.getElementById('adminUsersPanel'); if(old){old.remove();return;}
   const panel=document.createElement('div'); panel.id='adminUsersPanel';
   panel.style.cssText='position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:16px;';
-  panel.innerHTML='<div style="background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:620px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font-family:Fraunces,serif">Gestion des utilisateurs</h2><button type="button" id="adminUsersClose" class="btn">Fermer</button></div><p style="font-size:13px;opacity:.75">Demandes d’accès et comptes utilisateurs</p><div id="adminUsersList">Chargement…</div></div>';
+  panel.innerHTML='<div style="background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:680px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font-family:Fraunces,serif">Gestion des utilisateurs</h2><button type="button" id="adminUsersClose" class="btn">Fermer</button></div><p style="font-size:13px;opacity:.75">Statut du compte Planning et statut du site de chaque gérant. Les deux validations sont indépendantes.</p><div id="adminUsersList">Chargement…</div></div>';
   document.body.appendChild(panel);
   panel.querySelector('#adminUsersClose').onclick=()=>panel.remove();
   const list=panel.querySelector('#adminUsersList');
   try{
-    const rows=await sbRest('GET','user_profiles?select=user_id,email,full_name,role,status,created_at&order=created_at.desc');
+    const [rows,sites]=await Promise.all([
+      sbRest('GET','user_profiles?select=user_id,email,full_name,role,status,created_at&order=created_at.desc'),
+      sbRest('GET','public_owner_sites?select=user_id,site_name,site_enabled,site_review_status,site_review_note,site_slug')
+    ]);
     list.innerHTML='';
     const users=(rows||[]).filter(u=>u.role==='user');
+    const siteByUser=new Map((sites||[]).map(site=>[site.user_id,site]));
     if(!users.length){list.textContent='Aucun utilisateur pour le moment.';return;}
     users.forEach(u=>{
-      const card=document.createElement('div'); card.style.cssText='border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;';
-      const info=document.createElement('div');
-      const email=document.createElement('div'); email.style.fontWeight='600'; email.textContent=u.email||'E-mail non renseigné';
-      const status=document.createElement('div'); status.style.cssText='font-size:12px;opacity:.75;margin-top:4px'; status.textContent='Statut : '+(u.status||'inconnu');
-      info.append(email,status); card.append(info);
+      const site=siteByUser.get(u.user_id);
+      const card=document.createElement('div'); card.style.cssText='border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;';
+      const name=document.createElement('div');name.style.fontWeight='700';name.textContent=u.full_name||u.email||'Gérant';
+      const email=document.createElement('div');email.style.cssText='font-size:12px;opacity:.75;margin-top:2px';email.textContent=u.email||'E-mail non renseigné';
+      const planning=document.createElement('div');planning.style.cssText='font-size:13px;margin-top:9px';planning.textContent='Planning : '+({pending:'En attente de validation',approved:'Actif',rejected:'Refusé'}[u.status]||u.status||'Statut inconnu');
+      let siteStatus='Aucun site demandé';
+      if(site){
+        if(site.site_enabled) siteStatus='Site activé';
+        else if(site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie') siteStatus='Création en attente de validation';
+        else if(site.site_review_status==='draft') siteStatus='Création acceptée — site non publié';
+        else if(site.site_review_status==='rejected') siteStatus='Création refusée';
+        else if(site.site_review_status==='pending') siteStatus='Publication en attente de validation';
+        else siteStatus='Espace créé — site non activé';
+      }
+      const siteLine=document.createElement('div');siteLine.style.cssText='font-size:13px;margin-top:5px';siteLine.textContent='Site : '+siteStatus;
+      card.append(name,email,planning,siteLine);
       if(u.status==='pending'){
-        const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:8px';
+        const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
         [['Accepter','approved'],['Refuser','rejected']].forEach(([label,value])=>{
           const b=document.createElement('button'); b.type='button'; b.className='btn'+(value==='approved'?' primary':''); b.textContent=label;
-          b.onclick=async()=>{b.disabled=true;b.textContent='…';try{await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});status.textContent='Statut : '+value;actions.remove();}catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}};
+          b.onclick=async()=>{b.disabled=true;b.textContent='…';try{await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});planning.textContent='Planning : '+(value==='approved'?'Actif':'Refusé');actions.remove();}catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}};
           actions.append(b);
         }); card.append(actions);
       }
       list.append(card);
     });
-  }catch(e){list.textContent='Impossible de charger les utilisateurs : '+e.message;}
+  }catch(e){list.textContent='Impossible de charger les utilisateurs et leurs sites : '+e.message;}
 }
 async function openAdminSiteRequestsPanel(){
   const old=document.getElementById('adminSiteRequestsPanel');if(old){old.remove();return;}
