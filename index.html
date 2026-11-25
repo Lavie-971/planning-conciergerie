@@ -2726,8 +2726,9 @@ async function refreshSiteBookingRequests(){
   siteBookingRequests=pending;siteBookingRequestsInitialized=true;
   const button=document.getElementById('siteBookingNotificationsBtn');
   const count=document.getElementById('siteBookingNotificationCount');
-  if(button)button.hidden=false;
-  if(count){count.textContent=String(pending.length);count.hidden=pending.length===0;}
+  // Afficher uniquement lorsqu'un propriétaire avec site accepté a des demandes en attente.
+  if(button)button.hidden=pending.length===0;
+  if(count){count.textContent=String(pending.length);count.hidden=true;}
   if(button)button.title=pending.length+' demande(s) en attente';
   if(!document.getElementById('siteBookingRequestsBackdrop').hidden)renderSiteBookingRequests();
   if(newRequests.length)showSiteBookingToast(newRequests.length);
