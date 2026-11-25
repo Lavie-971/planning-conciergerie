@@ -74,10 +74,10 @@ function setSiteIdentity(site){
 async function loadPublic(){
  try{
   const slug=currentSlug();
-  const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp&site_slug=eq.'+encodeURIComponent(slug)+'&site_enabled=eq.true');
+  const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp&site_slug=eq.'+encodeURIComponent(slug)+'');
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
   const site=sites[0];setSiteIdentity(site);
-  const rows=await api('public_listings?select=id,title,summary,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities&site_slug=eq.'+encodeURIComponent(slug)+'&is_published=eq.true&order=display_order.asc');
+  const rows=await api('public_listings?select=id,title,summary,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
   $('listingCards').innerHTML=rows.map(x=>{
