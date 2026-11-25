@@ -378,6 +378,13 @@ body.private-preview-editing .experience-img:hover::after{content:'✎ Changer l
 body.private-preview-editing .preview-module-hover{position:relative!important;outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px!important;z-index:2}
 body.private-preview-editing .preview-module-selected{position:relative!important;outline:3px solid #2878b8!important;outline-offset:6px!important;border-radius:5px!important;z-index:3}
 body.private-preview-editing .preview-module-selected.preview-module-hover{outline:3px solid #2878b8!important;outline-offset:6px!important}
+@media (hover:none), (pointer:coarse){
+ body.private-preview-editing [data-site-edit-key],body.private-preview-editing [data-preview-photo]{cursor:pointer!important;outline:1.5px dashed #c49b55!important;outline-offset:3px!important;border-radius:3px}
+ body.private-preview-editing .preview-module-hover{outline:0!important}
+ body.private-preview-editing .preview-module-selected{outline:3px solid #2878b8!important;outline-offset:5px!important}
+ body.private-preview-editing .preview-module-selected [data-site-edit-key]{outline-color:#2878b8!important}
+ body.private-preview-editing .preview-module-selected [data-preview-photo]{outline-color:#2878b8!important}
+}
 body.private-preview-editing .experience-img:hover{outline:3px solid #c49b55;outline-offset:3px}
 body.private-preview-editing .experience-img.preview-module-selected{outline:3px solid #2878b8!important;outline-offset:5px!important}
 .preview-edit-trigger{position:absolute;z-index:8;top:12px;right:12px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:auto;max-width:calc(100% - 24px);white-space:normal;overflow-wrap:anywhere;background:#fff!important;color:#173f36!important;border:1px solid #d8b77b!important;padding:7px 10px!important;border-radius:7px!important;font-size:12px!important;line-height:1.25!important;font-weight:700;cursor:pointer}
@@ -1123,9 +1130,22 @@ document.addEventListener('click',e=>{
  const backOwner=e.target.closest('#previewReturnOwner');
  if(backOwner){e.preventDefault();document.body.classList.remove('private-preview-editing');const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);document.documentElement.classList.add('owner-entry');$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
  const photoTarget=e.target.closest('[data-preview-photo]');
- if(photoTarget&&new URLSearchParams(location.search).get('preview')==='1'){e.preventDefault();e.stopPropagation();const picker=$('previewPhotoPicker');if(picker){picker.dataset.target=photoTarget.dataset.previewPhoto;picker.click();}return;}
  const textBlock=e.target.closest('[data-site-edit-key]');
- if(textBlock&&new URLSearchParams(location.search).get('preview')==='1'&&!textBlock.isContentEditable){e.preventDefault();e.stopPropagation();openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);return;}
+ const editableTarget=photoTarget||textBlock;
+ if(editableTarget&&new URLSearchParams(location.search).get('preview')==='1'&&!textBlock?.isContentEditable){
+  e.preventDefault();e.stopPropagation();
+  const touchMode=window.matchMedia&&window.matchMedia('(hover:none), (pointer:coarse)').matches;
+  if(touchMode&&editableTarget.dataset.touchArmed!=='1'){
+   document.querySelectorAll('[data-touch-armed="1"]').forEach(el=>{el.dataset.touchArmed='0';});
+   editableTarget.dataset.touchArmed='1';
+   showPreviewPhotoNotice('Zone sélectionnée. Touchez une seconde fois pour modifier.');
+   return;
+  }
+  editableTarget.dataset.touchArmed='0';
+  if(photoTarget){const picker=$('previewPhotoPicker');if(picker){picker.dataset.target=photoTarget.dataset.previewPhoto;picker.click();}}
+  else openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);
+  return;
+ }
  const open=e.target.closest('#previewSiteBtn');
  if(open){e.preventDefault();return;}
 
