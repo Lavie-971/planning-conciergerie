@@ -222,6 +222,19 @@ function getCommission(booking){
   return 0;
 }
 
+const STATUS_LABELS={
+  indisponible:'Indisponible',
+  option:'Option',
+  arrhes:'Arrhes payées',
+  paye:'Payé',
+  annulation:'Annulation'
+};
+
+function statusLabel(key){
+  const k=String(key||'').toLowerCase();
+  return STATUS_LABELS[k]||(key?String(key):'Non renseigné');
+}
+
 function isFinancial(booking){
   return ['arrhes','paye'].includes(String(booking.status||'').toLowerCase());
 }
@@ -276,6 +289,7 @@ function calculatePeriod(bookings,year,month){
   let commission=0;
   let net=0;
   let nights=0;
+  let pricedNights=0;
   let count=0;
   let incomplete=0;
 
@@ -294,6 +308,7 @@ function calculatePeriod(bookings,year,month){
       return;
     }
 
+    pricedNights+=overlap;
     const ratio=overlap/totalNights;
     revenue+=values.total*ratio;
     commission+=values.commission*ratio;
@@ -307,7 +322,7 @@ function calculatePeriod(bookings,year,month){
     if(month===null||month===arrivalMonth)count++;
   });
 
-  return {revenue,commission,net,nights,count,incomplete};
+  return {revenue,commission,net,nights,pricedNights,count,incomplete};
 }
 
 function renderGlobalSummary(apartments,year){
@@ -405,11 +420,11 @@ function renderMonthlyPanel(parent,bookings,year){
 }
 
 function commissionLabel(booking){
-  if(booking.commissionPercent!==null&&booking.commissionPercent!==undefined&&booking.commissionPercent!==''){
-    return Number(booking.commissionPercent).toLocaleString('fr-FR')+' %';
-  }
   if(booking.commissionAmount!==null&&booking.commissionAmount!==undefined&&booking.commissionAmount!==''){
     return 'Forfait en euros';
+  }
+  if(booking.commissionPercent!==null&&booking.commissionPercent!==undefined&&booking.commissionPercent!==''){
+    return Number(booking.commissionPercent).toLocaleString('fr-FR')+' %';
   }
   return 'Non renseignée';
 }
@@ -462,7 +477,7 @@ function renderBookingDetails(parent,bookings,year){
 
       const status=document.createElement('div');
       addText(status,'div','Statut','booking-label');
-      addText(status,'span',booking.status||'Non renseigné','status');
+      addText(status,'span',statusLabel(booking.status),'status');
       item.appendChild(status);
 
       const commission=document.createElement('div');
@@ -646,9 +661,10 @@ function renderApartmentVisuals(parent,apartment,year,bookings){
   const occ=Math.round(booked/daysInYear*100);
   const totals=calculatePeriod(bookings,year,null);
 
-  const today=new Date().toISOString().slice(0,10);
+  const now=new Date();
+  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const upcoming=(apartment.bookings||[])
-    .filter(b=>b.checkin&&b.checkin>=today&&String(b.status||'').toLowerCase().indexOf('annul')<0)
+    .filter(b=>b.checkin&&b.checkin>=today&&['option','arrhes','paye'].includes(String(b.status||'').toLowerCase()))
     .sort((a,b)=>String(a.checkin).localeCompare(String(b.checkin)))[0];
 
   const chips=document.createElement('div');
@@ -664,7 +680,7 @@ function renderApartmentVisuals(parent,apartment,year,bookings){
 
   const c2=document.createElement('div');c2.className='chip';
   addText(c2,'div','Revenu moyen par nuit','chip-label');
-  addText(c2,'div',totals.nights>0?money(totals.net/totals.nights):'—','chip-value');
+  addText(c2,'div',totals.pricedNights>0?money(totals.net/totals.pricedNights):'—','chip-value');
   chips.appendChild(c2);
 
   const c3=document.createElement('div');c3.className='chip';
@@ -780,6 +796,10 @@ async function loadOwner(){
     if(!result.apartments||!result.apartments.length){
       throw new Error('Aucun logement associé à ce lien.');
     }
+
+    result.apartments.forEach(a=>{
+      a.bookings=(a.bookings||[]).filter(b=>String(b.status||'').toLowerCase()!=='nemeconcerne');
+    });
 
     message.hidden=true;
     renderDashboard(result.apartments,Number(yearSelect.value));
