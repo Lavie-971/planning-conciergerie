@@ -284,14 +284,16 @@ async function renderManager(profile){
   const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0];
   const rows=await api('public_listings?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&order=display_order.asc');
   const siteUrl=currentSite.site_slug==='vacances-en-guadeloupe'?BASE_URL:BASE_URL+'?site='+encodeURIComponent(currentSite.site_slug);
+  const canManagePublication=['draft','approved'].includes(currentSite.site_review_status);
   $('adminContent').innerHTML=
-  '<div class="admin-card"><h3>Mon site personnel</h3><p>Préparez votre site et vos logements, puis envoyez-les à l’administrateur pour validation. Votre site restera invisible aux voyageurs jusqu’à son approbation.</p><form id="siteForm"><div class="formgrid">'+
+  '<div class="admin-card"><h3>Mon site personnel</h3><p>Modifiez votre site librement. Une fois la création acceptée par l’administrateur, vous choisissez vous-même quand le publier ou le mettre en pause.</p><form id="siteForm"><div class="formgrid">'+
   field('Nom du site','site_name',currentSite.site_name)+field('Adresse personnalisée (slug)','site_slug',currentSite.site_slug)+
   field('Accroche','tagline',currentSite.tagline)+field('E-mail de contact','contact_email',currentSite.contact_email,'email')+
   field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+field('Nom de domaine souhaité (ex. www.monsite.fr)','domain_requested',currentSite.domain_requested||'')+'<div class="field full"><p style="margin:0">État du domaine : '+esc(currentSite.domain_status||'aucune demande')+'. La saisie ne rend pas encore le domaine accessible : une configuration DNS et hébergement sera nécessaire.</p></div>'+
   '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
-  '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div>'+'<div class="field full"><label>État de validation</label><p style="margin:0">'+(currentSite.site_enabled?'Site publié':currentSite.site_review_status==='pending'?'Demande de validation envoyée':currentSite.site_review_status==='rejected'?'Demande refusée':'Brouillon — site non public')+'</p></div>'+
-  (profile.role==='admin' ? '<div class="field full"><label class="checkline"><input type="checkbox" name="site_enabled" '+(currentSite.site_enabled?'checked':'')+'> Site validé et visible publiquement</label></div>' : '<div class="field full"><label>Validation de la plateforme</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_enabled?'Site validé et actif':'Site en attente de validation par l’administrateur. Vous pouvez préparer vos logements, mais leur site reste invisible aux voyageurs.')+'</p></div>')+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form><button class="btn" id="submitSiteReview" type="button" style="margin-top:12px">Envoyer mon site pour validation</button><p id="reviewStatus" class="status" aria-live="polite"></p><p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
+  '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
+  (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
+  '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
   '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
   '<div class="admin-card"><h3>Choisir les logements à afficher</h3><p>Cochez uniquement les logements de votre Planning Conciergerie que vous souhaitez présenter aux voyageurs. Vous pouvez modifier cette sélection à tout moment.</p><div class="property-selection">'+
   (rows.length?rows.map(x=>'<label class="checkline property-choice"><input type="checkbox" data-publish-toggle="'+esc(x.id)+'" '+(x.is_published?'checked':'')+'> <span><strong>'+esc(x.title||'Logement sans nom')+'</strong><small>'+esc(x.location||'Commune à préciser')+' · '+esc(x.property_type||'Type non précisé')+'</small></span><em class="status">'+(x.is_published?'Visible sur le site':'Non affiché')+'</em></label>').join(''):'<p>Aucun logement disponible dans votre compte Planning Conciergerie.</p>')+
@@ -310,8 +312,20 @@ async function renderManager(profile){
   (rows.length?'':'<div class="admin-card"><p>Aucun logement n’est encore associé à votre compte. Contactez l’administrateur de Planning Conciergerie pour vérifier vos logements.</p></div>');
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;renderLogin()});
   $('siteForm').addEventListener('submit',saveSite);
-  $('submitSiteReview')?.addEventListener('click',submitSiteForReview);
-  if(currentSite.site_enabled||currentSite.site_review_status==='pending')$('submitSiteReview').disabled=true;
+  const publicationButton=$('toggleSitePublication');
+  publicationButton?.addEventListener('click',async()=>{
+   const next=!currentSite.site_enabled,st=$('publicationStatus');
+   if(!confirm(next?'Mettre votre site en ligne publiquement ?':'Mettre votre site en pause ? Il ne sera plus visible des voyageurs.'))return;
+   publicationButton.disabled=true;st.textContent='Mise à jour…';
+   try{
+    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_enabled:next,updated_at:new Date().toISOString()});
+    currentSite.site_enabled=next;
+    $('publicationState').textContent=next?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.';
+    publicationButton.textContent=next?'Mettre mon site en pause':'Mettre mon site en ligne';
+    st.textContent=next?'Site publié ✓':'Site mis en pause ✓';
+   }catch(err){st.textContent='Impossible de modifier la publication : '+err.message;}
+   finally{publicationButton.disabled=false;}
+  });
   loadManagerRequests();
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
   document.querySelectorAll('[data-publish-toggle]').forEach(toggle=>toggle.addEventListener('change',async()=>{
@@ -348,17 +362,6 @@ async function saveListing(e){
 }
 
 
-async function submitSiteForReview(){
- const status=$('reviewStatus');if(!currentSite||currentProfile?.role==='admin')return;
- if(currentSite.site_enabled||currentSite.site_review_status==='pending'){status.textContent='Votre site est déjà publié ou en attente.';return;}
- if(!confirm('Envoyer votre site à l’administrateur pour validation ?'))return;
- status.textContent='Envoi…';
- try{
-  await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_review_status:'pending',updated_at:new Date().toISOString()});
-  currentSite.site_review_status='pending';status.textContent='Votre demande de validation a été envoyée.';
-  const b=$('submitSiteReview');if(b)b.disabled=true;
- }catch(e){status.textContent=e.message;}
-}
 async function renderPlatformAdmin(profile){
  currentProfile=profile;
  $('adminContent').innerHTML='<div class="admin-card"><h3>Administration de la plateforme</h3><p>Chargement des sites et demandes de validation…</p></div>';
@@ -374,13 +377,13 @@ async function renderPlatformAdmin(profile){
   const pending=sites.filter(x=>x.site_review_status==='pending'&&!x.site_enabled).length;
   const active=sites.filter(x=>x.site_enabled).length;
   $('adminContent').innerHTML=
-   '<div class="admin-card"><h3>Administration des sites propriétaires</h3><p>Tu contrôles ici les mises en ligne. Un propriétaire ne peut jamais activer lui-même son site. La validation d’un domaine reste distincte de la publication du site.</p><div class="platform-summary"><div class="platform-stat"><strong>'+sites.length+'</strong><span>Sites enregistrés</span></div><div class="platform-stat"><strong>'+pending+'</strong><span>En attente de validation</span></div><div class="platform-stat"><strong>'+active+'</strong><span>Sites actuellement publiés</span></div></div><button class="btn" id="adminRefresh" type="button">Actualiser la liste</button><button class="btn" id="adminLogout" type="button" style="margin-left:8px;background:#e9eee9">Se déconnecter</button></div>'+
+   '<div class="admin-card"><h3>Administration des sites propriétaires</h3><p>Tu valides la création initiale des espaces. Une fois la création acceptée, le gérant choisit lui-même de publier son site ou de le mettre en pause. Tu peux toujours suspendre un site si nécessaire. La validation d’un domaine reste distincte.</p><div class="platform-summary"><div class="platform-stat"><strong>'+sites.length+'</strong><span>Sites enregistrés</span></div><div class="platform-stat"><strong>'+pending+'</strong><span>En attente de validation</span></div><div class="platform-stat"><strong>'+active+'</strong><span>Sites actuellement publiés</span></div></div><button class="btn" id="adminRefresh" type="button">Actualiser la liste</button><button class="btn" id="adminLogout" type="button" style="margin-left:8px;background:#e9eee9">Se déconnecter</button></div>'+
    '<div class="admin-card"><h3>Sites et demandes</h3><p>Vérifie les coordonnées, le contenu et les logements avant d’autoriser la publication. Les domaines demandés sont listés séparément.</p>'+
    (sites.length?sites.map(site=>{
     const p=byUser.get(site.user_id)||{},key=site.user_id+'|'+site.site_slug,ls=grouped.get(key)||[];
-    const review=site.site_enabled?'Publié':site.site_review_status==='pending'?'À valider':site.site_review_status==='rejected'?'Refusé':'Brouillon';
+    const review=site.site_enabled?'En ligne':site.site_review_status==='pending'?'Création à valider':site.site_review_status==='rejected'?'Refusé':site.site_review_status==='draft'?'Création acceptée — en attente de publication':'Brouillon';
     const owner=esc(p.full_name||p.email||site.user_id);
-    const approve=site.site_enabled?'':'<button class="approve" data-site-action="approve" data-site-id="'+esc(site.id)+'">Approuver et publier</button>';
+    const approve=site.site_enabled||site.site_review_status==='draft'?'':'<button class="approve" data-site-action="approve" data-site-id="'+esc(site.id)+'">Accepter la création</button>';
     const reject=site.site_enabled?'':'<button class="reject" data-site-action="reject" data-site-id="'+esc(site.id)+'">Refuser la demande</button>';
     const disable=site.site_enabled?'<button class="neutral" data-site-action="disable" data-site-id="'+esc(site.id)+'">Dépublier le site</button>':'';
     const domainActions=site.domain_requested?
@@ -392,12 +395,12 @@ async function renderPlatformAdmin(profile){
   $('adminLogout').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;renderLogin()});
   document.querySelectorAll('[data-site-action]').forEach(btn=>btn.addEventListener('click',async()=>{
    const id=btn.dataset.siteId,action=btn.dataset.siteAction;
-   if(action==='approve'&&!confirm('Approuver et rendre ce site public ? Vérifie auparavant ses logements et ses informations.'))return;
+   if(action==='approve'&&!confirm('Accepter la création de cet espace ? Le gérant pourra ensuite publier son site lui-même quand il le souhaitera.'))return;
    if(action==='reject'&&!confirm('Refuser la demande de publication de ce site ?'))return;
    if(action==='disable'&&!confirm('Dépublier ce site ? Il ne sera plus accessible publiquement.'))return;
    btn.disabled=true;
    try{
-    const patch=action==='approve'?{site_enabled:true,site_review_status:'approved',site_review_note:'Site approuvé par l’administrateur',updated_at:new Date().toISOString()}:
+    const patch=action==='approve'?{site_enabled:false,site_review_status:'draft',site_review_note:'Création acceptée par l’administrateur',updated_at:new Date().toISOString()}:
      action==='reject'?{site_enabled:false,site_review_status:'rejected',site_review_note:'Demande refusée par l’administrateur',updated_at:new Date().toISOString()}:
      {site_enabled:false,updated_at:new Date().toISOString()};
     await api('public_owner_sites?id=eq.'+encodeURIComponent(id),'PATCH',patch);
