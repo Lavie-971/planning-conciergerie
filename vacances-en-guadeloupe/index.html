@@ -24,6 +24,27 @@ footer{background:#103b33;color:#d5e1da;padding:27px 0}.footer-inner{display:fle
 #adminApp{display:none;min-height:100vh;background:#f5f7f3;padding:35px 0 70px}#adminApp .admin-wrap{width:min(1000px,calc(100% - 36px));margin:auto}.admin-top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:28px}.admin-top h1{font:600 32px "Playfair Display",serif;color:var(--green);margin:0}.admin-card{background:white;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 4px 15px #1b49300a}.admin-card h3{font:600 21px "Playfair Display",serif;margin:0 0 6px;color:var(--green)}.admin-card p{font-size:12px;color:var(--muted);margin:0 0 18px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;font-weight:700;color:#4c6258}.field input,.field textarea,.field select{border:1px solid #dce4dd;border-radius:8px;padding:11px 12px;background:#fff;color:var(--ink);width:100%;font-size:13px}.field textarea{min-height:78px;resize:vertical}.checkline{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--green);font-weight:700}.admin-actions{display:flex;align-items:center;gap:12px;margin-top:14px}.admin-actions .btn{padding:11px 18px;font-size:12px}.status{font-size:12px;color:var(--green2)}.login-box{max-width:420px;margin:10vh auto;background:white;padding:30px;border-radius:16px;box-shadow:var(--shadow)}.login-box h2{font:600 28px "Playfair Display",serif;color:var(--green);margin:0 0 7px}.login-box p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 20px}.login-box .field{margin-bottom:13px}.login-box .btn{width:100%;margin-top:6px}.admin-note{font-size:11px;color:var(--muted);margin-top:15px;line-height:1.6}
 @media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.experience-grid{gap:32px}.experience h2{font-size:35px}}
 @media(max-width:600px){.wrap{width:min(100% - 32px,1160px)}.nav{height:72px}.navlinks{gap:13px}.navlinks a:not(.nav-cta){display:none}.brand strong{font-size:17px}.brand-mark{width:37px;height:37px}.nav-cta{padding:10px 14px;font-size:11px}.hero{height:720px;min-height:650px;background-position:58% center}.hero-content{padding-top:55px}.hero p{font-size:15px}.hero h1{font-size:48px}.btn-outline{margin:10px 0 0}.intro{padding:55px 0 20px}.listings{padding:30px 0 65px}.section-head{display:block}.count{display:block;margin-top:12px}.cards{grid-template-columns:1fr;gap:17px}.listing-photo{height:230px}.experience{padding:60px 0}.experience-grid{grid-template-columns:1fr}.experience-img{height:290px;order:2}.experience h2{font-size:36px}.contact{padding:62px 0}.footer-inner{flex-direction:column;text-align:center}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.admin-top{align-items:flex-start;flex-direction:column}}
+
+.booking-modal{position:fixed;inset:0;z-index:20000;background:#102e28b8;display:none;align-items:center;justify-content:center;padding:18px}
+.booking-dialog{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;padding:25px;box-shadow:0 25px 80px #102e2840}
+.booking-dialog h2{font:600 27px "Playfair Display",serif;color:var(--green);margin:0 0 7px}
+.booking-dialog p{color:var(--muted);font-size:13px;line-height:1.6}
+.booking-dialog .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.booking-dialog .field{margin:0 0 12px}
+.booking-dialog .field.full{grid-column:1/-1}
+.booking-dialog .booking-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.booking-dialog .booking-status{font-size:12px;color:var(--green);min-height:20px}
+.booking-dialog .btn:disabled{opacity:.55;cursor:not-allowed}
+.listing-bottom .details{border:0;background:none;cursor:pointer;font:inherit;color:var(--green2);font-weight:700}
+.request-item{border:1px solid var(--line);border-radius:11px;padding:15px;margin:12px 0}
+.request-item h4{margin:0 0 5px;color:var(--green);font-size:15px}
+.request-meta{font-size:12px;color:var(--muted);line-height:1.7}
+.request-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.request-actions button{border:0;border-radius:7px;padding:9px 13px;font-weight:700;cursor:pointer}
+.request-actions .accept{background:#e2efe8;color:#174d43}
+.request-actions .reject{background:#f8e8e5;color:#8d332a}
+@media(max-width:600px){.booking-dialog{padding:19px}.booking-dialog .formgrid{grid-template-columns:1fr}.booking-dialog .field.full{grid-column:auto}}
+
 </style>
 </head>
 <body>
@@ -45,13 +66,41 @@ footer{background:#103b33;color:#d5e1da;padding:27px 0}.footer-inner{display:fle
 <footer><div class="wrap footer-inner"><span class="footer-brand" id="footerBrand">Vacances en Guadeloupe</span><span>Des vacances au rythme des îles.</span><a class="admin-link" href="#admin" id="adminLink">Espace gestion</a></div></footer>
 </div>
 <div id="adminApp"><div class="admin-wrap"><div class="admin-top"><div><h1>Gestion des logements</h1><div style="color:#6c7c75;font-size:13px;margin-top:5px">Vacances en Guadeloupe · Administration</div></div><a href="#" class="details">← Voir le site public</a></div><div id="adminContent"></div></div></div>
+
+<div class="booking-modal" id="bookingModal" role="dialog" aria-modal="true" aria-labelledby="bookingModalTitle">
+ <div class="booking-dialog">
+  <button type="button" id="closeBookingModal" aria-label="Fermer" style="float:right;border:0;background:#edf2ee;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer">×</button>
+  <div class="eyebrow">Votre séjour en Guadeloupe</div>
+  <h2 id="bookingModalTitle">Demander une réservation</h2>
+  <p>Envoyez votre demande au gérant du logement. Votre séjour ne sera confirmé qu’après son acceptation.</p>
+  <form id="bookingForm">
+   <input type="hidden" id="bookingListingId">
+   <div class="formgrid">
+    <div class="field"><label for="bookingCheckin">Arrivée</label><input id="bookingCheckin" type="date" required></div>
+    <div class="field"><label for="bookingCheckout">Départ</label><input id="bookingCheckout" type="date" required></div>
+    <div class="field"><label for="bookingAdults">Adultes</label><input id="bookingAdults" type="number" min="1" max="20" value="2" required></div>
+    <div class="field"><label for="bookingChildren">Enfants</label><input id="bookingChildren" type="number" min="0" max="20" value="0"></div>
+    <div class="field"><label for="bookingBabies">Bébés</label><input id="bookingBabies" type="number" min="0" max="20" value="0"></div>
+    <div class="field"><label for="bookingGuestName">Votre nom</label><input id="bookingGuestName" type="text" maxlength="160" required></div>
+    <div class="field"><label for="bookingGuestEmail">E-mail</label><input id="bookingGuestEmail" type="email" maxlength="254" required></div>
+    <div class="field"><label for="bookingGuestPhone">Téléphone</label><input id="bookingGuestPhone" type="tel" maxlength="50"></div>
+    <div class="field full"><label for="bookingMessage">Votre message (facultatif)</label><textarea id="bookingMessage" maxlength="2000"></textarea></div>
+    <div class="field" style="position:absolute;left:-10000px" aria-hidden="true"><label for="bookingWebsite">Site web</label><input id="bookingWebsite" tabindex="-1" autocomplete="off"></div>
+   </div>
+   <div class="booking-status" id="bookingAvailability" aria-live="polite"></div>
+   <div class="booking-actions"><button class="btn" id="bookingSubmit" type="submit">Envoyer ma demande</button><span class="booking-status" id="bookingResult" aria-live="polite"></span></div>
+  </form>
+ </div>
+</div>
+
 <script>
 const SB_URL='https://pezxvjollptmwmadykfk.supabase.co';
 const SB_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
 const BASE_URL='https://lavie-971.github.io/planning-conciergerie/vacances-en-guadeloupe/';
+const BOOKING_API=SB_URL+'/functions/v1/public-booking-requests';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let session=null,currentSite=null,currentUser=null;
+let session=null,currentSite=null,currentUser=null,currentProfile=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
 async function api(path,method='GET',body=null){
  const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
  if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
@@ -84,8 +133,9 @@ async function loadPublic(){
    const photo=(x.photo_urls||[])[0],image=photo?'<img src="'+esc(photo)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
    const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
    const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
-   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" href="#contact">En savoir plus</a></div></div></article>';
+   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Demander une réservation</button></div></div></article>';
   }).join('');
+  document.querySelectorAll('[data-book-listing]').forEach(btn=>btn.addEventListener('click',()=>openBooking(btn.dataset.bookListing,btn.dataset.bookTitle)));
  }catch(e){console.warn('Chargement des logements indisponible',e);$('listingCards').innerHTML='<div class="empty"><h3>Chargement temporairement indisponible</h3><p>Merci de réessayer dans quelques instants.</p></div>'}
 }
 function showAdmin(){$('publicApp').style.display='none';$('adminApp').style.display='block';renderLogin()}
@@ -112,6 +162,7 @@ function renderLogin(){
 }
 function field(label,name,value,type='text'){return '<div class="field"><label>'+label+'</label><input name="'+name+'" type="'+type+'" value="'+esc(value??'')+'" '+(type==='number'?'min="0" step="1"':'')+'></div>'}
 async function renderManager(profile){
+ currentProfile=profile;
  $('adminContent').innerHTML='<div class="admin-card"><h3>Chargement…</h3><p>Récupération de vos paramètres et logements.</p></div>';
  try{
   const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0];
@@ -125,6 +176,7 @@ async function renderManager(profile){
   '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
   '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div>'+
   '<div class="field full"><label class="checkline"><input type="checkbox" name="site_enabled" '+(currentSite.site_enabled?'checked':'')+'> Activer mon site et le rendre accessible aux voyageurs</label></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form><p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
+  '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
   '<div class="admin-card"><h3>Mes logements ('+rows.length+')</h3><p>Publiez uniquement les hébergements que vous souhaitez présenter sur votre site personnel. Les autres propriétaires ne peuvent pas consulter ni modifier ces fiches.</p></div>'+
   rows.map(x=>'<form class="admin-card listingForm" data-id="'+esc(x.id)+'"><h3>'+esc(x.title||'Nouveau logement')+'</h3><p>Logement de votre compte Planning Conciergerie · '+esc(x.location||'Localisation à compléter')+'</p><div class="formgrid">'+
   field('Titre','title',x.title)+field('Commune / secteur','location',x.location)+
@@ -139,6 +191,7 @@ async function renderManager(profile){
   (rows.length?'':'<div class="admin-card"><p>Aucun logement n’est encore associé à votre compte. Contactez l’administrateur de Planning Conciergerie pour vérifier vos logements.</p></div>');
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;renderLogin()});
   $('siteForm').addEventListener('submit',saveSite);
+  loadManagerRequests();
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
  }catch(e){$('adminContent').innerHTML='<div class="admin-card"><h3>Impossible de charger votre espace</h3><p>'+esc(e.message)+'</p></div>'}
 }
@@ -146,7 +199,8 @@ async function saveSite(e){
  e.preventDefault();const form=e.currentTarget,st=$('siteStatus'),d=new FormData(form),v=n=>String(d.get(n)||'').trim();
  const slug=v('site_slug').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
  if(!slug){st.textContent='Choisissez une adresse valide.';return}
- const payload={site_name:v('site_name')||'Mon site de vacances',site_slug:slug,tagline:v('tagline'),description:v('description'),hero_photo_url:v('hero_photo_url'),contact_email:v('contact_email'),contact_phone:v('contact_phone'),whatsapp:v('whatsapp'),site_enabled:form.querySelector('[name=site_enabled]').checked,updated_at:new Date().toISOString()};
+ const payload={site_name:v('site_name')||'Mon site de vacances',site_slug:slug,tagline:v('tagline'),description:v('description'),hero_photo_url:v('hero_photo_url'),contact_email:v('contact_email'),contact_phone:v('contact_phone'),whatsapp:v('whatsapp'),updated_at:new Date().toISOString()};
+ if(currentProfile?.role==='admin')payload.site_enabled=!!form.querySelector('[name=site_enabled]')?.checked;
  st.textContent='Enregistrement…';
  try{
   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);
@@ -162,6 +216,89 @@ async function saveListing(e){
  try{await api('public_listings?id=eq.'+encodeURIComponent(form.dataset.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);st.textContent='Enregistré ✓';}
  catch(err){st.textContent=err.message}
 }
+
+async function bookingService(payload,token=''){
+ const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
+ if(token)headers.Authorization='Bearer '+token;
+ const r=await fetch(BOOKING_API,{method:'POST',headers,body:JSON.stringify(payload)});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok||data.error)throw new Error(data.error||'Une erreur est survenue.');
+ return data;
+}
+function openBooking(id,title){
+ const form=$('bookingForm');form.reset();
+ $('bookingListingId').value=id;
+ $('bookingModalTitle').textContent='Demander une réservation — '+title;
+ $('bookingCheckin').min=new Date().toISOString().slice(0,10);
+ $('bookingCheckout').min=new Date().toISOString().slice(0,10);
+ $('bookingAvailability').textContent='Choisissez vos dates pour vérifier les disponibilités.';
+ $('bookingResult').textContent='';
+ $('bookingSubmit').disabled=false;
+ bookingDatesAvailable=false;bookingAvailabilityRanges=[];
+ $('bookingModal').style.display='flex';
+}
+function closeBooking(){ $('bookingModal').style.display='none'; }
+async function refreshBookingAvailability(){
+ const checkin=$('bookingCheckin').value,checkout=$('bookingCheckout').value;
+ bookingDatesAvailable=false;
+ $('bookingSubmit').disabled=true;
+ if(!checkin||!checkout||checkout<=checkin){$('bookingAvailability').textContent='Sélectionnez une arrivée et un départ valides.';return false;}
+ $('bookingAvailability').textContent='Vérification des disponibilités…';
+ try{
+  const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout});
+  bookingAvailabilityRanges=result.ranges||[];
+  const clash=bookingAvailabilityRanges.some(r=>checkin<r.end&&checkout>r.start);
+  if(clash){$('bookingAvailability').textContent='Ces dates ne sont pas disponibles. Choisissez une autre période.';return false;}
+  bookingDatesAvailable=true;
+  $('bookingAvailability').textContent='Ces dates semblent disponibles. Votre demande devra être acceptée par le gérant.';
+  $('bookingSubmit').disabled=false;return true;
+ }catch(e){$('bookingAvailability').textContent=e.message;return false;}
+}
+$('closeBookingModal').addEventListener('click',closeBooking);
+$('bookingModal').addEventListener('click',e=>{if(e.target.id==='bookingModal')closeBooking();});
+$('bookingCheckin').addEventListener('change',()=>{if($('bookingCheckin').value)$('bookingCheckout').min=$('bookingCheckin').value;refreshBookingAvailability();});
+$('bookingCheckout').addEventListener('change',refreshBookingAvailability);
+$('bookingForm').addEventListener('submit',async e=>{
+ e.preventDefault();$('bookingResult').textContent='Envoi de votre demande…';$('bookingSubmit').disabled=true;
+ try{
+  if(!bookingDatesAvailable && !(await refreshBookingAvailability()))throw new Error('Veuillez choisir des dates disponibles.');
+  const result=await bookingService({
+   action:'create_request',listing_id:$('bookingListingId').value,
+   guest_name:$('bookingGuestName').value,guest_email:$('bookingGuestEmail').value,
+   guest_phone:$('bookingGuestPhone').value,checkin:$('bookingCheckin').value,
+   checkout:$('bookingCheckout').value,adults:Number($('bookingAdults').value||1),
+   children:Number($('bookingChildren').value||0),babies:Number($('bookingBabies').value||0),
+   message:$('bookingMessage').value,website:$('bookingWebsite').value
+  });
+  $('bookingResult').textContent=result.ok?'Votre demande a bien été transmise. Elle reste en attente de validation par le gérant.':'Votre demande a été prise en compte.';
+  $('bookingForm').querySelectorAll('input,textarea,button').forEach(el=>{if(el.id!=='closeBookingModal')el.disabled=true;});
+ }catch(err){$('bookingResult').textContent=err.message;$('bookingSubmit').disabled=false;}
+});
+async function loadManagerRequests(){
+ const target=$('managerRequestsList');if(!target||!session?.access_token)return;
+ target.textContent='Chargement des demandes…';
+ try{
+  const result=await bookingService({action:'manager_list'},session.access_token);
+  const requests=result.requests||[];
+  if(!requests.length){target.innerHTML='<p>Aucune demande de réservation pour le moment.</p>';return;}
+  target.innerHTML=requests.map(r=>{
+   const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('fr-FR');
+   const status=r.status==='pending'?'En attente':r.status==='accepted'?'Acceptée':r.status==='rejected'?'Refusée':'Expirée';
+   const actions=r.status==='pending'?'<div class="request-actions"><button class="accept" type="button" data-request-id="'+esc(r.id)+'" data-request-decision="accept">Accepter et ajouter au planning</button><button class="reject" type="button" data-request-id="'+esc(r.id)+'" data-request-decision="reject">Refuser</button></div>':'';
+   return '<div class="request-item"><h4>'+esc(r.guest_name)+' · '+esc(r.listing_title||r.apartment_id)+'</h4><div class="request-meta"><strong>'+fmt(r.checkin)+' → '+fmt(r.checkout)+'</strong> · '+(Number(r.adults)+Number(r.children)+Number(r.babies))+' voyageur(s)<br>'+esc(r.guest_email)+' · '+esc(r.guest_phone||'Téléphone non renseigné')+'<br>Statut : '+status+(r.message?'<br>Message : '+esc(r.message):'')+'</div>'+actions+'</div>';
+  }).join('');
+  target.querySelectorAll('[data-request-decision]').forEach(btn=>btn.addEventListener('click',async()=>{
+   const accept=btn.dataset.requestDecision==='accept';
+   if(!confirm(accept?'Accepter cette demande et créer la réservation dans votre planning ?':'Refuser cette demande de réservation ?'))return;
+   btn.disabled=true;
+   try{
+    await bookingService({action:'manager_decide',request_id:btn.dataset.requestId,decision:btn.dataset.requestDecision},session.access_token);
+    await loadManagerRequests();
+   }catch(err){alert(err.message);btn.disabled=false;}
+  }));
+ }catch(e){target.textContent='Impossible de charger les demandes : '+e.message;}
+}
+
 function route(){if(location.hash==='#admin'||location.hash.startsWith('#admin/'))showAdmin();else{$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic()}}
 window.addEventListener('hashchange',route);route();
 </script>
