@@ -358,6 +358,7 @@ html.owner-entry #publicApp{display:none!important}html.owner-entry #adminApp{di
 .preview-edit-trigger{position:absolute;z-index:8;top:12px;right:12px;background:#fff!important;color:#173f36!important;border:2px solid #d8b77b!important;padding:9px 13px!important;border-radius:7px!important;font-weight:800;cursor:pointer}
 #listingDetail .preview-edit-trigger{position:static;margin:0 0 18px}
 .preview-edit-site{margin-left:12px;background:#fff;color:#173f36;border:1px solid #d8b77b;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer}
+body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px;transition:outline-color .15s,background-color .15s}body.private-preview-editing [data-site-edit-key]:hover{outline:1px dashed #c49b55;background-color:#fff8e9}body.private-preview-editing [data-site-edit-key]::after{content:' ✎';font:12px Arial;color:#a77b32;opacity:0}body.private-preview-editing [data-site-edit-key]:hover::after{opacity:1}
 .preview-edit-modal[hidden]{display:none!important}
 .preview-edit-modal{position:fixed;inset:0;z-index:30000;background:#102e28c9;display:flex;align-items:center;justify-content:center;padding:18px}
 .preview-edit-dialog{position:relative;width:min(850px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:14px;padding:28px;box-shadow:0 20px 70px #0005}
@@ -446,6 +447,20 @@ async function api(path,method='GET',body=null){
  const txt=await r.text();if(!r.ok)throw new Error('Erreur '+r.status+' : '+txt.slice(0,180));return txt?JSON.parse(txt):null;
 }
 function currentSlug(){return new URLSearchParams(location.search).get('site')||'vacances-en-guadeloupe'}
+function enableIndividualTextEditing(site){
+ const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],footerTagline:['footer_tagline','Pied de page']};
+ document.body.classList.add('private-preview-editing');
+ Object.entries(fields).forEach(([id,v])=>{const el=$(id);if(el){el.dataset.siteEditKey=v[0];el.dataset.siteEditLabel=v[1];el.title='Cliquer pour modifier ce texte';}});
+}
+function openIndividualTextEditor(key,label,element){
+ const site=activePreviewSite;if(!site)return;
+ const value=(site.site_texts||{})[key]||element.textContent.trim();
+ const modal=previewModal('<h2>Modifier : '+esc(label)+'</h2><p>Modifiez uniquement ce bloc de texte. Le changement sera enregistré sans publier le site.</p><form id="singleSiteTextForm"><div class="field full"><label>'+esc(label)+'</label><textarea name="text" rows="4">'+esc(value)+'</textarea></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer ce texte</button><span class="status" id="singleSiteTextStatus"></span></div></form>');
+ modal.querySelector('#singleSiteTextForm').addEventListener('submit',async e=>{
+  e.preventDefault();const st=$('singleSiteTextStatus'),textValue=String(new FormData(e.currentTarget).get('text')||'').trim();st.textContent='Enregistrement…';
+  try{const texts={...(site.site_texts||{}),[key]:textValue};await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts});site.site_texts=texts;const target=$(element.id);if(target)target.textContent=textValue;modal.hidden=true;}catch(err){st.textContent='Erreur : '+err.message;}
+ });
+}
 function setSiteIdentity(site){
  const t=site.site_texts||{};
  $('siteBrand').textContent=site.site_name;$('footerBrand').textContent=site.site_name;
@@ -471,6 +486,7 @@ function setSiteIdentity(site){
  $('contactLink').hidden=!contact;
  $('contactLink').innerHTML=site.whatsapp?'Contacter sur WhatsApp <span>→</span>':site.contact_email?'Nous contacter par e-mail <span>→</span>':'Nous appeler <span>→</span>';
  $('contactDetails').textContent=[site.contact_phone,site.contact_email].filter(Boolean).join(' · ')||'Les coordonnées de contact ne sont pas encore renseignées.';
+ if(new URLSearchParams(location.search).get('preview')==='1')enableIndividualTextEditing(site);
 }
 async function loadPublic(){
  try{
@@ -948,6 +964,8 @@ propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLi
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
 function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
+ const textBlock=e.target.closest('[data-site-edit-key]');
+ if(textBlock&&new URLSearchParams(location.search).get('preview')==='1'){e.preventDefault();e.stopPropagation();openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);return;}
  const open=e.target.closest('#previewSiteBtn');
  if(open){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite?.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();return;}
  const back=e.target.closest('#previewBackToOwner');
