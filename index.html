@@ -2018,6 +2018,7 @@ function hideAccountGate(){ const g=document.getElementById('accountGate'); if(g
 function setAccountGateStage(message){ const el=document.getElementById('gateStage'); if(el) el.textContent=message; }
 function approvedCacheKey(uid){ return 'conciergerie_approved_'+uid; }
 async function sbAfterLogin(){
+  stopSiteBookingRequestNotifications();
   const s=sbSession();
   const userId=s && s.user && s.user.id ? String(s.user.id) : null;
   if(!userId){ setAppAccessVisible(false); hideAccountGate(); showLockScreen(); return; }
@@ -2708,11 +2709,26 @@ async function refreshSiteBookingRequests(){
   return pending;
  }catch(error){console.warn('Notifications des demandes du site indisponibles',error);return siteBookingRequests;}
 }
+async function refreshOwnerSiteReviewState(){
+ if(!activeUserId||!ownerSiteSlug)return;
+ const rows=await sbRest('GET','public_owner_sites?select=site_slug,site_enabled,site_review_status,site_review_note&user_id=eq.'+encodeURIComponent(activeUserId)+'&limit=1');
+ if(rows&&rows[0]){
+  ownerSiteSlug=String(rows[0].site_slug||ownerSiteSlug);
+  ownerSiteEnabled=rows[0].site_enabled===true;
+  ownerSiteReviewStatus=rows[0].site_review_status||null;
+  ownerSiteReviewNote=rows[0].site_review_note||'';
+  updateOwnerSiteActions();
+ }
+}
 function startSiteBookingRequestNotifications(){
  stopSiteBookingRequestNotifications();
- if(!accountApproved||!ownerSiteCreationAccepted())return;
- refreshSiteBookingRequests();
- siteBookingRequestPollTimer=setInterval(()=>{if(document.visibilityState==='visible')refreshSiteBookingRequests();},20000);
+ if(!accountApproved||!activeUserId||!ownerSiteSlug||(accountRole!=='user'&&accountRole!=='admin'))return;
+ const poll=async()=>{
+  try{await refreshOwnerSiteReviewState();if(ownerSiteCreationAccepted())await refreshSiteBookingRequests();}
+  catch(error){console.warn('Actualisation du statut du site impossible',error);}
+ };
+ poll();
+ siteBookingRequestPollTimer=setInterval(()=>{if(document.visibilityState==='visible')poll();},20000);
 }
 function stopSiteBookingRequestNotifications(){
  if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
