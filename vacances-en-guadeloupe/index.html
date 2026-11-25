@@ -442,9 +442,9 @@ function imagePickerMarkup(name,label,value,multiple){
  const input=multiple
   ?'<textarea name="'+name+'" placeholder="Une image par ligne, ou collez directement vos photos…">'+esc(value||'')+'</textarea>'
   :'<input name="'+name+'" type="url" value="'+esc(value||'')+'" placeholder="Collez une image ici ou ajoutez une URL">';
- return '<div class="field full image-field"><label>'+label+'</label><div class="image-editor" data-image-editor data-multiple="'+(multiple?'true':'false')+'">'+input+
-  '<div class="image-dropzone" tabindex="0" data-image-dropzone><strong>＋ Ajouter une image</strong><span>Collez avec Ctrl + V, glissez-déposez une photo ou choisissez un fichier.</span><button type="button" class="image-choose" data-image-choose>Choisir une image</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" '+(multiple?'multiple':'')+' hidden data-image-files></div>'+
-  '<div class="image-preview-list" data-image-preview-list></div><small>Formats JPG, PNG, WEBP ou GIF · 8 Mo maximum par image.</small></div></div>';
+ return '<div class="field full image-field"><label>'+label+(multiple?' — plusieurs photos possibles':'')+'</label><div class="image-editor" data-image-editor data-multiple="'+(multiple?'true':'false')+'">'+input+
+  '<div class="image-dropzone" tabindex="0" data-image-dropzone><strong>＋ '+(multiple?'Ajouter plusieurs photos':'Ajouter une photo')+'</strong><span>'+(multiple?'Sélectionnez plusieurs fichiers en une fois, collez plusieurs images avec Ctrl + V ou glissez-déposez vos photos.':'Collez une image avec Ctrl + V, glissez-déposez-la ou choisissez un fichier.')+'</span><button type="button" class="image-choose" data-image-choose>'+(multiple?'Choisir des photos':'Choisir une photo')+'</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" '+(multiple?'multiple':'')+' hidden data-image-files></div>'+
+  '<div class="image-preview-list" data-image-preview-list></div><small>'+(multiple?'Vous pouvez ajouter les photos en plusieurs fois.':'')+' Formats JPG, PNG, WEBP ou GIF · 8 Mo maximum par image.</small></div></div>';
 }
 async function uploadSiteImage(file){
  if(!file||!file.type?.startsWith('image/'))throw new Error('Choisissez un fichier image.');
@@ -510,7 +510,6 @@ async function renderManager(profile){
   imagePickerMarkup('hero_photo_url','Photo de couverture',currentSite.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
   (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
   '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="previewSiteBtn" type="button" style="margin:8px 8px 8px 0">Aperçu privé du site</button><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
-  '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
   '<div class="admin-card"><h3>Choisir les logements à afficher</h3><p>Cochez uniquement les logements de votre Planning Conciergerie que vous souhaitez présenter aux voyageurs. Vous pouvez modifier cette sélection à tout moment.</p><div class="property-selection">'+
   (rows.length?rows.map(x=>'<label class="checkline property-choice"><input type="checkbox" data-publish-toggle="'+esc(x.id)+'" '+(x.is_published?'checked':'')+'> <span><strong>'+esc(x.title||'Logement sans nom')+'</strong><small>'+esc(x.location||'Commune à préciser')+' · '+esc(x.property_type||'Type non précisé')+'</small></span><em class="status">'+(x.is_published?'Visible sur le site':'Non affiché')+'</em></label>').join(''):'<p>Aucun logement disponible dans votre compte Planning Conciergerie.</p>')+
   '</div></div>'+
@@ -546,7 +545,6 @@ async function renderManager(profile){
    finally{publicationButton.disabled=false;}
   });
   $('previewSiteBtn')?.addEventListener('click',()=>{const u=new URL(siteUrl);u.searchParams.set('preview','1');history.pushState({},'',u.pathname+u.search);route();});
-  loadManagerRequests();
   document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
   document.querySelectorAll('[data-publish-toggle]').forEach(toggle=>toggle.addEventListener('change',async()=>{
    const id=toggle.dataset.publishToggle,choice=toggle.closest('.property-choice'),status=choice?.querySelector('.status');
@@ -775,31 +773,6 @@ $('bookingForm').addEventListener('submit',async e=>{
   $('bookingForm').querySelectorAll('input,textarea,button').forEach(el=>{if(el.id!=='closeBookingModal')el.disabled=true;});
  }catch(err){$('bookingResult').textContent=err.message;$('bookingSubmit').disabled=false;}
 });
-async function loadManagerRequests(){
- const target=$('managerRequestsList');if(!target||!session?.access_token)return;
- target.textContent='Chargement des demandes…';
- try{
-  const result=await bookingService({action:'manager_list'},session.access_token);
-  const requests=result.requests||[];
-  if(!requests.length){target.innerHTML='<p>Aucune demande de réservation pour le moment.</p>';return;}
-  target.innerHTML=requests.map(r=>{
-   const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('fr-FR');
-   const status=r.status==='pending'?'En attente':r.status==='accepted'?'Acceptée':r.status==='rejected'?'Refusée':'Expirée';
-   const actions=r.status==='pending'?'<div class="request-actions"><button class="accept" type="button" data-request-id="'+esc(r.id)+'" data-request-decision="accept">Accepter et ajouter au planning</button><button class="reject" type="button" data-request-id="'+esc(r.id)+'" data-request-decision="reject">Refuser</button></div>':'';
-   return '<div class="request-item"><h4>'+esc(r.guest_name)+' · '+esc(r.listing_title||r.apartment_id)+'</h4><div class="request-meta"><strong>'+fmt(r.checkin)+' → '+fmt(r.checkout)+'</strong> · '+(Number(r.adults)+Number(r.children)+Number(r.babies))+' voyageur(s)<br>'+esc(r.guest_email)+' · '+esc(r.guest_phone||'Téléphone non renseigné')+'<br>Statut : '+status+(r.message?'<br>Message : '+esc(r.message):'')+'</div>'+actions+'</div>';
-  }).join('');
-  target.querySelectorAll('[data-request-decision]').forEach(btn=>btn.addEventListener('click',async()=>{
-   const accept=btn.dataset.requestDecision==='accept';
-   if(!confirm(accept?'Accepter cette demande et créer la réservation dans votre planning ?':'Refuser cette demande de réservation ?'))return;
-   btn.disabled=true;
-   try{
-    await bookingService({action:'manager_decide',request_id:btn.dataset.requestId,decision:btn.dataset.requestDecision},session.access_token);
-    await loadManagerRequests();
-   }catch(err){alert(err.message);btn.disabled=false;}
-  }));
- }catch(e){target.textContent='Impossible de charger les demandes : '+e.message;}
-}
-
 function route(){if(location.hash==='#admin'||location.hash.startsWith('#admin/'))showAdmin();else{$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic()}}
 window.addEventListener('hashchange',route);window.addEventListener('popstate',route);route();
 </script>
