@@ -6986,8 +6986,11 @@ function checkWhatsAppSchedules(){
     if(!booking.whatsappWorkflow)ensureBookingWhatsAppWorkflow(booking);
     const steps=booking.whatsappWorkflow&&booking.whatsappWorkflow.steps;
     if(!steps)continue;
-    for(const key of ['welcome','reminder','afterStay']){
+    // Les rappels automatiques ne démarrent qu'après confirmation de l'envoi du message de bienvenue.
+    // Les anciens rappels "reminder" restent disponibles en préparation manuelle, jamais en déclenchement automatique.
+    for(const key of ['welcome','afterStay']){
       const step=steps[key];
+      if(key==='afterStay' && !booking.whatsappWorkflow.welcomeSentAt)continue;
       if(!step||step.sentAt||!step.dueDate||step.dueDate>today||step.promptedDate===today)continue;
       if(key==='welcome' && booking.checkin<=today)continue;
       step.promptedDate=today;
