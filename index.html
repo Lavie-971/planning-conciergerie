@@ -3014,6 +3014,36 @@ let voiceBusy = false;
 let voiceSpeaking = false;
 let voiceLastBookingId = null;
 
+const VOICE_SUGGESTIONS = [
+  'Qui est là en ce moment ?',
+  'Quels logements sont libres ce mois-ci ?',
+  'Quelles sont les arrivées demain ?',
+  'Quels sont les prochains départs ?',
+  'Quel est le taux d’occupation ce mois-ci ?',
+  'Combien ai-je gagné ce mois-ci ?',
+  'Quelles réservations sont en option ?',
+  'Quels ménages sont à faire ?'
+];
+
+function voiceIsMuted(){
+  try{ return localStorage.getItem(LS_PREFIX+'voiceMuted') === '1'; }catch(e){ return false; }
+}
+function voiceSetMuted(value){
+  try{ localStorage.setItem(LS_PREFIX+'voiceMuted', value ? '1' : '0'); }catch(e){}
+}
+function refreshVoiceMuteButton(){
+  const button = document.getElementById('voiceChatMute');
+  if(!button) return;
+  const muted = voiceIsMuted();
+  button.textContent = muted ? '🔇' : '🔊';
+  button.setAttribute('aria-pressed', muted ? 'true' : 'false');
+  button.setAttribute('aria-label', muted ? 'Activer la voix' : 'Couper la voix');
+}
+function voiceShowInterim(text){
+  const status = document.getElementById('voiceChatStatus');
+  if(status) status.textContent = text ? '… '+text : 'Je vous écoute…';
+}
+
 function resumeVoiceListening(){
   if(voiceChatOpen && !voiceBusy && !voiceSpeaking && voiceRecognition && !voiceListening){
     startVoiceRecognition();
@@ -3052,15 +3082,36 @@ function openVoiceChat(){
     panel.style.cssText = 'position:fixed;right:18px;bottom:18px;width:min(420px,calc(100vw - 24px));height:min(620px,calc(100dvh - 36px));z-index:10050;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 50px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden;';
     panel.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);">'+
       '<div><strong>🎙️ Assistant vocal</strong><div id="voiceChatStatus" style="font-size:12px;color:var(--ink-faint);margin-top:3px;">Prêt à vous écouter</div></div>'+
-      '<button type="button" id="voiceChatClose" aria-label="Fermer" style="font-size:20px;border:0;background:transparent;color:var(--ink);">✕</button></div>'+
+      '<div style="display:flex;align-items:center;gap:2px;">'+
+      '<button type="button" id="voiceChatMute" aria-label="Couper la voix" aria-pressed="false" style="font-size:18px;border:0;background:transparent;color:var(--ink);min-width:40px;min-height:40px;">🔊</button>'+
+      '<button type="button" id="voiceChatClose" aria-label="Fermer" style="font-size:20px;border:0;background:transparent;color:var(--ink);min-width:40px;min-height:40px;">✕</button></div></div>'+
       '<div id="voiceChatMessages" aria-live="polite" style="flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">'+
       '<div style="align-self:flex-start;max-width:88%;padding:10px 13px;border-radius:14px;background:var(--surface-2,var(--line));font-size:14px;line-height:1.45;">Bonjour ! Je peux répondre à vos questions sur les réservations, les logements, les revenus et l’Agenda. Vous pouvez parler ou écrire.</div></div>'+
-      '<form id="voiceChatForm" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);">'+
+      '<div id="voiceChatChips" style="display:flex;gap:6px;overflow-x:auto;padding:8px 12px 0;border-top:1px solid var(--line);"></div>'+
+      '<form id="voiceChatForm" style="display:flex;gap:8px;padding:8px 12px 12px;">'+
       '<input id="voiceChatInput" type="text" placeholder="Écrire un message…" autocomplete="off" style="min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--surface);color:var(--ink);">'+
       '<button type="button" id="voiceChatMic" aria-label="Parler" style="border:0;border-radius:12px;padding:0 13px;background:var(--accent);color:#fff;">🎙️</button>'+
       '<button type="submit" style="border:0;border-radius:12px;padding:0 14px;background:var(--accent);color:#fff;">➤</button></form>';
     document.body.appendChild(panel);
     document.getElementById('voiceChatClose').addEventListener('click', closeVoiceChat);
+    const chipBox = document.getElementById('voiceChatChips');
+    VOICE_SUGGESTIONS.forEach(question=>{
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.textContent = question;
+      chip.style.cssText = 'flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:13px;white-space:nowrap;';
+      chip.addEventListener('click', ()=>{ if(!voiceBusy) submitVoicePhrase(question); });
+      chipBox.appendChild(chip);
+    });
+    refreshVoiceMuteButton();
+    document.getElementById('voiceChatMute').addEventListener('click', ()=>{
+      voiceSetMuted(!voiceIsMuted());
+      if(voiceIsMuted() && 'speechSynthesis' in window){
+        try{ window.speechSynthesis.cancel(); }catch(e){}
+        voiceSpeaking = false;
+      }
+      refreshVoiceMuteButton();
+    });
     document.getElementById('voiceChatMic').addEventListener('click', startVoiceRecognition);
     document.getElementById('voiceChatForm').addEventListener('submit', async e=>{
       e.preventDefault();
@@ -3128,7 +3179,7 @@ function startVoiceRecognition(){
     voiceRecognition = new SpeechRecognition();
     voiceRecognition.lang = 'fr-FR';
     voiceRecognition.continuous = false;
-    voiceRecognition.interimResults = false;
+    voiceRecognition.interimResults = true;
     voiceRecognition.onstart = ()=>{
       voiceListening = true;
       const status = document.getElementById('voiceChatStatus');
@@ -3139,14 +3190,24 @@ function startVoiceRecognition(){
       if(topButton) topButton.textContent = '🎙️ Je t’écoute…';
     };
     voiceRecognition.onresult = async event=>{
-      const phrase = event.results && event.results[0] && event.results[0][0]
-        ? event.results[0][0].transcript.trim() : '';
-      if(phrase) await submitVoicePhrase(phrase);
+      let finalText = '', interim = '';
+      for(let i=event.resultIndex;i<event.results.length;i++){
+        const part=event.results[i];
+        const piece=part && part[0] ? part[0].transcript : '';
+        if(part.isFinal) finalText+=piece; else interim+=piece;
+      }
+      if(!finalText){ voiceShowInterim(interim.trim()); return; }
+      voiceShowInterim('');
+      if(finalText.trim()) await submitVoicePhrase(finalText.trim());
     };
     voiceRecognition.onerror = event=>{
-      if(event && event.error !== 'no-speech' && event.error !== 'aborted'){
-        voiceChatAddMessage('assistant',"Je n'ai pas réussi à comprendre. Vous pouvez réessayer ou écrire votre demande.");
-      }
+      const code=event && event.error;
+      if(code==='no-speech'||code==='aborted') return;
+      let message="Je n'ai pas réussi à comprendre. Vous pouvez réessayer ou écrire votre demande.";
+      if(code==='not-allowed'||code==='service-not-allowed') message="Le micro est bloqué. Autorisez-le dans les réglages du navigateur pour ce site.";
+      else if(code==='network') message="La reconnaissance vocale a besoin d’Internet. Vous pouvez aussi écrire votre demande.";
+      else if(code==='audio-capture') message="Aucun micro n’a été détecté sur cet appareil.";
+      voiceChatAddMessage('assistant',message);
     };
     voiceRecognition.onend = ()=>{
       voiceListening = false;
@@ -3279,7 +3340,7 @@ function voiceDateFR(v){
 
 function speakAnswer(text){
   try{
-    if(!('speechSynthesis' in window)) return;
+    if(!('speechSynthesis' in window) || voiceIsMuted()) return;
     // Couper le micro pendant toute la réponse pour éviter que l'assistante
     // ne retranscrive sa propre voix comme une nouvelle demande.
     voiceSpeaking = true;
@@ -3287,8 +3348,12 @@ function speakAnswer(text){
       try{ voiceRecognition.stop(); }catch(e){}
     }
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text.replace(/[•⚠️]/g,''));
+    const spoken = String(text||'').replace(/[•⚠️✅]/g,'').replace(/\n+/g,'. ');
+    const u = new SpeechSynthesisUtterance(spoken);
     u.lang = 'fr-FR';
+    const voices = window.speechSynthesis.getVoices() || [];
+    const frenchVoice = voices.find(v=>/^fr[-_]FR$/i.test(v.lang)) || voices.find(v=>/^fr/i.test(v.lang));
+    if(frenchVoice) u.voice = frenchVoice;
     const finishSpeaking = ()=>{
       voiceSpeaking = false;
       resumeVoiceListening();
