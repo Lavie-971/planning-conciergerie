@@ -244,6 +244,8 @@
 #listingDetail .detail-amenities span{border:1px solid var(--line);padding:8px 11px;border-radius:20px;font-size:11px}
 #listingDetail .detail-price{font-size:13px;color:var(--muted);margin:18px 0}
 #listingDetail .detail-price strong{font-size:24px;color:var(--forest)}
+#publicApp .listing-bottom{flex-wrap:wrap;justify-content:flex-start}
+#publicApp .listing-bottom .price{width:100%}
 #listingDetail .detail-booking{background:#f3f5ef;border:1px solid var(--line);border-radius:14px;padding:22px;margin-top:28px}
 #listingDetail .detail-booking h2{font:600 23px "Playfair Display",serif;color:var(--forest);margin:0 0 8px}
 #listingDetail .detail-booking p{font-size:12px;line-height:1.7;color:var(--muted)}
@@ -604,7 +606,7 @@ function selectBookingCalendarDate(value){
   checkin.value=value;checkout.value='';
   $('calendarHint').textContent='Arrivée sélectionnée. Choisissez maintenant votre départ.';
  }else{
-  const clash=bookingAvailabilityRanges.some(r=>checkin.value<r.end&&value>r.start);
+  const clash=bookingAvailabilityRanges.some(r=>r.kind==='booking'&&checkin.value<r.end&&value>r.start);
   if(clash){$('calendarHint').textContent='Cette période chevauche une indisponibilité. Choisissez un autre jour de départ.';return;}
   checkout.value=value;
   $('calendarHint').textContent='Séjour sélectionné. Vérification des disponibilités…';
