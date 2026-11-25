@@ -2401,6 +2401,22 @@ function disableSync(){
 
 /* ---------------- actualisation automatique ---------------- */
 let autoRefreshTimer = null;
+let _lastCalendarUserScrollAt = 0;
+function noteCalendarUserScroll(){
+  _lastCalendarUserScrollAt = Date.now();
+}
+function preservePlanningScrollAndRender(){
+  const pageX = window.scrollX || 0;
+  const pageY = window.scrollY || 0;
+  const calendar = document.getElementById('calendarScroll');
+  const calendarLeft = calendar ? calendar.scrollLeft : 0;
+  renderAll();
+  requestAnimationFrame(()=>{
+    window.scrollTo(pageX, pageY);
+    const refreshedCalendar = document.getElementById('calendarScroll');
+    if(refreshedCalendar) refreshedCalendar.scrollLeft = calendarLeft;
+  });
+}
 function anyModalOpen(){
   return !document.getElementById('modalBackdrop').hidden
     || !document.getElementById('apartmentsBackdrop').hidden
@@ -2437,8 +2453,11 @@ async function silentRefresh(){
   // Ne pas écraser les données si une sauvegarde est en cours ou vient de se terminer
   if(_savingInProgress) return;
   if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité après une sauvegarde pour éviter d'écraser une modification récente
+  // Ne jamais reconstruire le planning pendant que l'utilisateur le parcourt.
+  // Le rafraîchissement reprend après 30 secondes sans défilement.
+  if(Date.now() - _lastCalendarUserScrollAt < 30000) return;
   await loadData();
-  renderAll();
+  preservePlanningScrollAndRender();
 }
 function startAutoRefresh(){
   stopAutoRefresh();
@@ -7246,6 +7265,10 @@ function restoreBackup(){
 /* ---------------- events ---------------- */
 function bindEvents(){
   bindCalendarSwipe();
+  // Un défilement récent suspend l'actualisation qui reconstruirait le calendrier.
+  window.addEventListener('scroll', noteCalendarUserScroll, {passive:true});
+  const planningScroll = document.getElementById('calendarScroll');
+  if(planningScroll) planningScroll.addEventListener('scroll', noteCalendarUserScroll, {passive:true});
   document.getElementById('voiceCommandBtn').addEventListener('click', startVoiceCommand);
   document.getElementById('prevMonth').addEventListener('click', goToPrevPeriod);
   document.getElementById('nextMonth').addEventListener('click', goToNextPeriod);
