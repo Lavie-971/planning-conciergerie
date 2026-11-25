@@ -6950,6 +6950,32 @@ function saveBookingWhatsAppWorkflow(booking,workflow){
   if(syncUrl){queueBookingUpsert(booking);setSyncStatus('syncing');}
 }
 let _whatsappSchedulePromptOpen=false;
+function showWhatsAppScheduleNotification(message,onPrepare){
+  const previous=document.getElementById('whatsappScheduleNotification');
+  if(previous)previous.remove();
+  const toast=document.createElement('div');
+  toast.id='whatsappScheduleNotification';
+  toast.style.cssText='position:fixed;right:18px;top:18px;z-index:10070;width:min(340px,calc(100vw - 36px));background:#fff;color:#243044;border:1px solid #dce3ec;border-radius:12px;box-shadow:0 8px 28px rgba(15,23,42,.18);padding:14px;font:13px/1.45 system-ui,sans-serif;';
+  const title=document.createElement('div');
+  title.textContent='Rappel WhatsApp';
+  title.style.cssText='font-weight:700;font-size:14px;margin-bottom:5px;';
+  const body=document.createElement('div');
+  body.textContent=message;
+  body.style.cssText='margin-bottom:11px;color:#526071;';
+  const actions=document.createElement('div');
+  actions.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:8px;';
+  const later=document.createElement('button');
+  later.type='button';later.textContent='Plus tard';
+  later.style.cssText='border:1px solid #d5dce5;background:#fff;color:#445064;border-radius:8px;padding:7px 10px;cursor:pointer;';
+  later.onclick=()=>{toast.remove();_whatsappSchedulePromptOpen=false;};
+  const prepare=document.createElement('button');
+  prepare.type='button';prepare.textContent='Préparer';
+  prepare.style.cssText='border:0;background:#2563eb;color:#fff;border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer;';
+  prepare.onclick=()=>{toast.remove();_whatsappSchedulePromptOpen=false;onPrepare();};
+  actions.append(later,prepare);
+  toast.append(title,body,actions);
+  document.body.appendChild(toast);
+}
 function checkWhatsAppSchedules(){
   const app=document.getElementById('app');
   if(!app || app.classList.contains('app-access-hidden') || _whatsappSchedulePromptOpen)return;
@@ -6968,18 +6994,10 @@ function checkWhatsAppSchedules(){
       saveBookingWhatsAppWorkflow(booking,booking.whatsappWorkflow);
       const labels={welcome:"Message de bienvenue (3 jours avant l’arrivée)",reminder:"Rappel avant l’arrivée",afterStay:"Remerciement et demande d’avis"};
       _whatsappSchedulePromptOpen=true;
-      showConfirm("Message WhatsApp programmé à préparer pour "+(booking.client||'ce client')+" : "+labels[key]+".\\n\\nSouhaites-tu le préparer maintenant ? Aucun envoi ne sera effectué automatiquement.",()=>{
-        _whatsappSchedulePromptOpen=false;
+      showWhatsAppScheduleNotification("À préparer pour "+(booking.client||'ce client')+" : "+labels[key]+". Aucun envoi automatique.",()=>{
         detailBookingId=booking.id;
         prepareBookingWhatsApp(step.template);
       });
-      const noBtn=document.getElementById('confirmNoBtn');
-      if(noBtn)noBtn.onclick=()=>{
-        document.getElementById('confirmBackdrop').hidden=true;
-        document.getElementById('confirmYesBtn').onclick=null;
-        noBtn.onclick=null;
-        _whatsappSchedulePromptOpen=false;
-      };
       return;
     }
   }
