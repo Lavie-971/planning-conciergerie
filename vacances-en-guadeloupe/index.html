@@ -355,6 +355,13 @@ html.owner-entry #publicApp{display:none!important}html.owner-entry #adminApp{di
 #propertyPhotoLightboxClose{position:absolute;top:14px;right:18px;width:42px;height:42px;border:1px solid #ffffff66;border-radius:50%;background:#ffffff18;color:white;font-size:28px;line-height:1;cursor:pointer}
 #propertyPhotoLightboxClose:hover{background:#ffffff30}
 
+body.private-preview-editing .hero{cursor:pointer;position:relative}
+body.private-preview-editing .hero:hover{filter:saturate(1.08)}
+body.private-preview-editing .experience-img{cursor:pointer;position:relative}
+body.private-preview-editing .hero:hover::after,body.private-preview-editing .experience-img:hover::after{content:'✎ Changer la photo';position:absolute;z-index:10;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 15px;border-radius:7px;background:#173f36e8;color:#fff;font:600 13px Arial;white-space:nowrap;pointer-events:none}
+.preview-return-owner{position:fixed;right:18px;bottom:18px;z-index:15000;border:0;border-radius:9px;background:#173f36;color:#fff;padding:12px 17px;font-weight:700;font-size:13px;box-shadow:0 5px 20px #0003;cursor:pointer}
+.preview-return-owner:hover{background:#285f50}
+body.private-preview-editing .experience-img:hover{outline:3px solid #c49b55;outline-offset:3px}
 .preview-edit-trigger{position:absolute;z-index:8;top:12px;right:12px;background:#fff!important;color:#173f36!important;border:2px solid #d8b77b!important;padding:9px 13px!important;border-radius:7px!important;font-weight:800;cursor:pointer}
 #listingDetail .preview-edit-trigger{position:static;margin:0 0 18px}
 .preview-edit-site{margin-left:12px;background:#fff;color:#173f36;border:1px solid #d8b77b;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer}
@@ -487,6 +494,36 @@ function openIndividualTextEditor(key,label,element){
  });
  element.addEventListener('blur',()=>finish(true),{once:true});
 }
+function enablePreviewPhotoEditing(site){
+ if(new URLSearchParams(location.search).get('preview')!=='1')return;
+ const hero=$('heroTitle')?.closest('.hero'),presentation=document.querySelector('.experience-img');
+ if(hero){hero.dataset.previewPhoto='hero';hero.title='Cliquer pour changer la photo de fond';}
+ if(presentation){presentation.dataset.previewPhoto='presentation';presentation.title='Cliquer pour changer la photo de présentation';}
+ let back=$('previewReturnOwner');
+ if(!back){back=document.createElement('button');back.id='previewReturnOwner';back.type='button';back.className='preview-return-owner';back.textContent='← Retour à mon espace propriétaire';document.body.appendChild(back);}
+ let picker=$('previewPhotoPicker');
+ if(!picker){picker=document.createElement('input');picker.type='file';picker.accept='image/jpeg,image/png,image/webp,image/gif';picker.id='previewPhotoPicker';picker.hidden=true;document.body.appendChild(picker);}
+ picker.onchange=async()=>{
+  const file=picker.files?.[0];if(!file)return;
+  const target=picker.dataset.target;picker.disabled=true;
+  try{
+   const url=await uploadSiteImage(file);
+   if(target==='hero'){
+    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{hero_photo_url:url,updated_at:new Date().toISOString()});
+    site.hero_photo_url=url;
+    const heroEl=$('heroTitle')?.closest('.hero');
+    if(heroEl)heroEl.style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("'+url+'")';
+   }else{
+    const texts={...(site.site_texts||{}),presentation_photo_url:url};
+    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
+    site.site_texts=texts;
+    const el=document.querySelector('.experience-img');
+    if(el)el.style.backgroundImage='url("'+url+'")';
+   }
+  }catch(err){alert('Impossible de modifier la photo : '+err.message);}
+  finally{picker.value='';picker.disabled=false;picker.dataset.target='';}
+ };
+}
 function setSiteIdentity(site){
  const t=site.site_texts||{};
  $('siteBrand').textContent=site.site_name;$('footerBrand').textContent=site.site_name;
@@ -507,6 +544,9 @@ function setSiteIdentity(site){
  $('siteTagline').textContent=site.tagline||'Votre séjour en Guadeloupe';
  put('catalogTitle','catalog_title','Les logements de '+site.site_name);
  if(site.hero_photo_url)$('heroTitle').closest('.hero').style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("'+site.hero_photo_url.replace(/["\\]/g,'')+'")';
+ const presentationPhoto=t.presentation_photo_url;
+ if(presentationPhoto){const el=document.querySelector('.experience-img');if(el)el.style.backgroundImage='url("'+presentationPhoto.replace(/["\\]/g,'')+'")';}
+ if(new URLSearchParams(location.search).get('preview')==='1')enablePreviewPhotoEditing(site);
  const contact=site.whatsapp?('https://wa.me/'+site.whatsapp.replace(/\D/g,'')):site.contact_email?('mailto:'+site.contact_email):site.contact_phone?('tel:'+site.contact_phone.replace(/[^+0-9]/g,'')):'';
  $('contactLink').href=contact||'#contact';
  $('contactLink').hidden=!contact;
@@ -578,6 +618,7 @@ function enablePrivatePreviewEditing(site,rows){
  activePreviewSite=site;
  const banner=$('previewBanner');if(banner)banner.remove();
  const oldButton=$('previewSiteEditorButton');if(oldButton)oldButton.remove();
+ enablePreviewPhotoEditing(site);
 }
 function openPreviewListingEditor(item){
  if(!item)return;const suggestions=suggestListingText(item);
@@ -976,6 +1017,10 @@ propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLi
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
 function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
+ const backOwner=e.target.closest('#previewReturnOwner');
+ if(backOwner){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
+ const photoTarget=e.target.closest('[data-preview-photo]');
+ if(photoTarget&&new URLSearchParams(location.search).get('preview')==='1'){e.preventDefault();e.stopPropagation();const picker=$('previewPhotoPicker');if(picker){picker.dataset.target=photoTarget.dataset.previewPhoto;picker.click();}return;}
  const textBlock=e.target.closest('[data-site-edit-key]');
  if(textBlock&&new URLSearchParams(location.search).get('preview')==='1'&&!textBlock.isContentEditable){e.preventDefault();e.stopPropagation();openIndividualTextEditor(textBlock.dataset.siteEditKey,textBlock.dataset.siteEditLabel,textBlock);return;}
  const open=e.target.closest('#previewSiteBtn');
