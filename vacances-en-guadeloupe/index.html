@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#174d43">
+<title>Vacances en Guadeloupe — Séjours & locations de vacances</title>
+<meta name="description" content="Découvrez nos locations saisonnières en Guadeloupe : des séjours authentiques entre plages, nature et douceur des Caraïbes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#174d43;--green2:#246b5b;--ink:#18352f;--muted:#6c7c75;--sand:#f5f1e8;--cream:#fbfaf6;--line:#e6e5dc;--gold:#d5a85c;--white:#fff;--shadow:0 18px 55px rgba(23,54,46,.12}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--cream);color:var(--ink);font-family:"DM Sans",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}.wrap{width:min(1160px,calc(100% - 44px));margin:auto}
+header{position:absolute;z-index:5;top:0;left:0;width:100%;color:#fff}.nav{height:86px;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:12px;color:white;text-decoration:none}.brand-mark{width:42px;height:42px;border:1px solid #ffffff80;border-radius:50%;display:grid;place-items:center;font-size:21px}.brand strong{display:block;font-family:"Playfair Display",serif;font-size:20px;letter-spacing:.2px}.brand small{display:block;font-size:10px;letter-spacing:2.3px;text-transform:uppercase;opacity:.78;margin-top:2px}.navlinks{display:flex;align-items:center;gap:30px}.navlinks a{color:#fff;text-decoration:none;font-size:13px;font-weight:600}.navlinks a:hover{opacity:.75}.nav-cta{border:1px solid #ffffffa6;border-radius:30px;padding:12px 19px}
+.hero{min-height:690px;height:min(790px,92vh);position:relative;display:flex;align-items:center;color:white;background:linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=2200&q=85") center/cover}
+.hero:after{content:"";position:absolute;inset:auto 0 0;height:150px;background:linear-gradient(transparent,var(--cream))}.hero-content{position:relative;z-index:1;padding-top:70px;max-width:720px}.eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:#f1d6a7;display:flex;align-items:center;gap:12px}.eyebrow:before{content:"";width:34px;height:1px;background:currentColor}.hero h1{font:600 clamp(44px,6.5vw,78px)/1.08 "Playfair Display",serif;margin:23px 0 20px;letter-spacing:-1.4px}.hero h1 em{font-weight:500;color:#f1d6a7}.hero p{font-size:17px;line-height:1.8;max-width:530px;color:#f3f5ef;margin:0 0 32px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:28px;padding:15px 23px;background:var(--gold);color:#203d34;font-weight:700;text-decoration:none;transition:.2s}.btn:hover{transform:translateY(-2px);filter:brightness(1.04)}.btn-outline{background:transparent;border:1px solid #ffffffb5;color:white;margin-left:10px}
+.intro{padding:72px 0 35px;text-align:center}.intro .eyebrow{justify-content:center;color:var(--green2)}.intro h2,.section-head h2{font:600 clamp(32px,4vw,47px)/1.15 "Playfair Display",serif;margin:15px 0;color:var(--green)}.intro p{max-width:690px;margin:0 auto;color:var(--muted);line-height:1.8;font-size:15px}
+.listings{padding:40px 0 95px}.section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:28px;gap:20px}.section-head p{color:var(--muted);margin:8px 0 0;font-size:14px}.section-head h2{margin:0}.count{font-size:12px;color:var(--muted);white-space:nowrap}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.listing{background:white;border-radius:17px;overflow:hidden;box-shadow:0 6px 25px rgba(30,65,55,.07);border:1px solid #eeeee8;transition:.25s}.listing:hover{transform:translateY(-5px);box-shadow:var(--shadow)}.listing-photo{height:235px;background:linear-gradient(135deg,#c6d9ca,#789c8d);position:relative;overflow:hidden}.listing-photo img{width:100%;height:100%;object-fit:cover;display:block}.photo-tag{position:absolute;top:15px;left:15px;background:#fffdf4eF;border-radius:30px;padding:7px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--green)}.listing-body{padding:20px 21px 22px}.listing-location{font-size:11px;color:var(--green2);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.listing h3{font:600 23px "Playfair Display",serif;margin:9px 0;color:var(--green)}.listing p{color:var(--muted);font-size:13px;line-height:1.65;margin:0 0 18px;min-height:43px}.features{display:flex;gap:17px;border-top:1px solid var(--line);padding-top:15px;color:#52665e;font-size:12px}.features span{display:flex;align-items:center;gap:6px}.listing-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:17px}.price{font-size:13px;color:var(--muted)}.price strong{font-size:18px;color:var(--green)}.details{color:var(--green2);font-size:12px;font-weight:700;text-decoration:none;border-bottom:1px solid #9ab5a9;padding-bottom:3px}
+.empty{grid-column:1/-1;text-align:center;padding:55px 20px;border:1px dashed #cbd8ce;border-radius:18px;background:#f7f8f2}.empty .symbol{font-size:36px}.empty h3{font:600 25px "Playfair Display",serif;color:var(--green);margin:12px 0 7px}.empty p{color:var(--muted);font-size:14px;max-width:460px;margin:auto;line-height:1.7}
+.experience{background:var(--sand);padding:80px 0}.experience-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}.experience-img{height:440px;border-radius:18px;background:url("https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=1200&q=85") center/cover;box-shadow:var(--shadow)}.experience h2{font:600 43px/1.15 "Playfair Display",serif;color:var(--green);margin:15px 0}.experience p{color:var(--muted);font-size:14px;line-height:1.9}.perks{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}.perk{display:flex;gap:11px;font-size:13px;font-weight:600;color:var(--green)}.perk i{font-style:normal;color:var(--gold);font-size:19px}
+.contact{padding:80px 0;text-align:center;background:var(--green);color:#fff}.contact .eyebrow{justify-content:center;color:#f1d6a7}.contact h2{font:600 clamp(32px,4vw,46px) "Playfair Display",serif;margin:16px 0}.contact p{max-width:550px;margin:0 auto 27px;color:#d8e5de;line-height:1.8;font-size:14px}.contact .btn{background:#f1d6a7}
+footer{background:#103b33;color:#d5e1da;padding:27px 0}.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:20px;font-size:11px}.footer-brand{font:600 18px "Playfair Display",serif;color:white}.admin-link{color:#a9c3b7;text-decoration:none;font-size:11px}
+#adminApp{display:none;min-height:100vh;background:#f5f7f3;padding:35px 0 70px}#adminApp .admin-wrap{width:min(1000px,calc(100% - 36px));margin:auto}.admin-top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:28px}.admin-top h1{font:600 32px "Playfair Display",serif;color:var(--green);margin:0}.admin-card{background:white;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 4px 15px #1b49300a}.admin-card h3{font:600 21px "Playfair Display",serif;margin:0 0 6px;color:var(--green)}.admin-card p{font-size:12px;color:var(--muted);margin:0 0 18px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;font-weight:700;color:#4c6258}.field input,.field textarea,.field select{border:1px solid #dce4dd;border-radius:8px;padding:11px 12px;background:#fff;color:var(--ink);width:100%;font-size:13px}.field textarea{min-height:78px;resize:vertical}.checkline{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--green);font-weight:700}.admin-actions{display:flex;align-items:center;gap:12px;margin-top:14px}.admin-actions .btn{padding:11px 18px;font-size:12px}.status{font-size:12px;color:var(--green2)}.login-box{max-width:420px;margin:10vh auto;background:white;padding:30px;border-radius:16px;box-shadow:var(--shadow)}.login-box h2{font:600 28px "Playfair Display",serif;color:var(--green);margin:0 0 7px}.login-box p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 20px}.login-box .field{margin-bottom:13px}.login-box .btn{width:100%;margin-top:6px}.admin-note{font-size:11px;color:var(--muted);margin-top:15px;line-height:1.6}
+@media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.experience-grid{gap:32px}.experience h2{font-size:35px}}
+@media(max-width:600px){.wrap{width:min(100% - 32px,1160px)}.nav{height:72px}.navlinks{gap:13px}.navlinks a:not(.nav-cta){display:none}.brand strong{font-size:17px}.brand-mark{width:37px;height:37px}.nav-cta{padding:10px 14px;font-size:11px}.hero{height:720px;min-height:650px;background-position:58% center}.hero-content{padding-top:55px}.hero p{font-size:15px}.hero h1{font-size:48px}.btn-outline{margin:10px 0 0}.intro{padding:55px 0 20px}.listings{padding:30px 0 65px}.section-head{display:block}.count{display:block;margin-top:12px}.cards{grid-template-columns:1fr;gap:17px}.listing-photo{height:230px}.experience{padding:60px 0}.experience-grid{grid-template-columns:1fr}.experience-img{height:290px;order:2}.experience h2{font-size:36px}.contact{padding:62px 0}.footer-inner{flex-direction:column;text-align:center}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.admin-top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div id="publicApp">
+<header><div class="wrap nav">
+<a class="brand" href="#"><span class="brand-mark">✺</span><span><strong>Vacances en Guadeloupe</strong><small>Échappez-vous aux Caraïbes</small></span></a>
+<nav class="navlinks"><a href="#logements">Nos logements</a><a href="#destination">La Guadeloupe</a><a class="nav-cta" href="#contact">Nous contacter</a></nav>
+</div></header>
+<section class="hero"><div class="wrap"><div class="hero-content">
+<div class="eyebrow">Votre parenthèse au soleil</div>
+<h1>La Guadeloupe<br>comme <em>chez vous.</em></h1>
+<p>Posez vos valises, respirez les alizés et découvrez l'île papillon à votre rythme. Trouvez le logement idéal pour vos prochaines vacances sous les tropiques.</p>
+<a class="btn" href="#logements">Découvrir nos logements <span>→</span></a><a class="btn btn-outline" href="#destination">Explorer la destination</a>
+</div></div></section>
+<section class="intro wrap"><div class="eyebrow">Bienvenue chez vous</div><h2>Des séjours qui ont le goût des vacances</h2><p>Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.</p></section>
+<section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow">Nos adresses</div><h2>Nos logements en Guadeloupe</h2><p>Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="cards" id="listingCards"><div class="empty"><div class="symbol">🌴</div><h3>Préparation de nos logements</h3><p>Nos hébergements seront bientôt présentés ici. Revenez découvrir nos premières adresses.</p></div></div></section>
+<section class="experience" id="destination"><div class="wrap experience-grid"><div class="experience-img" role="img" aria-label="Paysage de plage tropicale en Guadeloupe"></div><div><div class="eyebrow">L'île papillon vous attend</div><h2>Un concentré de nature, de soleil et de liberté</h2><p>Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.</p><p>Installez-vous dans votre logement et partez explorer les trésors de l'archipel, à votre rythme.</p><div class="perks"><div class="perk"><i>✦</i> Plages paradisiaques</div><div class="perk"><i>✦</i> Saveurs créoles</div><div class="perk"><i>✦</i> Nature préservée</div><div class="perk"><i>✦</i> Accueil chaleureux</div></div></div></div></section>
+<section class="contact" id="contact"><div class="wrap"><div class="eyebrow">Parlons de vos vacances</div><h2>Votre prochaine escapade commence ici</h2><p>Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.</p><a class="btn" href="mailto:contact@vacances-en-guadeloupe.fr">Nous contacter <span>→</span></a></div></section>
+<footer><div class="wrap footer-inner"><span class="footer-brand">Vacances en Guadeloupe</span><span>Des vacances au rythme des îles.</span><a class="admin-link" href="#admin" id="adminLink">Espace gestion</a></div></footer>
+</div>
+<div id="adminApp"><div class="admin-wrap"><div class="admin-top"><div><h1>Gestion des logements</h1><div style="color:#6c7c75;font-size:13px;margin-top:5px">Vacances en Guadeloupe · Administration</div></div><a href="#" class="details">← Voir le site public</a></div><div id="adminContent"></div></div></div>
+<script>
+const SB_URL='https://pezxvjollptmwmadykfk.supabase.co';
+const SB_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let session=null;
+async function api(path,method='GET',body=null){
+ const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
+ if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
+ const r=await fetch(SB_URL+'/rest/v1/'+path,{method,headers,body:body?JSON.stringify(body):undefined});
+ const txt=await r.text();if(!r.ok)throw new Error('Erreur '+r.status+' : '+txt.slice(0,180));return txt?JSON.parse(txt):null;
+}
+async function loadPublic(){
+ try{
+  const rows=await api('public_listings?select=id,title,summary,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities&is_published=eq.true&order=display_order.asc');
+  $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
+  if(!rows.length)return;
+  $('listingCards').innerHTML=rows.map(x=>{
+   const photo=(x.photo_urls||[])[0];
+   const image=photo?'<img src="'+esc(photo)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
+   const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
+   const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
+   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" href="#contact">En savoir plus</a></div></div></article>';
+  }).join('');
+ }catch(e){console.warn('Chargement des logements indisponible',e)}
+}
+function showAdmin(){
+ $('publicApp').style.display='none';$('adminApp').style.display='block';
+ renderLogin();
+}
+function renderLogin(){
+ $('adminContent').innerHTML='<div class="login-box"><h2>Bienvenue</h2><p>Connectez-vous avec votre compte administrateur Planning Conciergerie pour gérer les logements affichés sur le site public.</p><form id="loginForm"><div class="field"><label>Adresse e-mail</label><input id="adminEmail" type="email" required autocomplete="username"></div><div class="field"><label>Mot de passe</label><input id="adminPassword" type="password" required autocomplete="current-password"></div><button class="btn" type="submit">Se connecter</button><div id="loginStatus" class="admin-note"></div></form><div class="admin-note">L'accès est réservé au compte administrateur autorisé de Planning Conciergerie.</div></div>';
+ $('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();const st=$('loginStatus');st.textContent='Connexion…';
+  try{
+   const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:$('adminEmail').value,password:$('adminPassword').value})});
+   const j=await r.json();if(!r.ok||!j.access_token)throw new Error(j.msg||j.message||'Identifiants incorrects.');
+   session=j;
+   const profile=await fetch(SB_URL+'/rest/v1/user_profiles?select=role,status&user_id=eq.'+encodeURIComponent(j.user.id),{headers:{apikey:SB_KEY,Authorization:'Bearer '+j.access_token}});
+   const p=await profile.json();if(!profile.ok||!p[0]||p[0].role!=='admin'||p[0].status!=='approved')throw new Error('Ce compte ne dispose pas des droits administrateur.');
+   await renderManager();
+  }catch(err){st.textContent=err.message;session=null}
+ });
+}
+async function renderManager(){
+ $('adminContent').innerHTML='<div class="admin-card"><h3>Chargement des logements…</h3><p>Récupération des fiches associées à Planning Conciergerie.</p></div>';
+ try{
+  const rows=await api('public_listings?select=*&order=display_order.asc');
+  $('adminContent').innerHTML='<div class="admin-card"><h3>Publier vos hébergements</h3><p>Les logements restent invisibles sur le site public tant que la case « Publier » n’est pas activée. Les modifications sont enregistrées dans une table publique dédiée, sans exposer les réservations ou les données des propriétaires.</p><button class="btn" id="logoutBtn" type="button">Se déconnecter</button></div>'+rows.map(x=>'<form class="admin-card listingForm" data-id="'+esc(x.id)+'"><h3>'+esc(x.title||'Nouveau logement')+'</h3><p>Logement lié à Planning Conciergerie · '+esc(x.location||'Localisation à compléter')+'</p><div class="formgrid">'+
+  field('Titre','title',x.title)+field('Commune / secteur','location',x.location)+
+  field('Type de logement','property_type',x.property_type)+field('Voyageurs maximum','max_guests',x.max_guests,'number')+
+  field('Nombre de chambres','bedroom_count',x.bedroom_count,'number')+field('Nombre de salles de bain','bathroom_count',x.bathroom_count,'number')+
+  field('Prix à partir de (€ / nuit)','price_from',x.price_from,'number')+
+  '<div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(x.summary)+'" placeholder="Ex. Un cocon paisible à deux pas du lagon"></div>'+
+  '<div class="field full"><label>Description</label><textarea name="description" placeholder="Présentez le logement et ses atouts…">'+esc(x.description)+'</textarea></div>'+
+  '<div class="field full"><label>Photos — une URL d’image par ligne</label><textarea name="photo_urls" placeholder="https://…">'+esc((x.photo_urls||[]).join('\n'))+'</textarea></div>'+
+  '<div class="field full"><label>Équipements — séparés par des virgules</label><input name="amenities" value="'+esc((x.amenities||[]).join(', '))+'" placeholder="Wi-Fi, climatisation, terrasse, piscine…"></div>'+
+  '<div class="field full"><label class="checkline"><input type="checkbox" name="is_published" '+(x.is_published?'checked':'')+'> Publier ce logement sur le site</label></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les modifications</button><span class="status" aria-live="polite"></span></div></form>').join('');
+  $('logoutBtn').addEventListener('click',()=>{session=null;renderLogin()});
+  document.querySelectorAll('.listingForm').forEach(form=>form.addEventListener('submit',saveListing));
+ }catch(e){$('adminContent').innerHTML='<div class="admin-card"><h3>Impossible de charger les logements</h3><p>'+esc(e.message)+'</p></div>'}
+}
+function field(label,name,value,type='text'){return '<div class="field"><label>'+label+'</label><input name="'+name+'" type="'+type+'" value="'+esc(value??'')+'" '+(type==='number'?'min="0" step="1"':'')+'></div>'}
+async function saveListing(e){
+ e.preventDefault();const form=e.currentTarget,st=form.querySelector('.status'),data=new FormData(form);
+ const value=n=>String(data.get(n)||'').trim();
+ const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split('\n').map(x=>x.trim()).filter(Boolean),amenities:value('amenities').split(',').map(x=>x.trim()).filter(Boolean),is_published:form.querySelector('[name=is_published]').checked,updated_at:new Date().toISOString()};
+ st.textContent='Enregistrement…';
+ try{await api('public_listings?id=eq.'+encodeURIComponent(form.dataset.id),'PATCH',payload);st.textContent='Enregistré ✓';}
+ catch(err){st.textContent=err.message}
+}
+function route(){if(location.hash==='#admin'||location.hash.startsWith('#admin/'))showAdmin();else{$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic()}}
+window.addEventListener('hashchange',route);route();
+</script>
+</body></html>
