@@ -2022,6 +2022,8 @@ async function sbAfterLogin(){
     setAppAccessVisible(true);
     hideAccountGate();
     centerOnToday(3);
+    // À l'ouverture, repartir du haut de la page ; les défilements manuels restent ensuite libres.
+    window.scrollTo(0,0);
     startAutoRefresh();
     schedulePendingSync();
   }catch(e){
@@ -4065,6 +4067,8 @@ async function init(){
     hideAccountGate();
     setAppAccessVisible(true);
     centerOnToday(3);
+    // À l'ouverture, repartir du haut de la page ; les défilements manuels restent ensuite libres.
+    window.scrollTo(0,0);
   }
 
   startFlightAutoUpdate();
