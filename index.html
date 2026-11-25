@@ -3121,7 +3121,19 @@ function openVoiceChat(){
       }
       refreshVoiceMuteButton();
     });
-    document.getElementById('voiceChatMic').addEventListener('click', startVoiceRecognition);
+    document.getElementById('voiceChatMic').addEventListener('click', ()=>{
+      // Un clic sur le micro interrompt immédiatement la voix de l'assistante.
+      if('speechSynthesis' in window && (voiceSpeaking || window.speechSynthesis.speaking || window.speechSynthesis.pending)){
+        try{ window.speechSynthesis.cancel(); }catch(e){}
+        voiceSpeaking = false;
+      }
+      // Le bouton sert aussi à arrêter une écoute déjà en cours.
+      if(voiceListening && voiceRecognition){
+        try{ voiceRecognition.stop(); }catch(e){}
+        return;
+      }
+      if(!voiceBusy) startVoiceRecognition();
+    });
     document.getElementById('voiceChatForm').addEventListener('submit', async e=>{
       e.preventDefault();
       const input = document.getElementById('voiceChatInput');
