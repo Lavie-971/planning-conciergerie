@@ -579,16 +579,6 @@ function enablePrivatePreviewEditing(site,rows){
  const banner=$('previewBanner');if(banner)banner.remove();
  const oldButton=$('previewSiteEditorButton');if(oldButton)oldButton.remove();
 }
-function openPreviewSiteEditor(site){
- const t=site.site_texts||{},fields={nav_listings:'Menu — lien logements',nav_destination:'Menu — lien destination',nav_contact:'Menu — lien contact',hero_cta:'Accueil — bouton principal',hero_secondary_cta:'Accueil — bouton secondaire',perk1:'Destination — avantage 1',perk2:'Destination — avantage 2',perk3:'Destination — avantage 3',perk4:'Destination — avantage 4',hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — texte',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_title:'Logements — titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — texte',destination_text2:'Destination — second texte',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page'};
- const modal=previewModal('<h2>Modifier les textes, la présentation et la couverture</h2><p>Modifiez directement le contenu de votre site. Les changements sont enregistrés sans publier le site.</p><form id="previewSiteEditForm"><div class="formgrid"><div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(site.description||'')+'</textarea></div>'+Object.entries(fields).map(([k,l])=>'<div class="field full"><label>'+l+'</label><textarea name="'+k+'">'+esc(t[k]||'')+'</textarea></div>').join('')+imagePickerMarkup('hero_photo_url','Photo de couverture',site.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer et actualiser l’aperçu</button><span class="status" id="previewSiteEditStatus"></span></div></form>');
- setupImageEditors();
- modal.querySelector('#previewSiteEditForm').addEventListener('submit',async e=>{
-  e.preventDefault();const form=e.currentTarget,st=$('previewSiteEditStatus'),data=new FormData(form),texts={};for(const [k,v] of data.entries())if(!['hero_photo_url','description'].includes(k))texts[k]=String(v||'').trim();
-  const photo=String(data.get('hero_photo_url')||'').trim(),description=String(data.get('description')||'').trim();st.textContent='Enregistrement…';
-  try{await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,description,hero_photo_url:photo,updated_at:new Date().toISOString()});site.site_texts=texts;site.description=description;site.hero_photo_url=photo;modal.hidden=true;await loadPublic();}catch(err){st.textContent='Erreur : '+err.message;}
- });
-}
 function openPreviewListingEditor(item){
  if(!item)return;const suggestions=suggestListingText(item);
  const modal=previewModal('<h2>Modifier '+esc(item.title)+'</h2><p>Modifiez les caractéristiques, les textes, les photos et les équipements directement depuis votre aperçu privé.</p><form id="previewListingEditForm" data-id="'+esc(item.id)+'"><div class="formgrid">'+
