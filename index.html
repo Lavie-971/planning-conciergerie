@@ -3099,8 +3099,17 @@ function openVoiceChat(){
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.textContent = question;
-      chip.style.cssText = 'flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:13px;white-space:nowrap;';
-      chip.addEventListener('click', ()=>{ if(!voiceBusy) submitVoicePhrase(question); });
+      chip.style.cssText = 'flex:0 0 auto;min-height:40px;padding:0 14px;border:1px solid var(--accent);border-radius:999px;background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;touch-action:manipulation;pointer-events:auto;';
+      chip.title = 'Cliquer pour poser cette question';
+      chip.addEventListener('click', async event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        if(voiceBusy) return;
+        const input = document.getElementById('voiceChatInput');
+        if(input) input.value = question;
+        await submitVoicePhrase(question);
+        if(input) input.value = '';
+      });
       chipBox.appendChild(chip);
     });
     refreshVoiceMuteButton();
