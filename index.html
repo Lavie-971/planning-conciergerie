@@ -199,6 +199,7 @@ input,select,textarea{font-family:inherit;font-size:14px;}
 }
 .header-spacer{background:var(--surface);}
 .apt-info .apt-name{font-weight:600;font-size:13.5px;color:var(--ink);}
+.apt-info{position:relative}.apt-billing-dot{position:absolute;top:7px;right:8px;width:9px;height:9px;border-radius:50%;background:#D93025;box-shadow:0 0 0 2px var(--surface)}
 .apt-info .apt-owner{font-size:11.5px;color:var(--ink-faint);margin-top:1px;}
 .apt-info{cursor:pointer;transition:background 0.1s;}
 .apt-info:hover{background:var(--accent-soft);}
@@ -1253,7 +1254,7 @@ body.printing-doc #printPanel{
       <button class="tab-btn active" id="tabStatsBtn" data-tab="stats">📊 Statistiques</button>
       <button class="tab-btn" id="tabAdvancesBtn" data-tab="advances">💶 Avances</button>
       <button class="tab-btn" id="tabServicesGlobalBtn" data-tab="servicesGlobal">🧾 Services</button>
-      <button class="tab-btn" id="tabCommentBtn" data-tab="comment">📝 Commentaire</button>
+      <button class="tab-btn" id="tabInvoicesBtn" data-tab="invoices">🧾 Factures</button><button class="tab-btn" id="tabCommentBtn" data-tab="comment">📝 Commentaire</button>
     </div>
 
     <div id="statsTabPanel">
@@ -1329,6 +1330,7 @@ body.printing-doc #printPanel{
       <button class="btn primary" id="addGlobalServiceBtn" style="width:100%;">+ Ajouter un service</button>
     </div>
 
+    <div id="invoicesTabPanel" style="display:none;"><p>Une facture mensuelle unique regroupe les services et les avances.</p><div class="field"><label for="serviceInvoiceMonth">Mois à facturer</label><input type="month" id="serviceInvoiceMonth"></div><button class="btn primary" id="generateMonthlyServiceInvoiceBtn" style="width:100%;margin:8px 0">Générer la facture mensuelle</button><div id="monthlyInvoicePreview"></div><h3>Historique des factures</h3><div id="monthlyInvoicesHistory"></div></div>
     <div id="commentTabPanel" style="display:none;">
       <p style="font-size:12.5px;color:var(--ink-soft);margin-top:0;">Notes libres propres à ce logement (code d'accès, particularités, consignes du propriétaire…).</p>
       <textarea id="aptCommentText" rows="10" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13.5px;"></textarea>
@@ -4632,7 +4634,7 @@ function renderYearView(){
     row.className = 'apartment-row';
     const info = document.createElement('div');
     info.className = 'apt-info';
-    info.innerHTML = `<div class="apt-name">${escapeHtml(apt.name)}</div><div class="apt-owner">${escapeHtml(apt.owner||'—')}</div>`;
+    info.innerHTML = `<div class="apt-name">${escapeHtml(apt.name)}</div><div class="apt-owner">${escapeHtml(apt.owner||'—')}</div>${apartmentHasUnbilledItems(apt)?'<span class="apt-billing-dot" title="À facturer"></span>':''}`;
     info.title = 'Voir les statistiques de ce logement';
     info.addEventListener('click', ()=> openApartmentStatsModal(apt.id));
     row.appendChild(info);
@@ -5325,13 +5327,14 @@ function buildSelfFiscalRecapHtml(year){
 
 function switchStatsTab(tab){
   statsTab = tab;
-  ['stats','advances','servicesGlobal','comment'].forEach(t=>{
+  ['stats','advances','servicesGlobal','invoices','comment'].forEach(t=>{
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)+'Btn').classList.toggle('active', t===tab);
     document.getElementById(t+'TabPanel').style.display = (t===tab) ? '' : 'none';
   });
   if(tab==='stats') renderApartmentStats();
   if(tab==='advances') renderAdvances();
   if(tab==='servicesGlobal') renderGlobalServices();
+  if(tab==='invoices') renderMonthlyInvoicesPanel();
   if(tab==='comment') renderComment();
 }
 
@@ -5361,7 +5364,6 @@ function renderAdvances(){
       <span class="amount" style="${a.reimbursed?'text-decoration:line-through;opacity:0.5;':''}">${maskEuro(a.amount)}</span>
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
         ${!a.reimbursed ? `<button data-act="reimburse" title="Marquer comme remboursé" style="font-size:11px;padding:3px 7px;border:1px solid #4CAF50;border-radius:6px;background:#E6F5E9;color:#2E7D32;">✅ Remboursé</button>` : `<button data-act="unreimburse" title="Annuler le remboursement" style="font-size:11px;padding:3px 7px;border:1px solid var(--line);border-radius:6px;color:var(--ink-faint);">↩</button>`}
-        <button data-act="invoice" title="Générer une facture" style="font-size:11px;padding:3px 7px;border:1px solid var(--accent);border-radius:6px;background:var(--accent-soft);color:var(--accent-dark);">🧾 Facture</button>
         <button data-act="delete" title="Supprimer" style="font-size:13px;padding:3px 7px;">🗑</button>
       </div>
     </div>
@@ -5381,13 +5383,6 @@ function renderAdvances(){
       if(adv){ adv.reimbursed = false; adv.reimbursedDate = null; saveApartments(); renderAdvances(); renderSummary(); }
     });
   });
-  list.querySelectorAll('[data-act=invoice]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      const id = e.target.closest('.advance-row').getAttribute('data-id');
-      const adv = (apt.advances||[]).find(a=>a.id===id);
-      if(adv) openPrintDocument(buildAdvanceInvoiceHtml(adv, apt));
-    });
-  });
   list.querySelectorAll('[data-act=delete]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       const id = e.target.closest('.advance-row').getAttribute('data-id');
@@ -5400,6 +5395,16 @@ function renderAdvances(){
   });
 }
 
+
+function monthlyRange(month){const p=String(month||'').split('-').map(Number);if(p.length!==2||!p[0]||!p[1])return null;const start=toISO(p[0],p[1]-1,1);return{start,end:addDaysISO(start,daysInMonth(p[0],p[1]-1)),year:p[0],m:p[1]};}
+function monthlyItems(apt,month){const r=monthlyRange(month);if(!r)return{services:[],advances:[]};const billed=new Set((apt.serviceInvoices||[]).flatMap(v=>v.itemKeys||[])),services=[],advances=[];
+(apt.globalServices||[]).forEach((v,i)=>{const key='global:'+(v.id||'old-'+i);if(v.date>=r.start&&v.date<r.end&&!billed.has(key))services.push({key,date:v.date,label:v.label||'Service',amount:+v.price||0});});
+bookings.filter(b=>b.apartmentId===apt.id).forEach(b=>(b.services||[]).forEach((v,i)=>{const date=b.checkout||b.checkin,key='booking:'+b.id+':'+(v.id||'old-'+i);if(date>=r.start&&date<r.end&&!billed.has(key)&&(+v.price||0)>0)services.push({key,date,label:(v.label||'Service')+' — '+(b.client||'Réservation'),amount:+v.price||0});}));
+(apt.advances||[]).forEach((v,i)=>{const key='advance:'+(v.id||'old-'+i);if(v.date>=r.start&&v.date<r.end&&!billed.has(key))advances.push({key,date:v.date,label:v.description||'Avance',amount:+v.amount||0});});return{services,advances};}
+function apartmentHasUnbilledItems(apt){const months=new Set();(apt.advances||[]).forEach(v=>{if(v.date)months.add(v.date.slice(0,7));});(apt.globalServices||[]).forEach(v=>{if(v.date)months.add(v.date.slice(0,7));});bookings.filter(b=>b.apartmentId===apt.id).forEach(b=>(b.services||[]).forEach(v=>{const d=b.checkout||b.checkin;if(d)months.add(d.slice(0,7));}));return [...months].some(m=>{const x=monthlyItems(apt,m);return x.services.length+x.advances.length>0;});}
+function renderMonthlyInvoicesPanel(){const apt=apartments.find(a=>a.id===statsApartmentId);if(!apt)return;const month=document.getElementById('serviceInvoiceMonth').value||todayISO().slice(0,7),x=monthlyItems(apt,month),sum=a=>a.reduce((n,v)=>n+v.amount,0);document.getElementById('monthlyInvoicePreview').innerHTML='Services : '+fmtEuro(sum(x.services))+' ('+x.services.length+')<br>Avances : '+fmtEuro(sum(x.advances))+' ('+x.advances.length+')<br><b>Total : '+fmtEuro(sum(x.services)+sum(x.advances))+'</b>';const hist=(apt.serviceInvoices||[]).slice().sort((a,b)=>(b.month||'').localeCompare(a.month||''));document.getElementById('monthlyInvoicesHistory').innerHTML=hist.length?hist.map((v,i)=>'<div class="advance-row"><span class="desc"><b>'+escapeHtml(v.number)+'</b><br>'+escapeHtml(v.month)+'</span><span class="amount">'+fmtEuro(v.total)+'</span><button data-hist="'+i+'">Voir</button></div>').join(''):'<p>Aucune facture générée.</p>';document.querySelectorAll('#monthlyInvoicesHistory [data-hist]').forEach(btn=>btn.addEventListener('click',()=>{const v=hist[+btn.dataset.hist];if(v&&v.html)openPrintDocument(v.html);}));}
+function monthlyInvoiceHtml(apt,month,x,number){const p=getMyProfile(),r=monthlyRange(month),all=[...x.services,...x.advances],total=all.reduce((n,v)=>n+v.amount,0);const rows=a=>a.length?a.map(v=>'<tr><td>'+fmtDateShort(v.date)+'</td><td>'+escapeHtml(v.label)+'</td><td class="right">'+fmtEuro(v.amount)+'</td></tr>').join(''):'<tr><td colspan="3">Aucune opération</td></tr>';const section=(name,a)=>'<h3>'+name+'</h3><table class="doc-table"><thead><tr><th>Date</th><th>Description</th><th class="right">Montant</th></tr></thead><tbody>'+rows(a)+'</tbody><tfoot><tr><td colspan="2">Total '+name.toLowerCase()+'</td><td class="right">'+fmtEuro(a.reduce((n,v)=>n+v.amount,0))+'</td></tr></tfoot></table>';return '<div class="doc-header"><h1>Facture mensuelle — Services et avances</h1><div class="doc-meta">N° '+number+'<br>Émise le '+fmtDateShort(todayISO())+'</div></div><div class="doc-parties"><div class="doc-party"><h3>Prestataire</h3><strong>'+escapeHtml([p.name,p.company].filter(Boolean).join(' — ')||'Conciergerie')+'</strong><span>'+buildPrestatairBlock(p)+'</span></div><div class="doc-party"><h3>Propriétaire</h3><strong>'+escapeHtml(apt.owner||'—')+'</strong><span>'+escapeHtml(apt.ownerAddress||'')+'<br>'+escapeHtml(apt.ownerPhone||'')+'<br>'+escapeHtml(apt.ownerEmail||'')+'</span></div></div><div class="doc-meta-bar"><div>Logement : <span>'+escapeHtml(apt.name)+'</span></div><div>Période : <span>'+MONTH_NAMES[r.m-1]+' '+r.year+'</span></div></div>'+section('Services',x.services)+section('Avances',x.advances)+'<table class="doc-table"><tfoot><tr><td><b>Total à régler</b></td><td class="right"><b>'+fmtEuro(total)+'</b></td></tr></tfoot></table><div class="doc-footer">'+buildLegalMentions(p,todayISO())+'</div>';}
+function generateMonthlyServiceInvoice(){const apt=apartments.find(a=>a.id===statsApartmentId);if(!apt)return;const month=document.getElementById('serviceInvoiceMonth').value,x=monthlyItems(apt,month),all=[...x.services,...x.advances];if(!all.length){alert('Aucune opération à facturer pour ce mois.');return;}if((apt.serviceInvoices||[]).some(v=>v.month===month)){alert('Une facture existe déjà pour ce mois. Consulte l’historique.');return;}const number='SAV-'+month.replace('-','')+'-'+String((apt.serviceInvoices||[]).length+1).padStart(3,'0'),html=monthlyInvoiceHtml(apt,month,x,number);if(!apt.serviceInvoices)apt.serviceInvoices=[];apt.serviceInvoices.push({id:generateId(),number,month,issuedAt:todayISO(),total:all.reduce((n,v)=>n+v.amount,0),itemKeys:all.map(v=>v.key),html});saveApartments();renderMonthlyInvoicesPanel();renderCalendar();openPrintDocument(html);}
 function getMyProfile(){
   try{
     const raw = window.localStorage.getItem(LS_PREFIX+'myProfile');
@@ -7182,13 +7187,15 @@ function finalizeSaveBooking(data){
       const old=bookings[idx];
       const history=Array.isArray(old.history)?old.history.slice():[];
       if(old.status!==data.status) history.push({date:new Date().toISOString(),from:old.status,to:data.status});
+      data.services=(data.services||[]).map(v=>Object.assign({},v,{id:v.id||generateId()}));
       savedBooking=Object.assign({id:editingBookingId},data,{history});
       bookings[idx]=savedBooking;
     }else{
       savedBooking=Object.assign({id:editingBookingId},data,{history:[]}); bookings.push(savedBooking);
     }
   }else{
-    savedBooking=Object.assign({id:generateId()},data,{history:[]}); bookings.push(savedBooking);
+    data.services=(data.services||[]).map(v=>Object.assign({},v,{id:v.id||generateId()}));
+    savedBooking=Object.assign({id:generateId()},data,{history:[]});
   }
   if(savedBooking.whatsappWorkflow && savedBooking.whatsappWorkflow.steps){
     const steps=savedBooking.whatsappWorkflow.steps;
@@ -7824,7 +7831,10 @@ document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
   document.getElementById('tabStatsBtn').addEventListener('click', ()=> switchStatsTab('stats'));
   document.getElementById('tabAdvancesBtn').addEventListener('click', ()=> switchStatsTab('advances'));
   document.getElementById('tabServicesGlobalBtn').addEventListener('click', ()=> switchStatsTab('servicesGlobal'));
+  document.getElementById('tabInvoicesBtn').addEventListener('click', ()=> switchStatsTab('invoices'));
   document.getElementById('tabCommentBtn').addEventListener('click', ()=> switchStatsTab('comment'));
+  document.getElementById('generateMonthlyServiceInvoiceBtn').addEventListener('click', generateMonthlyServiceInvoice);
+  document.getElementById('serviceInvoiceMonth').value=todayISO().slice(0,7);
   document.getElementById('addAdvanceBtn').addEventListener('click', addAdvance);
   document.getElementById('addGlobalServiceBtn').addEventListener('click', addGlobalService);
   document.getElementById('saveCommentBtn').addEventListener('click', saveComment);
