@@ -484,7 +484,8 @@ if(/^#admin(?:\/|$)/i.test(location.hash||'')||new URLSearchParams(location.sear
  const publicRoot=$('publicApp'),adminRoot=$('adminApp');
  if(publicRoot)publicRoot.style.display='none';
  if(adminRoot)adminRoot.style.display='block';
- if($('adminContent'))renderLogin();
+ // Ne pas afficher le formulaire avant la vérification de la session : le routeur affichera
+ // soit l'espace propriétaire, soit le formulaire de connexion une fois la restauration terminée.
 }
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const OWNER_SESSION_KEY='vacances_guadeloupe_owner_session_v1';
@@ -492,7 +493,11 @@ const OWNER_SESSION_KEY='vacances_guadeloupe_owner_session_v1';
 let ownerRestorePromise=null;
 function restoreOwnerSession(){
  if(ownerRestorePromise)return ownerRestorePromise;
- ownerRestorePromise=(async()=>{try{const raw=localStorage.getItem(OWNER_SESSION_KEY);if(!raw)return;let saved=JSON.parse(raw);if(!saved?.user?.id||!saved?.access_token)throw new Error('Session invalide');if(Number(saved.expires_at||0)<=Math.floor(Date.now()/1000)+60){if(!saved.refresh_token)throw new Error('Session expirée');const rr=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:saved.refresh_token})});const renewed=await rr.json();if(!rr.ok||!renewed.access_token)throw new Error('Session expirée');saved=renewed;localStorage.setItem(OWNER_SESSION_KEY,JSON.stringify(saved));}session=saved;currentUser=saved.user;const profiles=await api('user_profiles?select=role,status,full_name&user_id=eq.'+encodeURIComponent(currentUser.id));const profile=profiles[0];if(!profile||profile.status!=='approved')throw new Error('Session invalide');currentProfile=profile;const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0]||null;}catch(e){session=null;currentUser=null;currentProfile=null;currentSite=null;localStorage.removeItem(OWNER_SESSION_KEY);}})();
+ ownerRestorePromise=(async()=>{try{const raw=localStorage.getItem(OWNER_SESSION_KEY);if(!raw)return;let saved=JSON.parse(raw);if(!saved?.user?.id||!saved?.access_token)throw new Error('Session invalide');if(Number(saved.expires_at||0)<=Math.floor(Date.now()/1000)+60){if(!saved.refresh_token)throw new Error('Session expirée');const rr=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:saved.refresh_token})});const renewed=await rr.json();if(!rr.ok||!renewed.access_token)throw new Error('Session expirée');saved=renewed;localStorage.setItem(OWNER_SESSION_KEY,JSON.stringify(saved));}session=saved;currentUser=saved.user;const profiles=await api('user_profiles?select=role,status,full_name&user_id=eq.'+encodeURIComponent(currentUser.id));const profile=profiles[0];if(!profile||profile.status!=='approved')throw new Error('Session invalide');currentProfile=profile;const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));currentSite=sites[0]||null;}catch(e){
+  session=null;currentUser=null;currentProfile=null;currentSite=null;
+  // Une erreur réseau temporaire ne doit pas déconnecter le propriétaire.
+  if(/Session invalide|Session expirée/.test(String(e?.message||'')))localStorage.removeItem(OWNER_SESSION_KEY);
+ }})();
  return ownerRestorePromise.finally(()=>{ownerRestorePromise=null;});
 }
 let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false;
