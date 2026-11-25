@@ -2457,6 +2457,8 @@ async function silentRefresh(){
   // Le rafraîchissement reprend après 30 secondes sans défilement.
   if(Date.now() - _lastCalendarUserScrollAt < 30000) return;
   await loadData();
+  // L'utilisateur a pu commencer à défiler pendant le chargement réseau.
+  if(Date.now() - _lastCalendarUserScrollAt < 30000) return;
   preservePlanningScrollAndRender();
 }
 function startAutoRefresh(){
