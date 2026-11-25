@@ -740,6 +740,7 @@ body.printing-doc #printPanel{
 <button id="addBookingBtn" class="primary">+ Réservation</button>
 <button id="agendaBtn" class="primary">📅 Agenda</button>
       <button id="voiceCommandBtn" class="primary" type="button">🎙️ Assistant vocal</button>
+      <button id="ownerSiteRequestBtn" class="owner-site-action" type="button" hidden>＋ Demander mon site</button>
       <button id="ownerSiteAccessBtn" class="owner-site-action" type="button" hidden>🌴 Espace site</button>
       <button id="ownerSiteShareBtn" class="owner-site-action primary" type="button" hidden>↗ Partager le site</button>
     </div>
@@ -2515,14 +2516,42 @@ let ownerSiteEnabled=false;
 const OWNER_PUBLIC_SITE_BASE='https://lavie-971.github.io/planning-conciergerie/vacances-en-guadeloupe/';
 function ownerPublicSiteUrl(){return ownerSiteSlug?OWNER_PUBLIC_SITE_BASE+'?site='+encodeURIComponent(ownerSiteSlug):'';}
 function updateOwnerSiteActions(){
+  const request=document.getElementById('ownerSiteRequestBtn');
   const access=document.getElementById('ownerSiteAccessBtn');
   const share=document.getElementById('ownerSiteShareBtn');
-  if(!access||!share)return;
-  const visible=accountApproved&&accountRole==='user'&&!!ownerSiteSlug;
-  access.hidden=!visible;share.hidden=!visible;
-  access.title=visible?'Ouvrir votre espace de gestion du site':'';
-  share.disabled=!visible||!ownerSiteEnabled;
+  if(!access||!share||!request)return;
+  const manager=accountApproved&&accountRole==='user';
+  const hasSite=manager&&!!ownerSiteSlug;
+  request.hidden=!manager||hasSite;
+  access.hidden=!hasSite;share.hidden=!hasSite;
+  access.title=hasSite?'Ouvrir votre espace de gestion du site':'';
+  share.disabled=!hasSite||!ownerSiteEnabled;
   share.title=!ownerSiteEnabled?'Votre site doit être publié pour être partagé avec des clients.':'Partager le lien public de votre site';
+}
+async function requestOwnerSiteCreation(){
+  if(!accountApproved||accountRole!=='user'||!activeUserId)return;
+  if(ownerSiteSlug){openOwnerSiteSpace();return;}
+  const name=window.prompt('Quel nom souhaitez-vous donner à votre site de locations ?','Mon site de vacances');
+  if(name===null)return;
+  const siteName=name.trim();
+  if(!siteName){alert('Indiquez un nom pour votre site.');return;}
+  const btn=document.getElementById('ownerSiteRequestBtn');
+  if(btn)btn.disabled=true;
+  try{
+    const slug='proprietaire-'+activeUserId.toLowerCase();
+    const created=await sbRest('POST','public_owner_sites',{
+      user_id:activeUserId,site_slug:slug,site_name:siteName,
+      site_review_status:'pending',site_enabled:false,
+      tagline:'Votre séjour en Guadeloupe'
+    });
+    ownerSiteSlug=String((Array.isArray(created)?created[0]:created)?.site_slug||slug);
+    ownerSiteEnabled=false;
+    updateOwnerSiteActions();
+    alert('Votre demande de création de site a bien été envoyée. Vous pouvez déjà préparer votre site dans « Espace site ». Il restera invisible aux voyageurs jusqu’à validation par l’administrateur.');
+  }catch(e){
+    console.error('Demande de création du site',e);
+    alert('Impossible d’envoyer la demande : '+(e.message||'erreur inconnue'));
+  }finally{if(btn)btn.disabled=false;}
 }
 function openOwnerSiteSpace(){
   if(!ownerSiteSlug)return;
@@ -7510,6 +7539,7 @@ function bindEvents(){
     planningScroll.addEventListener('pointerdown', markPlanningScrollIntent, {passive:true});
   }
   document.getElementById('voiceCommandBtn').addEventListener('click', startVoiceCommand);
+  document.getElementById('ownerSiteRequestBtn').addEventListener('click',requestOwnerSiteCreation);
   document.getElementById('ownerSiteAccessBtn').addEventListener('click',openOwnerSiteSpace);
   document.getElementById('ownerSiteShareBtn').addEventListener('click',shareOwnerPublicSite);
   document.getElementById('prevMonth').addEventListener('click', goToPrevPeriod);
