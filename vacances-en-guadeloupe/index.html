@@ -377,7 +377,7 @@ body.private-preview-editing .experience-img:hover{outline:3px solid #c49b55;out
 .preview-edit-trigger{position:absolute;z-index:8;top:12px;right:12px;background:#fff!important;color:#173f36!important;border:2px solid #d8b77b!important;padding:9px 13px!important;border-radius:7px!important;font-weight:800;cursor:pointer}
 #listingDetail .preview-edit-trigger{position:static;margin:0 0 18px}
 .preview-edit-site{margin-left:12px;background:#fff;color:#173f36;border:1px solid #d8b77b;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer}
-body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px;transition:outline-color .15s,background-color .15s}body.private-preview-editing [data-site-edit-key]:hover{outline:1px dashed #c49b55;background-color:#fff8e9}body.private-preview-editing [data-site-edit-key]::after{content:' ✎';font:12px Arial;color:#a77b32;opacity:0}body.private-preview-editing [data-site-edit-key]:hover::after{opacity:1}
+body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:0!important;background-color:transparent!important;transition:none}body.private-preview-editing [data-site-edit-key]:hover{outline:0!important;background-color:transparent!important}body.private-preview-editing [data-site-edit-key]::after{content:none!important}
 /* Refonte du formulaire de modification */
 .preview-edit-modal{padding:24px!important;background:rgba(12,27,22,.72)!important;backdrop-filter:blur(5px)}
 .preview-edit-dialog{width:min(980px,100%)!important;max-height:min(92vh,980px)!important;overflow:auto!important;padding:34px 38px 30px!important;border-radius:20px!important;background:#fbfcfa!important;box-shadow:0 28px 90px rgba(0,0,0,.28)!important}
@@ -504,7 +504,7 @@ const PLANNING_SESSION_KEY='conciergerie_sb_session';
 const PLANNING_URL='https://lavie-971.github.io/planning-conciergerie/';
 let ownerAccessMessage='';
  let session=null,currentSite=null,currentUser=null,currentProfile=null,activePreviewSite=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
-let ownerRestorePromise=null;
+let ownerRestorePromise=null,ownerSessionReady=false;
 function restoreOwnerSession(){
  if(ownerRestorePromise)return ownerRestorePromise;
  ownerRestorePromise=(async()=>{
@@ -1091,7 +1091,7 @@ document.getElementById('publicApp').addEventListener('click',e=>{const photo=e.
 document.getElementById('propertyPhotoLightboxClose').addEventListener('click',closePropertyPhotoLightbox);
 propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLightbox)closePropertyPhotoLightbox();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
-function route(){const params=new URLSearchParams(location.search);const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){document.documentElement.classList.add('owner-entry');$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}document.documentElement.classList.remove('owner-entry');$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
+function route(){const params=new URLSearchParams(location.search);const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){document.documentElement.classList.add('owner-entry');$('publicApp').style.display='none';$('adminApp').style.display='block';if(!ownerSessionReady){$('adminContent').innerHTML='<div class="admin-card"><h3>Vérification de votre compte…</h3><p>Connexion à Planning Conciergerie en cours.</p></div>';return;}if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}document.documentElement.classList.remove('owner-entry');$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
  const backOwner=e.target.closest('#previewReturnOwner');
  if(backOwner){e.preventDefault();document.body.classList.remove('private-preview-editing');const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);document.documentElement.classList.add('owner-entry');$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
@@ -1103,7 +1103,7 @@ document.addEventListener('click',e=>{
  if(open){e.preventDefault();return;}
 
 });
-window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',()=>{if(!session?.access_token)restoreOwnerSession().finally(route);else route();});restoreOwnerSession().finally(route);
+function finishOwnerRestore(){return restoreOwnerSession().finally(()=>{ownerSessionReady=true;route();});}window.addEventListener('hashchange',route);window.addEventListener('popstate',route);window.addEventListener('pageshow',()=>{if(!ownerSessionReady)finishOwnerRestore();else route();});finishOwnerRestore();
 </script>
 
 </body></html>
