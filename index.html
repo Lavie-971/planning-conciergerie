@@ -4836,7 +4836,7 @@ function renderCalendar(){
 
     const info = document.createElement('div');
     info.className = 'apt-info';
-    info.innerHTML = `<div class="apt-name">${escapeHtml(apt.name)}</div><div class="apt-owner">${escapeHtml(apt.owner||'—')}</div>`;
+    info.innerHTML = `<div class="apt-name">${escapeHtml(apt.name)}</div><div class="apt-owner">${escapeHtml(apt.owner||'—')}</div>${apartmentHasUnbilledItems(apt)?'<span class="apt-billing-dot" title="Services ou avances à facturer"></span>':''}`;
     info.title = 'Voir les statistiques de ce logement';
     info.addEventListener('click', ()=> openApartmentStatsModal(apt.id));
     row.appendChild(info);
@@ -7762,11 +7762,8 @@ document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
   document.getElementById('tabStatsBtn').addEventListener('click', ()=> switchStatsTab('stats'));
   document.getElementById('tabAdvancesBtn').addEventListener('click', ()=> switchStatsTab('advances'));
   document.getElementById('tabServicesGlobalBtn').addEventListener('click', ()=> switchStatsTab('servicesGlobal'));
-  document.getElementById('tabInvoicesBtn').addEventListener('click', ()=> switchStatsTab('invoices'));
   document.getElementById('tabCommentBtn').addEventListener('click', ()=> switchStatsTab('comment'));
   
-  document.getElementById('serviceInvoiceMonth').addEventListener('change', renderMonthlyInvoicesPanel);
-  document.getElementById('serviceInvoiceMonth').value=todayISO().slice(0,7);
   document.getElementById('addAdvanceBtn').addEventListener('click', addAdvance);
   document.getElementById('addGlobalServiceBtn').addEventListener('click', addGlobalService);
   document.getElementById('saveCommentBtn').addEventListener('click', saveComment);
