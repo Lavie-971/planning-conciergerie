@@ -692,7 +692,7 @@ async function renderManager(profile){
   '<div class="field full form-section-heading"><h4>Description et photos</h4><p>Donnez envie aux voyageurs avec une description claire et plusieurs photos de qualité.</p></div><div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(x.summary)+'" placeholder="Ex. Un cocon paisible à deux pas du lagon"></div>'+
   '<div class="field full"><label>Description</label><textarea name="description">'+esc(x.description)+'</textarea></div>'+
   imagePickerMarkup('photo_urls','Photos du logement',(x.photo_urls||[]).join('\n'),true)+
-  '<div class="field full"><label>Équipements — séparés par des virgules</label><input name="amenities" value="'+esc((x.amenities||[]).join(', '))+'"></div>'+
+  '<div class="field full form-section-heading"><h4>Équipements et services</h4><p>Sélectionnez les équipements proposés dans ce logement. Ils seront affichés sur sa page dédiée.</p></div><div class="field full"><label>Équipements et services disponibles</label>'+buildAmenityChoices(x.amenities||[])+'<label>Autres équipements ou services (séparés par des virgules)</label><input name="custom_amenities" value="'+esc((x.amenities||[]).filter(a=>!PREVIEW_AMENITIES.includes(a)).join(', '))+'"></div>'+
   '</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les modifications</button><span class="status" aria-live="polite"></span></div></form>').join('')+
   (rows.length?'':'<div class="admin-card"><p>Aucun logement n’est encore associé à votre compte. Contactez l’administrateur de Planning Conciergerie pour vérifier vos logements.</p></div>');
   decorateManagerWorkspace(profile);
@@ -767,7 +767,7 @@ async function saveSite(e){
 }
 async function saveListing(e){
  e.preventDefault();const form=e.currentTarget,st=form.querySelector('.status'),data=new FormData(form),value=n=>String(data.get(n)||'').trim();
- const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split('\n').map(x=>x.trim()).filter(Boolean),amenities:value('amenities').split(',').map(x=>x.trim()).filter(Boolean),updated_at:new Date().toISOString()};
+ const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split('\n').map(x=>x.trim()).filter(Boolean),amenities:[...form.querySelectorAll('[data-preview-amenity]:checked')].map(x=>x.value).concat(value('custom_amenities').split(',').map(x=>x.trim()).filter(Boolean)),updated_at:new Date().toISOString()};
  st.textContent='Enregistrement…';
  try{await api('public_listings?id=eq.'+encodeURIComponent(form.dataset.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);st.textContent='Enregistré ✓';}
  catch(err){st.textContent=err.message}
