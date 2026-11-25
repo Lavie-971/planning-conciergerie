@@ -224,6 +224,30 @@
 .calendar-day:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .calendar-hint{font-size:12px;color:var(--muted);margin:9px 0 0}
 @media(max-width:560px){.booking-calendar{padding:9px}.calendar-weekdays,.calendar-days{gap:3px}.calendar-day,.calendar-empty{border-radius:7px;font-size:12px}}
+
+/* Pages individuelles des logements */
+#publicApp.detail-mode .hero,#publicApp.detail-mode .intro,#publicApp.detail-mode .listings,#publicApp.detail-mode .experience{display:none}
+#listingDetail{display:none;padding:125px 0 70px;background:var(--paper);min-height:70vh}
+#publicApp.detail-mode #listingDetail{display:block}
+#listingDetail .detail-back{display:inline-flex;color:var(--forest);font-weight:700;text-decoration:none;margin-bottom:24px;font-size:13px}
+#listingDetail .detail-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:start}
+#listingDetail .detail-main-photo{width:100%;height:440px;object-fit:cover;border-radius:14px;background:#edf1ed}
+#listingDetail .detail-thumbs{display:flex;gap:10px;overflow:auto;margin-top:12px}
+#listingDetail .detail-thumbs img{width:105px;height:78px;object-fit:cover;border-radius:8px}
+#listingDetail .detail-location{color:var(--forest2);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+#listingDetail h1{font:600 clamp(32px,4vw,48px)/1.1 "Playfair Display",serif;color:var(--forest);margin:12px 0}
+#listingDetail .detail-summary{font-size:16px;line-height:1.8;color:#53655c}
+#listingDetail .detail-facts{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
+#listingDetail .detail-facts span{background:#edf2ec;padding:10px 13px;border-radius:7px;font-size:12px;font-weight:700}
+#listingDetail .detail-description{line-height:1.85;color:#52645a;white-space:pre-line;margin:24px 0}
+#listingDetail .detail-amenities{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 26px}
+#listingDetail .detail-amenities span{border:1px solid var(--line);padding:8px 11px;border-radius:20px;font-size:11px}
+#listingDetail .detail-price{font-size:13px;color:var(--muted);margin:18px 0}
+#listingDetail .detail-price strong{font-size:24px;color:var(--forest)}
+#listingDetail .detail-booking{background:#f3f5ef;border:1px solid var(--line);border-radius:14px;padding:22px;margin-top:28px}
+#listingDetail .detail-booking h2{font:600 23px "Playfair Display",serif;color:var(--forest);margin:0 0 8px}
+#listingDetail .detail-booking p{font-size:12px;line-height:1.7;color:var(--muted)}
+@media(max-width:720px){#listingDetail{padding:100px 0 48px}#listingDetail .detail-grid{grid-template-columns:1fr;gap:25px}#listingDetail .detail-main-photo{height:280px}}
 </style>
 </head>
 <body>
@@ -238,6 +262,7 @@
 <p id="heroText">Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme. Trouvez le logement idéal pour vos prochaines vacances.</p>
 <a class="btn" href="#logements">Découvrir nos logements <span>→</span></a><a class="btn btn-outline" href="#destination">Explorer la destination</a>
 </div></div></section>
+<section id="listingDetail"><div class="wrap" id="listingDetailContent"></div></section>
 <section class="intro wrap"><div class="eyebrow">Bienvenue chez vous</div><h2>Des séjours qui ont le goût des vacances</h2><p>Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.</p></section>
 <section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p>Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="cards" id="listingCards"><div class="empty"><div class="symbol">🌴</div><h3>Préparation de nos logements</h3><p>Nos hébergements seront bientôt présentés ici. Revenez découvrir nos premières adresses.</p></div></div></section>
 <section class="experience" id="destination"><div class="wrap experience-grid"><div class="experience-img" role="img" aria-label="Paysage de plage tropicale en Guadeloupe"></div><div><div class="eyebrow">L'île papillon vous attend</div><h2>Un concentré de nature, de soleil et de liberté</h2><p>Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.</p><p>Installez-vous dans votre logement et partez explorer les trésors de l'archipel, à votre rythme.</p><div class="perks"><div class="perk"><i>✦</i> Plages paradisiaques</div><div class="perk"><i>✦</i> Saveurs créoles</div><div class="perk"><i>✦</i> Nature préservée</div><div class="perk"><i>✦</i> Accueil chaleureux</div></div></div></div></section>
@@ -307,15 +332,31 @@ async function loadPublic(){
   const sites=await api('public_owner_sites?select=site_slug,site_name,tagline,description,hero_photo_url,contact_email,contact_phone,whatsapp&site_slug=eq.'+encodeURIComponent(slug)+'');
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
   const site=sites[0];setSiteIdentity(site);
-  const rows=await api('public_listings?select=id,title,summary,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
   $('listingCards').innerHTML=rows.map(x=>{
    const photo=(x.photo_urls||[])[0],image=photo?'<img src="'+esc(photo)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
    const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
    const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
-   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Demander une réservation</button></div></div></article>';
+   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
   }).join('');
+  const detailId=new URLSearchParams(location.search).get('logement');
+  if(detailId){
+   const item=rows.find(x=>x.id===detailId);
+   if(item){
+    $('publicApp').classList.add('detail-mode');
+    const photos=(item.photo_urls||[]).filter(Boolean);
+    const heroPhoto=photos[0]||'';
+    const amenities=(item.amenities||[]).map(a=>'<span>'+esc(a)+'</span>').join('');
+    const facts=[item.max_guests?item.max_guests+' voyageurs':'',item.bedroom_count?item.bedroom_count+' chambre(s)':'',item.bathroom_count?item.bathroom_count+' salle(s) de bain':''].filter(Boolean);
+    const price=item.price_from?'<div class="detail-price">À partir de <strong>'+Number(item.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</div>':'<div class="detail-price">Tarif sur demande</div>';
+    $('listingDetailContent').innerHTML='<a class="detail-back" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+'">← Retour à tous les logements</a><div class="detail-grid"><div><img class="detail-main-photo" src="'+esc(heroPhoto)+'" alt="'+esc(item.title)+'">'+(photos.length>1?'<div class="detail-thumbs">'+photos.slice(1).map(p=>'<img src="'+esc(p)+'" alt="'+esc(item.title)+'">').join('')+'</div>':'')+'</div><div><div class="detail-location">⌖ '+esc(item.location||'Guadeloupe')+'</div><h1>'+esc(item.title)+'</h1><p class="detail-summary">'+esc(item.summary||'Découvrez ce logement en Guadeloupe.')+'</p><div class="detail-facts">'+facts.map(f=>'<span>'+esc(f)+'</span>').join('')+'</div>'+price+'<div class="detail-description">'+esc(item.description||item.summary||'Informations complémentaires à venir.')+'</div>'+(amenities?'<h3>Équipements et services</h3><div class="detail-amenities">'+amenities+'</div>':'')+'<div class="detail-booking"><h2>Choisissez vos dates</h2><p>Consultez le calendrier des disponibilités et sélectionnez votre arrivée et votre départ. Les réservations confirmées sont bloquées ; les demandes en attente restent sélectionnables.</p><button class="btn" type="button" id="detailBookButton">Voir le calendrier et réserver →</button></div></div></div>';
+    $('detailBookButton').addEventListener('click',()=>openBooking(item.id,item.title));
+    $('catalogTitle').textContent=item.title;
+    document.title=item.title+' — '+site.site_name;
+   }
+  }
   document.querySelectorAll('[data-book-listing]').forEach(btn=>btn.addEventListener('click',()=>openBooking(btn.dataset.bookListing,btn.dataset.bookTitle)));
  }catch(e){console.warn('Chargement des logements indisponible',e);$('listingCards').innerHTML='<div class="empty"><h3>Chargement temporairement indisponible</h3><p>Merci de réessayer dans quelques instants.</p></div>'}
 }
@@ -534,8 +575,10 @@ function isoLocalDate(date){return date.getFullYear()+'-'+String(date.getMonth()
 function dateFromIso(value){const [y,m,d]=value.split('-').map(Number);return new Date(y,m-1,d);}
 function addDays(date,n){const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());d.setDate(d.getDate()+n);return d;}
 function rangeForDay(value){return bookingAvailabilityRanges.find(r=>value>=r.start&&value<r.end);}
-function dayIsBlocked(value){return !!rangeForDay(value);}
-function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>value===r.start||value===r.end);}
+function bookingRangeForDay(value){return bookingAvailabilityRanges.find(r=>r.kind==='booking'&&value>=r.start&&value<r.end);}
+function pendingRangeForDay(value){return bookingAvailabilityRanges.find(r=>r.kind==='request'&&value>=r.start&&value<r.end);}
+function dayIsBlocked(value){return !!bookingRangeForDay(value);}
+function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>r.kind==='booking'&&(value===r.start||value===r.end));}
 function bookingCheckinValue(){return $('bookingCheckin').value;}
 function renderBookingCalendar(){
  const today=isoLocalDate(new Date()),month=bookingCalendarMonth,first=new Date(month.getFullYear(),month.getMonth(),1),last=new Date(month.getFullYear(),month.getMonth()+1,0);
@@ -545,11 +588,11 @@ function renderBookingCalendar(){
  const offset=(first.getDay()+6)%7;let html='';
  for(let i=0;i<offset;i++)html+='<span class="calendar-empty"></span>';
  for(let day=1;day<=last.getDate();day++){
-  const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=rangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
+  const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
   const checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||value<today||(blocked&&!checkoutAllowed);
-  const cls=['calendar-day',range?.kind==='request'?'pending':blocked?'booked':'available',isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
-  html+='<button type="button" class="'+cls+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(range?' indisponible':' disponible')+'">'+day+'</button>';
+  const cls=['calendar-day',blocked?'booked':pending?'pending':'available',isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
+  html+='<button type="button" class="'+cls+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
  }
  $('bookingCalendarDays').innerHTML=html;
  $('bookingCalendarDays').querySelectorAll('[data-calendar-date]').forEach(btn=>btn.addEventListener('click',()=>selectBookingCalendarDate(btn.dataset.calendarDate)));
@@ -600,7 +643,7 @@ async function refreshBookingAvailability(){
  try{
   const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout});
   const freshRanges=result.ranges||[];const rangeKeys=new Set(bookingAvailabilityRanges.map(r=>[r.start,r.end,r.kind].join('|')));freshRanges.forEach(r=>{const key=[r.start,r.end,r.kind].join('|');if(!rangeKeys.has(key)){bookingAvailabilityRanges.push(r);rangeKeys.add(key);}});
-  const clash=freshRanges.some(r=>checkin<r.end&&checkout>r.start);
+  const clash=freshRanges.some(r=>r.kind==='booking'&&checkin<r.end&&checkout>r.start);
   if(clash){$('bookingAvailability').textContent='Ces dates ne sont pas disponibles. Choisissez une autre période.';return false;}
   bookingDatesAvailable=true;
   $('bookingAvailability').textContent='Ces dates semblent disponibles. Votre demande devra être acceptée par le gérant.';
