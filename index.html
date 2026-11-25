@@ -2593,7 +2593,7 @@ async function requestOwnerSiteCreation(){
     ownerSiteSlug=String((Array.isArray(created)?created[0]:created)?.site_slug||slug);
     ownerSiteEnabled=false;ownerSiteReviewStatus='pending';ownerSiteReviewNote='Demande de création depuis Planning Conciergerie';
     updateOwnerSiteActions();
-    alert('Votre demande de création de site a bien été envoyée. Elle sera visible par l’administrateur dans « Gestion des gérants ».');
+    alert('Demande envoyée.');
   }catch(e){
     console.error('Demande de création du site',e);
     alert('Impossible d’envoyer la demande : '+(e.message||'erreur inconnue'));
