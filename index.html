@@ -5197,7 +5197,7 @@ function buildOwnerMonthlyInvoiceHtml(apt, year, month){
 
   // Avances du mois
   const advances = (apt.advances||[]).filter(a=> a.date >= mStartISO && a.date < mEndExclISO);
-  const advanceRows = advances.map(a=>`<tr><td>${fmtDateShort(a.date)}</td><td>Avance : ${escapeHtml(a.description||'(sans description)')} ${a.reimbursed?'(remboursée ✓)':'(en attente)'}</td><td class="right">${fmtEuro(a.amount)}</td></tr>`).join('');
+  const advanceRows = advances.map(a=>`<tr><td>${fmtDateShort(a.date)}</td><td>Avance : ${escapeHtml(a.description||'(sans description)')} </td><td class="right">${fmtEuro(a.amount)}</td></tr>`).join('');
 
   const totalRevenue = monthBookings.reduce((s,b)=>s+(b.total||0),0);
   const totalCommission = monthBookings.reduce((s,b)=>s+(getCommissionAmount(b)||0),0);
@@ -5342,59 +5342,34 @@ function renderAdvances(){
   const apt = apartments.find(a=>a.id===statsApartmentId);
   if(!apt) return;
   const advances = apt.advances || [];
-  const pendingTotal = advances.filter(a=>!a.reimbursed).reduce((sum,a)=> sum + (a.amount||0), 0);
-  const allTotal = advances.reduce((sum,a)=> sum + (a.amount||0), 0);
-  document.getElementById('advancesTotal').textContent = maskEuro(Math.round(pendingTotal*100)/100);
-
+  const total = advances.reduce((sum,a)=>sum+(a.amount||0),0);
+  document.getElementById('advancesTotal').textContent = maskEuro(Math.round(total*100)/100);
   const list = document.getElementById('advancesList');
-  if(advances.length===0){
-    list.innerHTML = `<p style="font-size:13px;color:var(--ink-faint);">Aucune avance enregistrée pour ce logement.</p>`;
+  if(!advances.length){
+    list.innerHTML = '<p style="font-size:13px;color:var(--ink-faint);">Aucune avance enregistrée pour ce logement.</p>';
     return;
   }
-  const sorted = advances.slice().sort((a,b)=> (b.date||'') < (a.date||'') ? -1 : 1);
+  const sorted = advances.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   list.innerHTML = sorted.map(a=>`
-    <div class="advance-row${a.reimbursed?' reimbursed':''}" data-id="${a.id}">
+    <div class="advance-row" data-id="${a.id}">
       <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span class="date">${a.date ? fmtDateShort(a.date) : '—'}</span>
-          ${a.reimbursed ? `<span style="font-size:11px;background:#E6F5E9;color:#2E7D32;border-radius:10px;padding:2px 7px;font-weight:600;">✅ Remboursé${a.reimbursedDate?' le '+fmtDateShort(a.reimbursedDate):''}</span>` : '<span style="font-size:11px;background:#FFF3E0;color:#E65100;border-radius:10px;padding:2px 7px;font-weight:600;">⏳ En attente</span>'}
-        </div>
+        <span class="date">${a.date ? fmtDateShort(a.date) : '—'}</span>
         <div class="desc" style="margin-top:2px;">${escapeHtml(a.description||'(sans description)')}</div>
       </div>
-      <span class="amount" style="${a.reimbursed?'text-decoration:line-through;opacity:0.5;':''}">${maskEuro(a.amount)}</span>
-      <div style="display:flex;gap:4px;flex-wrap:wrap;">
-        ${!a.reimbursed ? `<button data-act="reimburse" title="Marquer comme remboursé" style="font-size:11px;padding:3px 7px;border:1px solid #4CAF50;border-radius:6px;background:#E6F5E9;color:#2E7D32;">✅ Remboursé</button>` : `<button data-act="unreimburse" title="Annuler le remboursement" style="font-size:11px;padding:3px 7px;border:1px solid var(--line);border-radius:6px;color:var(--ink-faint);">↩</button>`}
-        <button data-act="delete" title="Supprimer" style="font-size:13px;padding:3px 7px;">🗑</button>
-      </div>
+      <span class="amount">${maskEuro(a.amount)}</span>
+      <button data-act="delete" title="Supprimer" style="font-size:13px;padding:3px 7px;">🗑</button>
     </div>
   `).join('');
-
-  list.querySelectorAll('[data-act=reimburse]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      const id = e.target.closest('.advance-row').getAttribute('data-id');
-      const adv = (apt.advances||[]).find(a=>a.id===id);
-      if(adv){ adv.reimbursed = true; adv.reimbursedDate = todayISO(); saveApartments(); renderAdvances(); renderSummary(); }
-    });
-  });
-  list.querySelectorAll('[data-act=unreimburse]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      const id = e.target.closest('.advance-row').getAttribute('data-id');
-      const adv = (apt.advances||[]).find(a=>a.id===id);
-      if(adv){ adv.reimbursed = false; adv.reimbursedDate = null; saveApartments(); renderAdvances(); renderSummary(); }
-    });
-  });
   list.querySelectorAll('[data-act=delete]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      const id = e.target.closest('.advance-row').getAttribute('data-id');
-      showConfirm('Supprimer cette avance ?', ()=>{
-        apt.advances = (apt.advances||[]).filter(a=>a.id!==id);
-        saveApartments();
-        renderAdvances();
+    btn.addEventListener('click',e=>{
+      const id=e.target.closest('.advance-row').getAttribute('data-id');
+      showConfirm('Supprimer cette avance ?',()=>{
+        apt.advances=(apt.advances||[]).filter(a=>a.id!==id);
+        saveApartments();renderAdvances();renderCalendar();
       });
     });
   });
 }
-
 
 function monthlyRange(month){const p=String(month||'').split('-').map(Number);if(p.length!==2||!p[0]||!p[1])return null;const start=toISO(p[0],p[1]-1,1);return{start,end:addDaysISO(start,daysInMonth(p[0],p[1]-1)),year:p[0],m:p[1]};}
 function monthlyItems(apt,month){const r=monthlyRange(month);if(!r)return{services:[],advances:[]};const billed=new Set((apt.serviceInvoices||[]).flatMap(v=>v.itemKeys||[])),services=[],advances=[];
@@ -5438,59 +5413,6 @@ function openMyProfileModal(){
 }
 function closeMyProfileModal(){
   document.getElementById('myProfileBackdrop').hidden = true;
-}
-
-function buildAdvanceInvoiceHtml(adv, apt){
-  const myProfile = getMyProfile();
-  const invoiceNum = 'AVA-' + (adv.date||todayISO()).replace(/-/g,'') + '-' + adv.id.slice(0,5).toUpperCase();
-  return `
-    <div class="doc-header">
-      <h1>Facture de prestation</h1>
-      <div class="doc-meta">N° ${escapeHtml(invoiceNum)}<br>Émise le ${fmtDateShort(todayISO())}</div>
-    </div>
-    <div class="doc-meta-bar">
-      <div>Logement : <span>${escapeHtml(apt.name)}${apt.propertyType?' — '+escapeHtml(apt.propertyType):''}</span></div>
-      <div>Date : <span>${fmtDateShort(adv.date)}</span></div>
-      <div>Statut : <span>${adv.reimbursed?'✅ Remboursée le '+fmtDateShort(adv.reimbursedDate):'⏳ En attente de remboursement'}</span></div>
-    </div>
-    <div class="doc-parties">
-      <div class="doc-party">
-        <h3>Prestataire</h3>
-        <strong>${myProfile.name?escapeHtml(myProfile.name):'Conciergerie'}</strong>
-        <span>
-          ${myProfile.address?escapeHtml(myProfile.address).replace(/\n/g,'<br>')+'<br>':''}
-          ${myProfile.phone?escapeHtml(myProfile.phone)+'<br>':''}
-          ${myProfile.email?escapeHtml(myProfile.email)+'<br>':''}
-          ${myProfile.siret?'SIRET : '+escapeHtml(myProfile.siret):''}
-        </span>
-      </div>
-      <div class="doc-party">
-        <h3>Propriétaire</h3>
-        <strong>${escapeHtml(apt.owner||'—')}</strong>
-        <span>
-          ${apt.ownerPhone?escapeHtml(apt.ownerPhone)+'<br>':''}
-          ${apt.ownerEmail?escapeHtml(apt.ownerEmail)+'<br>':''}
-          ${apt.ownerAddress?escapeHtml(apt.ownerAddress).replace(/\n/g,'<br>'):''}
-        </span>
-      </div>
-    </div>
-    <table class="doc-table">
-      <thead><tr><th>Date</th><th>Description du service rendu</th><th class="right">Montant</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>${fmtDateShort(adv.date)}</td>
-          <td>${escapeHtml(adv.description||'Prestation de service')}</td>
-          <td class="right">${fmtEuro(adv.amount)}</td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr><td colspan="2"><strong>Total à rembourser</strong></td><td class="right"><strong>${fmtEuro(adv.amount)}</strong></td></tr>
-      </tfoot>
-    </table>
-    <div class="doc-footer">
-      ${buildLegalMentions(myProfile, todayISO())}
-    </div>
-  `;
 }
 
 function addAdvance(){
