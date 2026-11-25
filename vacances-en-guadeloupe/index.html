@@ -535,7 +535,7 @@ function dateFromIso(value){const [y,m,d]=value.split('-').map(Number);return ne
 function addDays(date,n){const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());d.setDate(d.getDate()+n);return d;}
 function rangeForDay(value){return bookingAvailabilityRanges.find(r=>value>=r.start&&value<r.end);}
 function dayIsBlocked(value){return !!rangeForDay(value);}
-function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>value===r.end);}
+function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>value===r.start||value===r.end);}
 function bookingCheckinValue(){return $('bookingCheckin').value;}
 function renderBookingCalendar(){
  const today=isoLocalDate(new Date()),month=bookingCalendarMonth,first=new Date(month.getFullYear(),month.getMonth(),1),last=new Date(month.getFullYear(),month.getMonth()+1,0);
@@ -547,7 +547,7 @@ function renderBookingCalendar(){
  for(let day=1;day<=last.getDate();day++){
   const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=rangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
-  const checkoutAllowed=dayCanBeCheckout(value),disabled=value<today||(blocked&&!checkoutAllowed);
+  const checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||value<today||(blocked&&!checkoutAllowed);
   const cls=['calendar-day',range?.kind==='request'?'pending':blocked?'booked':'available',isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
   html+='<button type="button" class="'+cls+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(range?' indisponible':' disponible')+'">'+day+'</button>';
  }
@@ -599,8 +599,8 @@ async function refreshBookingAvailability(){
  $('bookingAvailability').textContent='Vérification des disponibilités…';
  try{
   const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout});
-  bookingAvailabilityRanges=result.ranges||[];
-  const clash=bookingAvailabilityRanges.some(r=>checkin<r.end&&checkout>r.start);
+  const freshRanges=result.ranges||[];const rangeKeys=new Set(bookingAvailabilityRanges.map(r=>[r.start,r.end,r.kind].join('|')));freshRanges.forEach(r=>{const key=[r.start,r.end,r.kind].join('|');if(!rangeKeys.has(key)){bookingAvailabilityRanges.push(r);rangeKeys.add(key);}});
+  const clash=freshRanges.some(r=>checkin<r.end&&checkout>r.start);
   if(clash){$('bookingAvailability').textContent='Ces dates ne sont pas disponibles. Choisissez une autre période.';return false;}
   bookingDatesAvailable=true;
   $('bookingAvailability').textContent='Ces dates semblent disponibles. Votre demande devra être acceptée par le gérant.';
