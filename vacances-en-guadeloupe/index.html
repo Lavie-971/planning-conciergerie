@@ -432,17 +432,18 @@ async function renderPlatformAdmin(profile){
   const byUser=new Map(profiles.map(p=>[p.user_id,p]));
   const grouped=new Map();
   listings.forEach(l=>{const k=l.user_id+'|'+l.site_slug;if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(l);});
-  const pending=sites.filter(x=>x.site_review_status==='pending'&&!x.site_enabled).length;
+  const pending=sites.filter(x=>x.user_id!==currentUser.id&&x.site_review_status==='pending'&&!x.site_enabled).length;
   const active=sites.filter(x=>x.site_enabled).length;
   $('adminContent').innerHTML=
    '<div class="admin-card"><h3>Administration des sites propriétaires</h3><p>Tu valides la création initiale des espaces. Une fois la création acceptée, le gérant choisit lui-même de publier son site ou de le mettre en pause. Tu peux toujours suspendre un site si nécessaire. La validation d’un domaine reste distincte.</p><div class="platform-summary"><div class="platform-stat"><strong>'+sites.length+'</strong><span>Sites enregistrés</span></div><div class="platform-stat"><strong>'+pending+'</strong><span>En attente de validation</span></div><div class="platform-stat"><strong>'+active+'</strong><span>Sites actuellement publiés</span></div></div><button class="btn" id="adminRefresh" type="button">Actualiser la liste</button><button class="btn" id="adminPersonalSite" type="button" style="margin-left:8px;background:#285f50">Gérer mon site personnel</button><button class="btn" id="adminLogout" type="button" style="margin-left:8px;background:#e9eee9">Se déconnecter</button></div>'+
    '<div class="admin-card"><h3>Sites et demandes</h3><p>Vérifie les coordonnées, le contenu et les logements avant d’autoriser la publication. Les domaines demandés sont listés séparément.</p>'+
    (sites.length?sites.map(site=>{
     const p=byUser.get(site.user_id)||{},key=site.user_id+'|'+site.site_slug,ls=grouped.get(key)||[];
-    const review=site.site_enabled?'En ligne':site.site_review_status==='pending'?'Création à valider':site.site_review_status==='rejected'?'Refusé':site.site_review_status==='draft'?'Création acceptée — en attente de publication':'Brouillon';
+    const isOwnAdminSite=site.user_id===currentUser.id&&profile?.role==='admin';
+    const review=isOwnAdminSite?'Espace administrateur — validation non requise':site.site_enabled?'En ligne':site.site_review_status==='pending'?'Création à valider':site.site_review_status==='rejected'?'Refusé':site.site_review_status==='draft'?'Création acceptée — en attente de publication':'Brouillon';
     const owner=esc(p.full_name||p.email||site.user_id);
-    const approve=site.site_enabled||site.site_review_status==='draft'?'':'<button class="approve" data-site-action="approve" data-site-id="'+esc(site.id)+'">Accepter la création</button>';
-    const reject=site.site_enabled?'':'<button class="reject" data-site-action="reject" data-site-id="'+esc(site.id)+'">Refuser la demande</button>';
+    const approve=isOwnAdminSite||site.site_enabled||site.site_review_status==='draft'?'':'<button class="approve" data-site-action="approve" data-site-id="'+esc(site.id)+'">Accepter la création</button>';
+    const reject=isOwnAdminSite||site.site_enabled?'':'<button class="reject" data-site-action="reject" data-site-id="'+esc(site.id)+'">Refuser la demande</button>';
     const disable=site.site_enabled?'<button class="neutral" data-site-action="disable" data-site-id="'+esc(site.id)+'">Dépublier le site</button>':'';
     const domainActions=site.domain_requested?
      '<div class="platform-domain"><input data-domain-input="'+esc(site.id)+'" value="'+esc(site.domain_requested)+'" aria-label="Domaine personnalisé"><button class="neutral" data-domain-action="dns" data-site-id="'+esc(site.id)+'">Enregistrer / DNS à configurer</button>'+'<span class="platform-tag wait">Configuration technique nécessaire</span>'+'<button class="reject" data-domain-action="reject" data-site-id="'+esc(site.id)+'">Refuser le domaine</button></div>'
