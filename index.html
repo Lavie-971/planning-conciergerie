@@ -2576,7 +2576,7 @@ function updateOwnerSiteActions(){
   const share=document.getElementById('ownerSiteShareBtn');
   if(!access||!share||!request)return;
   const manager=accountApproved&&(accountRole==='user'||accountRole==='admin');
-  const accepted=ownerSiteReviewStatus==='approved'||(ownerSiteReviewStatus==='draft'&&String(ownerSiteReviewNote||'').includes('Création acceptée par l’administrateur'));
+  const accepted=accountRole==='admin'||ownerSiteReviewStatus==='approved'||(ownerSiteReviewStatus==='draft'&&String(ownerSiteReviewNote||'').includes('Création acceptée par l’administrateur'));
   const requested=ownerSiteReviewStatus==='pending'&&ownerSiteReviewNote==='Demande de création depuis Planning Conciergerie';
   request.hidden=!manager||accepted||requested;
   request.textContent=ownerSiteReviewStatus==='rejected'?'＋ Faire une nouvelle demande de site':'＋ Demander la création de mon site';
