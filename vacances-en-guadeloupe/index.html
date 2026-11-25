@@ -496,6 +496,7 @@ function openIndividualTextEditor(key,label,element){
 }
 function enablePreviewPhotoEditing(site){
  if(new URLSearchParams(location.search).get('preview')!=='1')return;
+ document.body.classList.add('private-preview-editing');
  const hero=$('heroTitle')?.closest('.hero'),presentation=document.querySelector('.experience-img');
  if(hero){hero.dataset.previewPhoto='hero';hero.title='Cliquer pour changer la photo de fond';}
  if(presentation){presentation.dataset.previewPhoto='presentation';presentation.title='Cliquer pour changer la photo de présentation';}
@@ -1018,7 +1019,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLight
 function route(){const params=new URLSearchParams(location.search);const isPrivatePreview=params.get('preview')==='1';const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
  const backOwner=e.target.closest('#previewReturnOwner');
- if(backOwner){e.preventDefault();const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
+ if(backOwner){e.preventDefault();document.body.classList.remove('private-preview-editing');const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
  const photoTarget=e.target.closest('[data-preview-photo]');
  if(photoTarget&&new URLSearchParams(location.search).get('preview')==='1'){e.preventDefault();e.stopPropagation();const picker=$('previewPhotoPicker');if(picker){picker.dataset.target=photoTarget.dataset.previewPhoto;picker.click();}return;}
  const textBlock=e.target.closest('[data-site-edit-key]');
