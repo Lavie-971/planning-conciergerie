@@ -175,7 +175,7 @@ async function renderManager(profile){
   field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+
   '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
   '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div>'+
-  '<div class="field full"><label class="checkline"><input type="checkbox" name="site_enabled" '+(currentSite.site_enabled?'checked':'')+'> Activer mon site et le rendre accessible aux voyageurs</label></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form><p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
+  (profile.role==='admin' ? '<div class="field full"><label class="checkline"><input type="checkbox" name="site_enabled" '+(currentSite.site_enabled?'checked':'')+'> Site validé et visible publiquement</label></div>' : '<div class="field full"><label>Validation de la plateforme</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_enabled?'Site validé et actif':'Site en attente de validation par l’administrateur. Vous pouvez préparer vos logements, mais leur site reste invisible aux voyageurs.')+'</p></div>')+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form><p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
   '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
   '<div class="admin-card"><h3>Mes logements ('+rows.length+')</h3><p>Publiez uniquement les hébergements que vous souhaitez présenter sur votre site personnel. Les autres propriétaires ne peuvent pas consulter ni modifier ces fiches.</p></div>'+
   rows.map(x=>'<form class="admin-card listingForm" data-id="'+esc(x.id)+'"><h3>'+esc(x.title||'Nouveau logement')+'</h3><p>Logement de votre compte Planning Conciergerie · '+esc(x.location||'Localisation à compléter')+'</p><div class="formgrid">'+
@@ -226,7 +226,7 @@ async function bookingService(payload,token=''){
  return data;
 }
 function openBooking(id,title){
- const form=$('bookingForm');form.reset();
+ const form=$('bookingForm');form.reset();form.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=false);
  $('bookingListingId').value=id;
  $('bookingModalTitle').textContent='Demander une réservation — '+title;
  $('bookingCheckin').min=new Date().toISOString().slice(0,10);
