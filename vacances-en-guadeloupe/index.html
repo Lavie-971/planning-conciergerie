@@ -354,6 +354,23 @@ html.owner-entry #publicApp{display:none!important}html.owner-entry #adminApp{di
 #propertyPhotoLightbox img{display:block;max-width:min(1200px,96vw);max-height:88vh;width:auto;height:auto;object-fit:contain;border-radius:8px;box-shadow:0 12px 50px #0008}
 #propertyPhotoLightboxClose{position:absolute;top:14px;right:18px;width:42px;height:42px;border:1px solid #ffffff66;border-radius:50%;background:#ffffff18;color:white;font-size:28px;line-height:1;cursor:pointer}
 #propertyPhotoLightboxClose:hover{background:#ffffff30}
+
+.preview-edit-trigger{position:absolute;z-index:8;top:12px;right:12px;background:#fff!important;color:#173f36!important;border:2px solid #d8b77b!important;padding:9px 13px!important;border-radius:7px!important;font-weight:800;cursor:pointer}
+#listingDetail .preview-edit-trigger{position:static;margin:0 0 18px}
+.preview-edit-site{margin-left:12px;background:#fff;color:#173f36;border:1px solid #d8b77b;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer}
+.preview-edit-modal[hidden]{display:none!important}
+.preview-edit-modal{position:fixed;inset:0;z-index:30000;background:#102e28c9;display:flex;align-items:center;justify-content:center;padding:18px}
+.preview-edit-dialog{position:relative;width:min(850px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:14px;padding:28px;box-shadow:0 20px 70px #0005}
+.preview-edit-dialog h2{font:600 27px "Playfair Display",serif;color:#173f36;margin:0 0 8px}
+.preview-edit-dialog>p{color:#718078;font-size:13px;line-height:1.6;margin:0 0 20px}
+.preview-edit-close{position:sticky;float:right;top:0;border:0;border-radius:50%;background:#edf2ee;color:#173f36;width:38px;height:38px;font-size:25px;cursor:pointer;z-index:2}
+.preview-amenities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:10px 0 18px}
+.preview-amenities label{display:flex;align-items:center;gap:7px;background:#f5f7f3;border:1px solid #e2e9e1;padding:9px;border-radius:7px;font-size:12px}
+.suggestion-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.suggestion-list strong{width:100%;font-size:12px;color:#285f50}
+.suggestion-list button{border:1px solid #cbd9cc;background:#f5f8f4;color:#285f50;padding:8px 11px;border-radius:7px;cursor:pointer;font-size:11px}
+@media(max-width:600px){.preview-edit-dialog{padding:20px 15px}.preview-amenities{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 </style>
 </head>
 <body>
@@ -465,12 +482,13 @@ async function loadPublic(){
   const rows=await api('public_listings?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+(preview?'':'&is_published=eq.true')+'&order=display_order.asc');
   if(preview){let banner=$('previewBanner');if(!banner){banner=document.createElement('div');banner.id='previewBanner';banner.style.cssText='position:sticky;top:0;z-index:1000;background:#173f35;color:white;padding:10px 16px;text-align:center;font-weight:600';$('publicApp').prepend(banner);}banner.innerHTML='APERÇU PRIVÉ — site non publié · <a href="#admin" style="color:white;text-decoration:underline">Retour à la gestion</a>';}
   $('listingCount').textContent=rows.length?rows.length+' logement'+(rows.length>1?'s':'')+' à découvrir':'';
+  if(preview)enablePrivatePreviewEditing(site,rows);
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
   $('listingCards').innerHTML=rows.map(x=>{
    const photo=(x.photo_urls||[])[0],image=photo?'<img class="zoomable-photo listing-card-photo" src="'+esc(photo)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
    const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
    const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
-   return '<article class="listing"><div class="listing-photo">'+image+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" data-open-listing="'+esc(x.id)+'" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
+   return '<article class="listing"><div class="listing-photo">'+image+(preview?'<button type="button" class="preview-edit-trigger" data-edit-preview-listing="'+esc(x.id)+'">✎ Modifier</button>':'')+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" data-open-listing="'+esc(x.id)+'" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
   }).join('');
   const detailId=new URLSearchParams(location.search).get('logement');
   if(detailId){
@@ -482,7 +500,7 @@ async function loadPublic(){
     const amenities=(item.amenities||[]).map(a=>'<span>'+esc(a)+'</span>').join('');
     const facts=[item.max_guests?item.max_guests+' voyageurs':'',item.bedroom_count?item.bedroom_count+' chambre(s)':'',item.bathroom_count?item.bathroom_count+' salle(s) de bain':''].filter(Boolean);
     const price=item.price_from?'<div class="detail-price">À partir de <strong>'+Number(item.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</div>':'<div class="detail-price">Tarif sur demande</div>';
-    $('listingDetailContent').innerHTML='<a class="detail-back" data-back-listings href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'">← Retour à tous les logements</a><div class="detail-grid"><div><img class="detail-main-photo zoomable-photo" src="'+esc(heroPhoto)+'" alt="'+esc(item.title)+'">'+(photos.length>1?'<div class="detail-thumbs">'+photos.slice(1).map(p=>'<img class="zoomable-photo" src="'+esc(p)+'" alt="'+esc(item.title)+'">').join('')+'</div>':'')+'</div><div><div class="detail-location">⌖ '+esc(item.location||'Guadeloupe')+'</div><h1>'+esc(item.title)+'</h1><p class="detail-summary">'+esc(item.summary||'Découvrez ce logement en Guadeloupe.')+'</p><div class="detail-facts">'+facts.map(f=>'<span>'+esc(f)+'</span>').join('')+'</div>'+price+'<div class="detail-description">'+esc(item.description||item.summary||'Informations complémentaires à venir.')+'</div>'+(amenities?'<h3>Équipements et services</h3><div class="detail-amenities">'+amenities+'</div>':'')+'<div class="detail-booking"><h2>Choisissez vos dates</h2><p>Consultez le calendrier des disponibilités et sélectionnez votre arrivée et votre départ. Les réservations confirmées sont bloquées ; les demandes en attente restent sélectionnables.</p><button class="btn" type="button" id="detailBookButton">Voir le calendrier et réserver →</button></div></div></div>';
+    $('listingDetailContent').innerHTML=(preview?'<button type="button" class="btn preview-edit-trigger" data-edit-preview-listing="'+esc(item.id)+'">Modifier ce logement</button>':'')+'<a class="detail-back" data-back-listings href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'">← Retour à tous les logements</a><div class="detail-grid"><div><img class="detail-main-photo zoomable-photo" src="'+esc(heroPhoto)+'" alt="'+esc(item.title)+'">'+(photos.length>1?'<div class="detail-thumbs">'+photos.slice(1).map(p=>'<img class="zoomable-photo" src="'+esc(p)+'" alt="'+esc(item.title)+'">').join('')+'</div>':'')+'</div><div><div class="detail-location">⌖ '+esc(item.location||'Guadeloupe')+'</div><h1>'+esc(item.title)+'</h1><p class="detail-summary">'+esc(item.summary||'Découvrez ce logement en Guadeloupe.')+'</p><div class="detail-facts">'+facts.map(f=>'<span>'+esc(f)+'</span>').join('')+'</div>'+price+'<div class="detail-description">'+esc(item.description||item.summary||'Informations complémentaires à venir.')+'</div>'+(amenities?'<h3>Équipements et services</h3><div class="detail-amenities">'+amenities+'</div>':'')+'<div class="detail-booking"><h2>Choisissez vos dates</h2><p>Consultez le calendrier des disponibilités et sélectionnez votre arrivée et votre départ. Les réservations confirmées sont bloquées ; les demandes en attente restent sélectionnables.</p><button class="btn" type="button" id="detailBookButton">Voir le calendrier et réserver →</button></div></div></div>';
     $('detailBookButton').addEventListener('click',()=>openBooking(item.id,item.title));
     $('catalogTitle').textContent=item.title;
     document.title=item.title+' — '+site.site_name;
@@ -490,8 +508,59 @@ async function loadPublic(){
   }
   document.querySelectorAll('[data-open-listing],[data-back-listings]').forEach(link=>link.addEventListener('click',e=>{e.preventDefault();const u=new URL(link.href);history.pushState({},'',u.pathname+u.search);loadPublic();window.scrollTo({top:0,behavior:'smooth'});}));
   document.querySelectorAll('[data-book-listing]').forEach(btn=>btn.addEventListener('click',()=>openBooking(btn.dataset.bookListing,btn.dataset.bookTitle)));
- }catch(e){console.warn('Chargement des logements indisponible',e);$('listingCards').innerHTML='<div class="empty"><h3>Chargement temporairement indisponible</h3><p>Merci de réessayer dans quelques instants.</p></div>'}
+  if(preview)document.querySelectorAll('[data-edit-preview-listing]').forEach(btn=>btn.addEventListener('click',()=>openPreviewListingEditor(rows.find(x=>x.id===btn.dataset.editPreviewListing))));
+ }catch(e){console.error('Chargement du site indisponible',e);$('listingCards').innerHTML='<div class="empty"><h3>Chargement temporairement indisponible</h3><p>'+esc(e?.message||'Erreur inconnue')+'</p><button type="button" class="btn" id="retryPublicLoad">Réessayer</button></div>';$('retryPublicLoad')?.addEventListener('click',loadPublic)}
 }
+
+const PREVIEW_AMENITIES=['Wi-Fi','Climatisation','Piscine','Piscine privée','Jacuzzi','Vue mer','Accès plage','Parking','Cuisine équipée','Lave-linge','Lave-vaisselle','Télévision','Terrasse','Balcon','Jardin','Barbecue','Lit bébé','Chaise haute','Draps fournis','Serviettes fournies','Sèche-cheveux','Cafetière','Four','Micro-ondes','Réfrigérateur','Congélateur','Animaux acceptés','Logement non-fumeur','Bureau','Espace de travail','Transfert aéroport'];
+function previewModal(content){
+ let modal=$('previewEditModal');if(!modal){modal=document.createElement('div');modal.id='previewEditModal';modal.className='preview-edit-modal';document.body.appendChild(modal);}
+ modal.innerHTML='<div class="preview-edit-dialog"><button type="button" class="preview-edit-close" aria-label="Fermer">×</button>'+content+'</div>';modal.hidden=false;
+ modal.querySelector('.preview-edit-close').onclick=()=>modal.hidden=true;
+ modal.onclick=e=>{if(e.target===modal)modal.hidden=true};return modal;
+}
+function buildAmenityChoices(selected=[]){return '<div class="preview-amenities">'+PREVIEW_AMENITIES.map(a=>'<label><input type="checkbox" data-preview-amenity value="'+esc(a)+'" '+(selected.includes(a)?'checked':'')+'> '+esc(a)+'</label>').join('')+'</div>';}
+function suggestListingText(item){
+ const type=item.property_type||'hébergement',place=item.location||'Guadeloupe',guests=item.max_guests?item.max_guests+' voyageurs':'vos vacances',beds=item.bedroom_count?item.bedroom_count+' chambre'+(item.bedroom_count>1?'s':''):'un espace confortable';
+ const a=item.amenities||[],has=k=>a.some(x=>x.toLowerCase().includes(k));
+ const perks=[has('piscine')?'profiter de la piscine':null,has('plage')||has('mer')?'rejoindre facilement le bord de mer':null,has('climatisation')?'retrouver la fraîcheur après vos journées au soleil':null,has('terrasse')||has('jardin')?'savourer les moments de détente en extérieur':null,has('wi-fi')||has('wifi')?'rester connecté pendant votre séjour':null].filter(Boolean);
+ return [
+ 'Installez-vous dans ce '+type.toLowerCase()+' situé à '+place+', idéal pour '+guests+'. Avec '+beds+', il offre un cadre agréable pour découvrir la Guadeloupe à votre rythme.'+(perks.length?' Vous pourrez notamment '+perks.join(', ')+'.':''),
+ 'Cap sur '+place+' ! Ce '+type.toLowerCase()+' accueille jusqu’à '+(item.max_guests||'plusieurs')+' voyageurs et constitue un point de départ pratique pour profiter de l’île. '+(a.length?'Vous apprécierez notamment : '+a.join(', ').toLowerCase()+'.':'Un hébergement à personnaliser selon vos envies.'),
+ 'Posez vos valises à '+place+' dans un logement pensé pour des vacances simples et confortables. '+(item.bedroom_count?item.bedroom_count+' chambre(s) pour ':'Un espace pour ')+(item.max_guests||'vos')+' voyageurs, avec tout le nécessaire pour profiter de votre séjour.'
+ ];
+}
+function enablePrivatePreviewEditing(site,rows){
+ const banner=$('previewBanner');if(!banner||banner.dataset.editEnabled)return;banner.dataset.editEnabled='1';
+ const btn=document.createElement('button');btn.type='button';btn.className='preview-edit-site';btn.textContent='Modifier les textes et la couverture';btn.onclick=()=>openPreviewSiteEditor(site);banner.append(' ',btn);
+}
+function openPreviewSiteEditor(site){
+ const t=site.site_texts||{},fields={hero_eyebrow:'Accueil — petit titre',hero_title:'Accueil — grand titre',hero_text:'Accueil — texte',intro_eyebrow:'Présentation — petit titre',intro_title:'Présentation — titre',intro_text:'Présentation — texte',catalog_eyebrow:'Logements — petit titre',catalog_title:'Logements — titre',catalog_text:'Logements — texte',destination_eyebrow:'Destination — petit titre',destination_title:'Destination — titre',destination_text:'Destination — texte',destination_text2:'Destination — second texte',contact_eyebrow:'Contact — petit titre',contact_title:'Contact — titre',contact_text:'Contact — texte',footer_tagline:'Pied de page'};
+ const modal=previewModal('<h2>Modifier le site depuis l’aperçu</h2><p>Les changements sont enregistrés sur votre site sans le publier.</p><form id="previewSiteEditForm"><div class="formgrid">'+Object.entries(fields).map(([k,l])=>'<div class="field full"><label>'+l+'</label><textarea name="'+k+'">'+esc(t[k]||'')+'</textarea></div>').join('')+imagePickerMarkup('hero_photo_url','Photo de couverture',site.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer et actualiser l’aperçu</button><span class="status" id="previewSiteEditStatus"></span></div></form>');
+ setupImageEditors();
+ modal.querySelector('#previewSiteEditForm').addEventListener('submit',async e=>{
+  e.preventDefault();const form=e.currentTarget,st=$('previewSiteEditStatus'),data=new FormData(form),texts={};for(const [k,v] of data.entries())if(k!=='hero_photo_url')texts[k]=String(v||'').trim();
+  const photo=String(data.get('hero_photo_url')||'').trim();st.textContent='Enregistrement…';
+  try{await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,hero_photo_url:photo,updated_at:new Date().toISOString()});site.site_texts=texts;site.hero_photo_url=photo;modal.hidden=true;await loadPublic();}catch(err){st.textContent='Erreur : '+err.message;}
+ });
+}
+function openPreviewListingEditor(item){
+ if(!item)return;const suggestions=suggestListingText(item);
+ const modal=previewModal('<h2>Modifier '+esc(item.title)+'</h2><p>Modifiez les caractéristiques, les textes, les photos et les équipements directement depuis votre aperçu privé.</p><form id="previewListingEditForm" data-id="'+esc(item.id)+'"><div class="formgrid">'+
+ field('Nom du logement','title',item.title)+field('Commune / secteur','location',item.location)+field('Type de logement','property_type',item.property_type)+field('Voyageurs maximum','max_guests',item.max_guests,'number')+field('Nombre de chambres','bedroom_count',item.bedroom_count,'number')+field('Nombre de salles de bain','bathroom_count',item.bathroom_count,'number')+field('Prix à partir de (€ / nuit)','price_from',item.price_from,'number')+
+ '<div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(item.summary||'')+'"></div><div class="field full"><label>Description</label><textarea name="description">'+esc(item.description||'')+'</textarea><div class="suggestion-list"><strong>Propositions basées sur les caractéristiques du logement</strong>'+suggestions.map((v,i)=>'<button type="button" data-use-suggestion="'+i+'">Utiliser la proposition '+(i+1)+'</button>').join('')+'</div></div>'+
+ imagePickerMarkup('photo_urls','Photos du logement',(item.photo_urls||[]).join('\n'),true)+
+ '<div class="field full"><label>Équipements à sélectionner</label>'+buildAmenityChoices(item.amenities||[])+'<label>Autres équipements (séparés par des virgules)</label><input name="custom_amenities" value="'+esc((item.amenities||[]).filter(a=>!PREVIEW_AMENITIES.includes(a)).join(', '))+'"></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer et actualiser l’aperçu</button><span class="status" id="previewListingEditStatus"></span></div></form>');
+ setupImageEditors();
+ modal.querySelectorAll('[data-use-suggestion]').forEach(btn=>btn.addEventListener('click',()=>{modal.querySelector('[name="description"]').value=suggestions[Number(btn.dataset.useSuggestion)];}));
+ modal.querySelector('#previewListingEditForm').addEventListener('submit',async e=>{
+  e.preventDefault();const form=e.currentTarget,data=new FormData(form),st=$('previewListingEditStatus'),value=k=>String(data.get(k)||'').trim();
+  const amenities=[...modal.querySelectorAll('[data-preview-amenity]:checked')].map(x=>x.value).concat(value('custom_amenities').split(',').map(x=>x.trim()).filter(Boolean));
+  const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split('\n').map(x=>x.trim()).filter(Boolean),amenities,updated_at:new Date().toISOString()};
+  st.textContent='Enregistrement…';try{await api('public_listings?id=eq.'+encodeURIComponent(item.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);modal.hidden=true;await loadPublic();}catch(err){st.textContent='Erreur : '+err.message;}
+ });
+}
+
 function showAdmin(){$('publicApp').style.display='none';$('adminApp').style.display='block';renderLogin()}
 function renderLogin(){
  $('adminContent').innerHTML='<div class="owner-login-shell"><a class="owner-login-brand" href="#" aria-label="Retour au site public"><span class="owner-login-mark">VG</span><span>Vacances en Guadeloupe<small>ESPACE PROPRIÉTAIRE</small></span></a><section class="login-box"><div class="login-icon">⌂</div><div class="login-eyebrow">VOTRE ESPACE PERSONNEL</div><h2>Bienvenue</h2><p>Connectez-vous pour personnaliser votre vitrine et choisir les hébergements que vous souhaitez présenter.</p><form id="loginForm"><div class="field"><label for="adminEmail">Adresse e-mail</label><input id="adminEmail" type="email" placeholder="vous@exemple.fr" required autocomplete="username"></div><div class="field"><label for="adminPassword">Mot de passe</label><input id="adminPassword" type="password" placeholder="Votre mot de passe" required autocomplete="current-password"></div><button class="btn" type="submit">Se connecter <span aria-hidden="true">→</span></button><div id="loginStatus" class="admin-note" aria-live="polite"></div></form><div class="login-security"><span>🔒</span> Connexion sécurisée avec votre compte Planning Conciergerie</div></section><a class="owner-login-back" href="#">← Retour au site public</a></div>';
