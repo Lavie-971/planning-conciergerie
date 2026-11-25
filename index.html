@@ -2404,8 +2404,13 @@ function disableSync(){
 /* ---------------- actualisation automatique ---------------- */
 let autoRefreshTimer = null;
 let _lastCalendarUserScrollAt = 0;
+let _userHasScrolledPlanning = false;
 function noteCalendarUserScroll(){
   _lastCalendarUserScrollAt = Date.now();
+}
+function markPlanningScrollIntent(){
+  _userHasScrolledPlanning = true;
+  noteCalendarUserScroll();
 }
 function preservePlanningScrollAndRender(){
   const pageX = window.scrollX || 0;
@@ -2457,10 +2462,11 @@ async function silentRefresh(){
   if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité après une sauvegarde pour éviter d'écraser une modification récente
   // Ne jamais reconstruire le planning pendant que l'utilisateur le parcourt.
   // Le rafraîchissement reprend après 30 secondes sans défilement.
-  if(Date.now() - _lastCalendarUserScrollAt < 30000) return;
+  if(_userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
   await loadData();
-  // L'utilisateur a pu commencer à défiler pendant le chargement réseau.
-  if(Date.now() - _lastCalendarUserScrollAt < 30000) return;
+  // Après le premier défilement manuel, les données peuvent se synchroniser en arrière-plan,
+  // mais le planning visible ne doit plus être reconstruit pendant cette session.
+  if(_userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
   preservePlanningScrollAndRender();
 }
 function startAutoRefresh(){
@@ -7276,8 +7282,16 @@ function bindEvents(){
   bindCalendarSwipe();
   // Un défilement récent suspend l'actualisation qui reconstruirait le calendrier.
   window.addEventListener('scroll', noteCalendarUserScroll, {passive:true});
+  window.addEventListener('wheel', markPlanningScrollIntent, {passive:true});
+  window.addEventListener('touchstart', markPlanningScrollIntent, {passive:true});
+  window.addEventListener('keydown', e=>{
+    if(['PageUp','PageDown','Home','End','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) markPlanningScrollIntent();
+  });
   const planningScroll = document.getElementById('calendarScroll');
-  if(planningScroll) planningScroll.addEventListener('scroll', noteCalendarUserScroll, {passive:true});
+  if(planningScroll){
+    planningScroll.addEventListener('scroll', noteCalendarUserScroll, {passive:true});
+    planningScroll.addEventListener('pointerdown', markPlanningScrollIntent, {passive:true});
+  }
   document.getElementById('voiceCommandBtn').addEventListener('click', startVoiceCommand);
   document.getElementById('prevMonth').addEventListener('click', goToPrevPeriod);
   document.getElementById('nextMonth').addEventListener('click', goToNextPeriod);
