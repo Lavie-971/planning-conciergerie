@@ -368,9 +368,9 @@ html.owner-entry #publicApp{display:none!important}html.owner-entry #adminApp{di
 #propertyPhotoLightboxClose:hover{background:#ffffff30}
 
 body.private-preview-editing .hero{cursor:pointer;position:relative}
-body.private-preview-editing .hero:hover{filter:saturate(1.08)}
+body.private-preview-editing .hero:hover{filter:none}
 body.private-preview-editing .experience-img{cursor:pointer;position:relative}
-body.private-preview-editing .hero:hover::after,body.private-preview-editing .experience-img:hover::after{content:'✎ Changer la photo';position:absolute;z-index:10;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 15px;border-radius:7px;background:#173f36e8;color:#fff;font:600 13px Arial;white-space:nowrap;pointer-events:none}
+body.private-preview-editing .experience-img:hover::after{content:'✎ Changer la photo';position:absolute;z-index:10;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 15px;border-radius:7px;background:#173f36e8;color:#fff;font:600 13px Arial;white-space:nowrap;pointer-events:none}
 .preview-return-owner{position:fixed;right:18px;bottom:18px;z-index:15000;border:0;border-radius:9px;background:#173f36;color:#fff;padding:12px 17px;font-weight:700;font-size:13px;box-shadow:0 5px 20px #0003;cursor:pointer}
 .preview-return-owner:hover{background:#285f50}
 body.private-preview-editing .experience-img:hover{outline:3px solid #c49b55;outline-offset:3px}
@@ -589,7 +589,7 @@ function enablePreviewPhotoEditing(site){
  if(new URLSearchParams(location.search).get('preview')!=='1')return;
  document.body.classList.add('private-preview-editing');
  const hero=$('heroTitle')?.closest('.hero'),presentation=document.querySelector('.experience-img');
- if(hero){hero.dataset.previewPhoto='hero';hero.title='Cliquer pour changer la photo de fond';}
+ if(hero){hero.dataset.previewPhoto='hero';hero.removeAttribute('title');}
  if(presentation){presentation.dataset.previewPhoto='presentation';presentation.title='Cliquer pour changer la photo de présentation';}
  let back=$('previewReturnOwner');
  if(!back){back=document.createElement('button');back.id='previewReturnOwner';back.type='button';back.className='preview-return-owner';back.textContent='← Retour à mon espace propriétaire';document.body.appendChild(back);}
