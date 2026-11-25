@@ -191,6 +191,20 @@
 #adminApp .manager-workspace .listingForm{background:#fff}
 #adminApp .manager-workspace .status{font-size:11px;font-weight:600}
 #adminApp .manager-workspace .details{overflow-wrap:anywhere}
+
+#adminApp .image-editor{display:grid;gap:10px}
+#adminApp .image-editor textarea{min-height:74px}
+#adminApp .image-dropzone{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;padding:20px;border:1.5px dashed #a9c4ad;border-radius:12px;background:#f6faf5;color:#315b49;text-align:center;cursor:pointer;transition:.18s}
+#adminApp .image-dropzone strong{font-size:13px}
+#adminApp .image-dropzone span,#adminApp .image-editor small{font-size:11px;color:#6b7d71;line-height:1.5}
+#adminApp .image-dropzone.dragover,#adminApp .image-dropzone.uploading{border-color:#397b5c;background:#eaf4eb}
+#adminApp .image-choose{border:0;border-radius:7px;background:#245b49;color:white;padding:9px 13px;font-weight:700;font-size:11px;cursor:pointer}
+#adminApp .image-choose:disabled{opacity:.6;cursor:wait}
+#adminApp .image-preview-list{display:flex;flex-wrap:wrap;gap:9px}
+#adminApp .image-preview{position:relative;width:104px;height:82px;border-radius:9px;overflow:hidden;background:#edf1ec;border:1px solid #e0e8df}
+#adminApp .image-preview img{width:100%;height:100%;object-fit:cover}
+#adminApp .image-preview button{position:absolute;right:5px;top:5px;border:0;border-radius:50%;width:23px;height:23px;background:#fff;color:#8e2e2e;font-size:17px;line-height:1;cursor:pointer;box-shadow:0 1px 5px #0002}
+
 @media(max-width:600px){
  #adminApp .manager-workspace{width:calc(100% - 24px)}
  #adminApp .manager-hero{padding:27px 22px;border-radius:16px}
@@ -421,6 +435,48 @@ function renderLogin(){
  });
 }
 function field(label,name,value,type='text'){return '<div class="field"><label>'+label+'</label><input name="'+name+'" type="'+type+'" value="'+esc(value??'')+'" '+(type==='number'?'min="0" step="1"':'')+'></div>'}
+function imagePickerMarkup(name,label,value,multiple){
+ const input=multiple
+  ?'<textarea name="'+name+'" placeholder="Une image par ligne, ou collez directement vos photos…">'+esc(value||'')+'</textarea>'
+  :'<input name="'+name+'" type="url" value="'+esc(value||'')+'" placeholder="Collez une image ici ou ajoutez une URL">';
+ return '<div class="field full image-field"><label>'+label+'</label><div class="image-editor" data-image-editor data-multiple="'+(multiple?'true':'false')+'">'+input+
+  '<div class="image-dropzone" tabindex="0" data-image-dropzone><strong>＋ Ajouter une image</strong><span>Collez avec Ctrl + V, glissez-déposez une photo ou choisissez un fichier.</span><button type="button" class="image-choose" data-image-choose>Choisir une image</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" '+(multiple?'multiple':'')+' hidden data-image-files></div>'+
+  '<div class="image-preview-list" data-image-preview-list></div><small>Formats JPG, PNG, WEBP ou GIF · 8 Mo maximum par image.</small></div></div>';
+}
+async function uploadSiteImage(file){
+ if(!file||!file.type?.startsWith('image/'))throw new Error('Choisissez un fichier image.');
+ if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))throw new Error('Format accepté : JPG, PNG, WEBP ou GIF.');
+ if(file.size>8*1024*1024)throw new Error('Chaque image doit faire 8 Mo maximum.');
+ if(!session?.access_token||!currentUser?.id)throw new Error('Connectez-vous pour ajouter une image.');
+ const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[file.type];
+ const path=currentUser.id+'/'+Date.now()+'-'+crypto.randomUUID()+'.'+ext;
+ const response=await fetch(SB_URL+'/storage/v1/object/site-images/'+path.split('/').map(encodeURIComponent).join('/'),{
+  method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+session.access_token,'Content-Type':file.type,'x-upsert':'false'},body:file
+ });
+ if(!response.ok){const message=await response.text();throw new Error('Envoi impossible : '+message.slice(0,180));}
+ return SB_URL+'/storage/v1/object/public/site-images/'+path.split('/').map(encodeURIComponent).join('/');
+}
+function setupImageEditors(){
+ document.querySelectorAll('[data-image-editor]').forEach(editor=>{
+  if(editor.dataset.ready==='1')return;editor.dataset.ready='1';
+  const field=editor.querySelector('[name]'),zone=editor.querySelector('[data-image-dropzone]'),picker=editor.querySelector('[data-image-files]'),choose=editor.querySelector('[data-image-choose]'),previews=editor.querySelector('[data-image-preview-list]');
+  const values=()=>editor.dataset.multiple==='true'?field.value.split('\n').map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
+  const render=()=>{previews.innerHTML=values().map(url=>'<div class="image-preview"><img src="'+esc(url)+'" alt="Aperçu de la photo"><button type="button" title="Retirer cette image" aria-label="Retirer cette image" data-remove-image="'+esc(url)+'">×</button></div>').join('');previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{const next=values().filter(x=>x!==btn.dataset.removeImage);field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');render();}));};
+  const addFiles=async files=>{const list=[...files].filter(f=>f.type?.startsWith('image/'));if(!list.length)return;zone.classList.add('uploading');zone.querySelector('span').textContent='Envoi des photos…';choose.disabled=true;
+   try{const urls=[];for(const file of list)urls.push(await uploadSiteImage(file));const next=editor.dataset.multiple==='true'?[...values(),...urls]:[urls[0]];field.value=editor.dataset.multiple==='true'?next.join('\n'):next[0];render();zone.querySelector('span').textContent='Photo ajoutée. Vous pouvez en ajouter d’autres.';}
+   catch(err){zone.querySelector('span').textContent=err.message;}
+   finally{zone.classList.remove('uploading');choose.disabled=false;picker.value='';}
+  };
+  choose.addEventListener('click',()=>picker.click());zone.addEventListener('click',e=>{if(!e.target.closest('button'))picker.click();});
+  picker.addEventListener('change',()=>addFiles(picker.files));
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');addFiles(e.dataTransfer.files);});
+  editor.addEventListener('paste',e=>{const files=[...(e.clipboardData?.items||[])].filter(i=>i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);if(files.length){e.preventDefault();addFiles(files);}});
+  field.addEventListener('input',render);render();
+ });
+}
+
 async function renderManager(profile){
  currentProfile=profile;
  $('adminContent').innerHTML='<div class="admin-card"><h3>Chargement…</h3><p>Récupération de vos paramètres et logements.</p></div>';
@@ -445,7 +501,7 @@ async function renderManager(profile){
   field('Accroche','tagline',currentSite.tagline)+field('E-mail de contact','contact_email',currentSite.contact_email,'email')+
   field('Téléphone','contact_phone',currentSite.contact_phone,'tel')+field('WhatsApp (indicatif + numéro, chiffres uniquement)','whatsapp',currentSite.whatsapp)+field('Nom de domaine personnalisé (facultatif, uniquement en cas d’achat)','domain_requested',currentSite.domain_requested||'')+'<div class="field full"><p style="margin:0">À renseigner uniquement si vous souhaitez acheter votre propre nom de domaine (ex. www.monsite.fr). Cet achat est à votre charge. Sinon, laissez ce champ vide : votre site restera accessible gratuitement à l’adresse fournie par la plateforme.</p><p style="margin:8px 0 0">État du domaine : '+esc(currentSite.domain_status||'aucune demande')+'. La saisie ne rend pas encore le domaine accessible : une configuration DNS et hébergement sera nécessaire.</p></div>'+
   '<div class="field full"><label>Présentation du site</label><textarea name="description">'+esc(currentSite.description)+'</textarea></div>'+
-  '<div class="field full"><label>URL de la photo de couverture</label><input name="hero_photo_url" value="'+esc(currentSite.hero_photo_url)+'" placeholder="https://…"></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
+  imagePickerMarkup('hero_photo_url','Photo de couverture',currentSite.hero_photo_url,false)+'</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer mon site</button><span class="status" id="siteStatus" aria-live="polite"></span></div></form>'+
   (canManagePublication?'<div class="field full" style="margin-top:16px"><label>Publication de votre site</label><p id="publicationState" style="margin:6px 0 10px">'+(currentSite.site_enabled?'Votre site est en ligne et visible publiquement.':'Votre site est en pause et invisible des voyageurs.')+'</p><button class="btn" id="toggleSitePublication" type="button">'+(currentSite.site_enabled?'Mettre mon site en pause':'Mettre mon site en ligne')+'</button><span class="status" id="publicationStatus" aria-live="polite"></span></div>':'<div class="field full" style="margin-top:16px"><label>État de la demande</label><p style="margin:0;color:#8a5a22">'+(currentSite.site_review_status==='pending'?'Votre demande de création est en attente de validation par l’administrateur.':currentSite.site_review_status==='rejected'?'Votre demande de création a été refusée.':'La création de votre espace doit être acceptée par l’administrateur avant sa mise en ligne.')+'</p></div>')+
   '<p style="margin-top:16px">Adresse de votre site : <a class="details" target="_blank" rel="noopener" href="'+esc(siteUrl)+'">'+esc(siteUrl)+'</a></p><button class="btn" id="previewSiteBtn" type="button" style="margin:8px 8px 8px 0">Aperçu privé du site</button><button class="btn" id="logoutBtn" type="button" style="background:#e9eee9">Se déconnecter</button></div>'+
   '<div class="admin-card"><h3>Demandes de réservation</h3><p>Les demandes envoyées depuis votre site sont traitées ici. Vous seul pouvez accepter ou refuser les demandes concernant vos logements.</p><div id="managerRequestsList">Chargement des demandes…</div></div>'+
@@ -460,11 +516,12 @@ async function renderManager(profile){
   field('Prix à partir de (€ / nuit)','price_from',x.price_from,'number')+
   '<div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(x.summary)+'" placeholder="Ex. Un cocon paisible à deux pas du lagon"></div>'+
   '<div class="field full"><label>Description</label><textarea name="description">'+esc(x.description)+'</textarea></div>'+
-  '<div class="field full"><label>Photos — une URL d’image par ligne</label><textarea name="photo_urls" placeholder="https://…">'+esc((x.photo_urls||[]).join('\n'))+'</textarea></div>'+
+  imagePickerMarkup('photo_urls','Photos du logement',(x.photo_urls||[]).join('\n'),true)+
   '<div class="field full"><label>Équipements — séparés par des virgules</label><input name="amenities" value="'+esc((x.amenities||[]).join(', '))+'"></div>'+
   '</div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les modifications</button><span class="status" aria-live="polite"></span></div></form>').join('')+
   (rows.length?'':'<div class="admin-card"><p>Aucun logement n’est encore associé à votre compte. Contactez l’administrateur de Planning Conciergerie pour vérifier vos logements.</p></div>');
   decorateManagerWorkspace(profile);
+  setupImageEditors();
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;renderLogin()});
   $('siteForm').addEventListener('submit',saveSite);
   const publicationButton=$('toggleSitePublication');
