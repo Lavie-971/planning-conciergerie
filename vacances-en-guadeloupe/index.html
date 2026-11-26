@@ -730,7 +730,9 @@ async function loadPublic(){
   const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');
   await refreshSiteImageUrls(slug,preview);
   if(preview){const refreshedSite=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(slug));if(refreshedSite[0])Object.assign(site,refreshedSite[0]);}
-  const rows=await api((preview?'public_listings':'public_listings_public')+'?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  const detailId=new URLSearchParams(location.search).get('logement');
+  const listingFields=(preview||detailId)?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
+  const rows=await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
   setSiteIdentity(site);
   const reviewRows=rows.length?await api('public_guest_reviews?select=listing_id,rating&listing_id=in.('+rows.map(row=>encodeURIComponent(row.id)).join(',')+')'):[];
@@ -746,7 +748,6 @@ async function loadPublic(){
    const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
    return '<article class="listing"><div class="listing-photo">'+image+(preview?'<button type="button" class="preview-edit-trigger" data-edit-preview-listing="'+esc(x.id)+'">✎ Modifier</button>':'')+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3>'+reviewSummary(x.id)+'<p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" data-open-listing="'+esc(x.id)+'" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
   }).join('');
-  const detailId=new URLSearchParams(location.search).get('logement');
   if(detailId){
    const item=rows.find(x=>x.id===detailId);
    if(item){
