@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://pezxvjollptmwmadykfk.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#174d43">
 <title>Vacances en Guadeloupe — Séjours & locations de vacances</title>
@@ -368,6 +369,7 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #propertyPhotoLightbox img{display:block;max-width:min(1200px,96vw);max-height:88vh;width:auto;height:auto;object-fit:contain;border-radius:8px;box-shadow:0 12px 50px #0008}
 #propertyPhotoLightboxClose{position:absolute;top:14px;right:18px;width:42px;height:42px;border:1px solid #ffffff66;border-radius:50%;background:#ffffff18;color:white;font-size:28px;line-height:1;cursor:pointer}
 #propertyPhotoLightboxClose:hover{background:#ffffff30}
+.plb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border:1px solid #ffffff66;border-radius:50%;background:#ffffff18;color:#fff;font-size:30px;line-height:1;cursor:pointer;display:grid;place-items:center}.plb-nav:hover{background:#ffffff30}.plb-nav[hidden]{display:none!important}
 
 body.private-preview-editing .hero{cursor:pointer;position:relative}
 body.private-preview-editing .hero:hover{filter:none}
@@ -511,7 +513,7 @@ body.private-preview-editing [data-site-edit-key][contenteditable="true"]{cursor
  </div>
 </div>
 
-<div id="propertyPhotoLightbox" hidden role="dialog" aria-modal="true" aria-label="Photo agrandie du logement"><button id="propertyPhotoLightboxClose" type="button" aria-label="Fermer">×</button><img id="propertyPhotoLightboxImage" alt=""></div>
+<div id="propertyPhotoLightbox" hidden role="dialog" aria-modal="true" aria-label="Photo agrandie du logement"><button id="propertyPhotoLightboxClose" type="button" aria-label="Fermer">×</button><button id="plbPrev" class="plb-nav" type="button" aria-label="Photo précédente" style="left:14px" hidden>‹</button><button id="plbNext" class="plb-nav" type="button" aria-label="Photo suivante" style="right:14px" hidden>›</button><img id="propertyPhotoLightboxImage" alt=""></div>
 
 <script>
 const SB_URL='https://pezxvjollptmwmadykfk.supabase.co';
@@ -1157,12 +1159,15 @@ $('bookingForm').addEventListener('submit',async e=>{
 
 const propertyPhotoLightbox=document.getElementById('propertyPhotoLightbox');
 const propertyPhotoLightboxImage=document.getElementById('propertyPhotoLightboxImage');
-function openPropertyPhotoLightbox(src,alt){if(!src||!propertyPhotoLightbox||!propertyPhotoLightboxImage)return;propertyPhotoLightboxImage.src=src;propertyPhotoLightboxImage.alt=alt||'Photo du logement';propertyPhotoLightbox.hidden=false;document.body.style.overflow='hidden';}
+let plbList=[],plbIndex=0;
+function showPlb(i){plbIndex=(i+plbList.length)%plbList.length;const p=plbList[plbIndex];propertyPhotoLightboxImage.src=p.src;propertyPhotoLightboxImage.alt=p.alt||'Photo du logement';$('plbPrev').hidden=$('plbNext').hidden=plbList.length<2;}
+function openPropertyPhotoLightbox(src,alt,group){if(!src||!propertyPhotoLightbox||!propertyPhotoLightboxImage)return;plbList=(group&&group.length?group:[{src,alt}]).map(p=>({src:p.src||p.currentSrc,alt:p.alt}));showPlb(Math.max(0,plbList.findIndex(p=>p.src===src)));propertyPhotoLightbox.hidden=false;document.body.style.overflow='hidden';}
 function closePropertyPhotoLightbox(){if(!propertyPhotoLightbox)return;propertyPhotoLightbox.hidden=true;propertyPhotoLightboxImage.src='';document.body.style.overflow='';}
-document.getElementById('publicApp').addEventListener('click',e=>{const photo=e.target.closest('img.zoomable-photo');if(photo&&photo.src){e.preventDefault();openPropertyPhotoLightbox(photo.src,photo.alt);}});
+document.getElementById('publicApp').addEventListener('click',e=>{const photo=e.target.closest('img.zoomable-photo');if(photo&&photo.src){e.preventDefault();openPropertyPhotoLightbox(photo.src,photo.alt,photo.closest('#listingDetail')?[...document.querySelectorAll('#listingDetail img.zoomable-photo')]:null);}});
 document.getElementById('propertyPhotoLightboxClose').addEventListener('click',closePropertyPhotoLightbox);
 propertyPhotoLightbox.addEventListener('click',e=>{if(e.target===propertyPhotoLightbox)closePropertyPhotoLightbox();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!propertyPhotoLightbox.hidden)closePropertyPhotoLightbox();});
+$('plbPrev').addEventListener('click',()=>showPlb(plbIndex-1));$('plbNext').addEventListener('click',()=>showPlb(plbIndex+1));
+document.addEventListener('keydown',e=>{if(propertyPhotoLightbox.hidden)return;if(e.key==='Escape')closePropertyPhotoLightbox();else if(e.key==='ArrowLeft')showPlb(plbIndex-1);else if(e.key==='ArrowRight')showPlb(plbIndex+1);});
 function route(){const params=new URLSearchParams(location.search);const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){document.documentElement.classList.add('owner-entry');if(!ownerSessionReady){$('publicApp').style.display='block';$('adminApp').style.display='none';return;}if(session?.access_token&&currentUser?.id&&currentProfile){$('publicApp').style.display='none';$('adminApp').style.display='block';renderManager(currentProfile);}else{renderLogin();$('publicApp').style.display='block';}return;}document.documentElement.classList.remove('owner-entry');$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
  const backOwner=e.target.closest('#previewReturnOwner');
