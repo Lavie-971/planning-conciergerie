@@ -407,7 +407,7 @@ body.private-preview-editing [data-site-edit-key]:hover{outline:0!important;back
 body.private-preview-editing .hero.preview-module-highlight,body.private-preview-editing .experience.preview-module-highlight{outline-offset:-5px!important}
 body.private-preview-editing .experience-img.preview-module-highlight{outline-offset:4px!important}
 .preview-edit-site{margin-left:12px;background:#fff;color:#173f36;border:1px solid #d8b77b;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer}
-body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:0!important;background-color:transparent!important;transition:none}body.private-preview-editing [data-site-edit-key]:hover{outline:0!important;background-color:transparent!important}body.private-preview-editing [data-site-edit-key]::after{content:none!important}
+body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:0!important;background-color:transparent!important;transition:none}body.private-preview-editing [data-site-edit-key]:hover{background-color:transparent!important}body.private-preview-editing [data-site-edit-key]::after{content:none!important}
 /* Refonte du formulaire de modification */
 .preview-edit-modal{padding:24px!important;background:rgba(12,27,22,.72)!important;backdrop-filter:blur(5px)}
 .preview-edit-dialog{width:min(980px,100%)!important;max-height:min(92vh,980px)!important;overflow:auto!important;padding:34px 38px 30px!important;border-radius:20px!important;background:#fbfcfa!important;box-shadow:0 28px 90px rgba(0,0,0,.28)!important}
@@ -606,7 +606,7 @@ function enableIndividualTextEditing(site){
  if(document.body.dataset.previewModuleHoverReady!=='1'){
   document.body.dataset.previewModuleHoverReady='1';
   let hoveredModule=null,selectedModule=null;
-  const moduleFor=target=>{const editable=target.closest('[data-site-edit-key],[data-preview-photo]');if(!editable)return null;if(editable.hasAttribute('data-preview-photo'))return editable.dataset.previewPhoto==='hero'?editable:editable.closest('.experience')||editable;return editable.closest('.hero,.intro,.listings,.experience,.contact,footer,header')||editable;};
+  const moduleFor=target=>{const editable=target.closest('[data-site-edit-key],[data-preview-photo]');if(!editable)return null;if(editable.hasAttribute('data-preview-photo'))return editable.dataset.previewPhoto==='hero'?editable:editable.closest('.experience')||editable;return editable;};
   document.addEventListener('pointerover',e=>{const next=moduleFor(e.target);if(!next||next===hoveredModule||next.contains(e.relatedTarget))return;hoveredModule?.classList.remove('preview-module-hover');hoveredModule=next;if(hoveredModule!==selectedModule)hoveredModule.classList.add('preview-module-hover');});
   document.addEventListener('pointerout',e=>{if(!hoveredModule||hoveredModule.contains(e.relatedTarget))return;if(hoveredModule!==selectedModule)hoveredModule.classList.remove('preview-module-hover');hoveredModule=null;});
   document.addEventListener('click',e=>{const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');}},{capture:true});
