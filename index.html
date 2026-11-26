@@ -2757,12 +2757,17 @@ async function refreshOwnerSiteReviewState(){
 function startSiteBookingRequestNotifications(){
  stopSiteBookingRequestNotifications();
  if(!accountApproved||!activeUserId||!ownerSiteSlug||(accountRole!=='user'&&accountRole!=='admin'))return;
+ let polling=false;
  const poll=async()=>{
+  if(polling||document.visibilityState==='hidden')return;
+  polling=true;
   try{await refreshOwnerSiteReviewState();if(ownerSiteCreationAccepted())await refreshSiteBookingRequests();}
   catch(error){console.warn('Actualisation du statut du site impossible',error);}
+  finally{polling=false;}
  };
  poll();
- siteBookingRequestPollTimer=setInterval(()=>{if(document.visibilityState==='visible')poll();},20000);
+ // Vérification moins fréquente pour limiter les lectures réseau, sans désactiver les notifications.
+ siteBookingRequestPollTimer=setInterval(poll,60000);
 }
 function stopSiteBookingRequestNotifications(){
  if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
