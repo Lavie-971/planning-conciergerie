@@ -6521,6 +6521,10 @@ async function deleteApartment(id){
     if(syncUrl){
       const result=await sbRest('POST','rpc/delete_apartment_bundle',{target_apartment_id:String(id)});
       if(!result || result.ok!==true) throw new Error("La base de données n'a pas confirmé la suppression complète.");
+      const stillPresent=await sbRest('GET','apartments?select=id&user_id=eq.'+encodeURIComponent(activeUserId)+'&id=eq.'+encodeURIComponent(String(id))+'&deleted=eq.false');
+      if(Array.isArray(stillPresent) && stillPresent.length){
+        throw new Error("Supabase indique encore que ce logement existe. Aucune confirmation de suppression ne sera affichée.");
+      }
     }
     const bookingIds=new Set(linkedBookings.map(b=>String(b.id)));
     bookings=bookings.filter(b=>String(b.apartmentId)!==String(id));
@@ -6539,13 +6543,28 @@ async function deleteApartment(id){
     writeAgendaQueue();
     saveAgendaLocal();
     apartments=apartments.filter(a=>String(a.id)!==String(id));
-    const saved=await saveApartments();
+    let saved=await saveApartments();
+    if(syncUrl && saved){
+      try{
+        const remoteRaw=await readRemoteKeyStrict('apartments');
+        const remoteRows=remoteRaw.trim()?JSON.parse(remoteRaw):[];
+        if(!Array.isArray(remoteRows) || remoteRows.some(a=>String(a && a.id)===String(id))){
+          await postSyncPayload({key:'apartments_delete',id:String(id)});
+          const verifiedRaw=await readRemoteKeyStrict('apartments');
+          const verifiedRows=verifiedRaw.trim()?JSON.parse(verifiedRaw):[];
+          saved=Array.isArray(verifiedRows) && !verifiedRows.some(a=>String(a && a.id)===String(id));
+        }
+      }catch(verifyError){
+        saved=false;
+        console.error('Vérification distante de suppression',verifyError);
+      }
+    }
     renderApartmentsList();
     renderAll();
     if(!saved){
-      alert('Le logement et ses données associées ont été supprimés de la base, mais la mise à jour de la liste locale a rencontré un problème. Rechargez l’application.');
+      alert('Le logement a été retiré de cette session, mais la synchronisation distante n’a pas confirmé sa disparition. Ne recréez pas le logement : rechargez l’application et vérifiez la connexion.');
     }else{
-      alert('Le logement « '+apartmentName+' » et ses données associées ont été supprimés.');
+      alert('Le logement « '+apartmentName+' » et ses données associées ont été supprimés et leur disparition a été vérifiée.');
     }
   }catch(error){
     console.error('Suppression complète du logement',error);
