@@ -6950,7 +6950,7 @@ function saveBookingWhatsAppWorkflow(booking,workflow){
   if(syncUrl){queueBookingUpsert(booking);setSyncStatus('syncing');}
 }
 let _whatsappSchedulePromptOpen=false;
-function showWhatsAppScheduleNotification(message,onPrepare){
+function showWhatsAppScheduleNotification(message,onPrepare,onLater){
   const previous=document.getElementById('whatsappScheduleNotification');
   if(previous)previous.remove();
   const toast=document.createElement('div');
@@ -6967,11 +6967,11 @@ function showWhatsAppScheduleNotification(message,onPrepare){
   const later=document.createElement('button');
   later.type='button';later.textContent='Plus tard';
   later.style.cssText='border:1px solid #d5dce5;background:#fff;color:#445064;border-radius:8px;padding:7px 10px;cursor:pointer;';
-  later.onclick=()=>{toast.remove();_whatsappSchedulePromptOpen=false;};
+  later.onclick=()=>{if(typeof onLater==='function')onLater();toast.remove();_whatsappSchedulePromptOpen=false;};
   const prepare=document.createElement('button');
   prepare.type='button';prepare.textContent='Préparer';
   prepare.style.cssText='border:0;background:#2563eb;color:#fff;border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer;';
-  prepare.onclick=()=>{toast.remove();_whatsappSchedulePromptOpen=false;onPrepare();};
+  prepare.onclick=()=>{if(typeof onLater==='function')onLater();toast.remove();_whatsappSchedulePromptOpen=false;onPrepare();};
   actions.append(later,prepare);
   toast.append(title,body,actions);
   document.body.appendChild(toast);
@@ -6993,14 +6993,16 @@ function checkWhatsAppSchedules(){
       if(key==='afterStay' && !booking.whatsappWorkflow.welcomeSentAt && !steps.welcome?.sentAt)continue;
       if(!step||step.sentAt||!step.dueDate||step.dueDate>today||step.promptedDate===today)continue;
       if(key==='welcome' && booking.checkin<=today)continue;
-      step.promptedDate=today;
-      saveBookingWhatsAppWorkflow(booking,booking.whatsappWorkflow);
+      const markPromptHandled=()=>{
+        step.promptedDate=today;
+        saveBookingWhatsAppWorkflow(booking,booking.whatsappWorkflow);
+      };
       const labels={welcome:"Message de bienvenue (3 jours avant l’arrivée)",reminder:"Rappel avant l’arrivée",afterStay:"Remerciement et demande d’avis"};
       _whatsappSchedulePromptOpen=true;
       showWhatsAppScheduleNotification("À préparer pour "+(booking.client||'ce client')+" : "+labels[key]+". Aucun envoi automatique.",()=>{
         detailBookingId=booking.id;
         prepareBookingWhatsApp(step.template);
-      });
+      },markPromptHandled);
       return;
     }
   }
