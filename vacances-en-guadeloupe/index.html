@@ -533,6 +533,7 @@ const PLANNING_URL='https://lavie-971.github.io/planning-conciergerie/';
 let ownerAccessMessage='';
  let session=null,currentSite=null,currentUser=null,currentProfile=null,activePreviewSite=null,bookingDatesAvailable=false,bookingAvailabilityRanges=[];
 let ownerRestorePromise=null,ownerSessionReady=false;
+let siteImageUrlCache={};
 function restoreOwnerSession(){
  if(ownerRestorePromise)return ownerRestorePromise;
  ownerRestorePromise=(async()=>{
@@ -574,6 +575,29 @@ async function api(path,method='GET',body=null){
  if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
  const r=await fetch(SB_URL+'/rest/v1/'+path,{method,headers,body:body?JSON.stringify(body):undefined});
  const txt=await r.text();if(!r.ok)throw new Error('Erreur '+r.status+' : '+txt.slice(0,180));return txt?JSON.parse(txt):null;
+}
+async function refreshSiteImageUrls(siteSlug,preview=false){
+ const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
+ if(preview&&session?.access_token)headers.Authorization='Bearer '+session.access_token;
+ const response=await fetch(SB_URL+'/functions/v1/resolve-site-images',{method:'POST',headers,body:JSON.stringify({site_slug:siteSlug,preview})});
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(payload.error||'Impossible de charger les photos sécurisées.');
+ siteImageUrlCache=payload.images||{};
+}
+function siteImageUrl(ref){
+ const value=String(ref||'');
+ if(value.startsWith('private:'))return siteImageUrlCache[value]||'';
+ return value;
+}
+async function createOwnerSignedImage(path){
+ const response=await fetch(SB_URL+'/storage/v1/object/sign/site-images-private/'+path.split('/').map(encodeURIComponent).join('/'),{
+  method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({expiresIn:3600})
+ });
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||!data.signedURL)throw new Error('Impossible de préparer l’aperçu privé de cette photo.');
+ const url=data.signedURL.startsWith('http')?data.signedURL:SB_URL+'/storage/v1'+(data.signedURL.startsWith('/')?data.signedURL:'/'+data.signedURL);
+ siteImageUrlCache['private:'+path]=url;
+ return url;
 }
 function currentSlug(){return new URLSearchParams(location.search).get('site')||'vacances-en-guadeloupe'}
 function enableIndividualTextEditing(site){
@@ -642,14 +666,14 @@ function enablePreviewPhotoEditing(site){
   const module=target==='hero'?$('heroTitle')?.closest('.hero'):document.querySelector('.experience');
   module?.classList.add('preview-module-highlight');
   try{
-   const url=await uploadSiteImage(file);
+   const url=await uploadSiteImage(file),displayUrl=siteImageUrl(url);
    if(target==='hero'){
     await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{hero_photo_url:url,updated_at:new Date().toISOString()});
     const saved=await api('public_owner_sites?select=hero_photo_url&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(site.site_slug));
     if(!saved[0]?.hero_photo_url||saved[0].hero_photo_url!==url)throw new Error('La photo a été envoyée, mais son enregistrement dans le site n’a pas été confirmé. Réessayez.');
     site.hero_photo_url=url;
     const heroEl=$('heroTitle')?.closest('.hero');
-    if(heroEl)heroEl.style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url('+JSON.stringify(url)+')';
+    if(heroEl&&displayUrl)heroEl.style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url('+JSON.stringify(displayUrl)+')';
    }else if(target==='presentation'){
     const texts={...(site.site_texts||{}),presentation_photo_url:url};
     await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
@@ -657,7 +681,7 @@ function enablePreviewPhotoEditing(site){
     if(saved[0]?.site_texts?.presentation_photo_url!==url)throw new Error('La photo a été envoyée, mais son enregistrement dans le site n’a pas été confirmé. Réessayez.');
     site.site_texts=saved[0].site_texts;
     const el=document.querySelector('.experience-img');
-    if(el)el.style.backgroundImage='url('+JSON.stringify(url)+')';
+    if(el&&displayUrl)el.style.backgroundImage='url('+JSON.stringify(displayUrl)+')';
    }else throw new Error('Zone de photo non reconnue.');
    showPreviewPhotoNotice('Photo enregistrée. Elle restera sur votre site après actualisation.');
   }catch(err){alert('Impossible de modifier la photo : '+err.message);}
@@ -683,9 +707,9 @@ function setSiteIdentity(site){
  put('footerTagline','footer_tagline','Des vacances au rythme des îles.');
  $('siteTagline').textContent=site.tagline||'Votre séjour en Guadeloupe';
  put('catalogTitle','catalog_title','Les logements de '+site.site_name);
- if(site.hero_photo_url)$('heroTitle').closest('.hero').style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("'+site.hero_photo_url.replace(/["\\]/g,'')+'")';
+ if(site.hero_photo_url){const heroUrl=siteImageUrl(site.hero_photo_url);if(heroUrl)$('heroTitle').closest('.hero').style.backgroundImage='linear-gradient(90deg,rgba(9,39,34,.72),rgba(9,39,34,.28) 62%,rgba(9,39,34,.1)),url("'+heroUrl.replace(/["\\]/g,'')+'")';}
  const presentationPhoto=t.presentation_photo_url;
- if(presentationPhoto){const el=document.querySelector('.experience-img');if(el)el.style.backgroundImage='url("'+presentationPhoto.replace(/["\\]/g,'')+'")';}
+ if(presentationPhoto){const el=document.querySelector('.experience-img'),photoUrl=siteImageUrl(presentationPhoto);if(el&&photoUrl)el.style.backgroundImage='url("'+photoUrl.replace(/["\\]/g,'')+'")';}
  if(new URLSearchParams(location.search).get('preview')==='1')enablePreviewPhotoEditing(site);
  const contact=site.whatsapp?('https://wa.me/'+site.whatsapp.replace(/\D/g,'')):site.contact_email?('mailto:'+site.contact_email):site.contact_phone?('tel:'+site.contact_phone.replace(/[^+0-9]/g,'')):'';
  $('contactLink').href=contact||'#contact';
@@ -701,8 +725,9 @@ async function loadPublic(){
   if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
   const sites=await api((preview?'public_owner_sites':'public_owner_sites_public')+'?select=site_slug,site_name,tagline,description,site_texts,hero_photo_url,contact_email,contact_phone,whatsapp'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug));
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
-  const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');setSiteIdentity(site);
+  const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');
   const rows=await api((preview?'public_listings':'public_listings_public')+'?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  await refreshSiteImageUrls(slug,preview);setSiteIdentity(site);
   const reviewRows=await api('public_guest_reviews?select=listing_id,rating,comment,display_name,created_at');
   const reviewsFor=id=>reviewRows.filter(r=>r.listing_id===id);
   const reviewSummary=id=>{const list=reviewsFor(id);if(!list.length)return '';const avg=list.reduce((n,r)=>n+Number(r.rating||0),0)/list.length;return '<div class="guest-review-summary" aria-label="Note moyenne '+avg.toFixed(1).replace('.',',')+' sur 5">★ '.repeat(0)+'<span class="stars">'+('★'.repeat(Math.round(avg))+'☆'.repeat(5-Math.round(avg)))+'</span><strong>'+avg.toFixed(1).replace('.',',')+'/5</strong><span>('+list.length+' avis)</span></div>';};
@@ -711,7 +736,7 @@ async function loadPublic(){
   if(preview)enablePrivatePreviewEditing(site,rows);
   if(!rows.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Nos logements arrivent bientôt</h3><p>Ce propriétaire prépare actuellement la présentation de ses hébergements. Revenez bientôt !</p></div>';return}
   $('listingCards').innerHTML=rows.map(x=>{
-   const photo=(x.photo_urls||[])[0],image=photo?'<img class="zoomable-photo listing-card-photo" src="'+esc(photo)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
+   const photo=(x.photo_urls||[])[0],photoUrl=siteImageUrl(photo),image=photoUrl?'<img class="zoomable-photo listing-card-photo" src="'+esc(photoUrl)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
    const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
    const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
    return '<article class="listing"><div class="listing-photo">'+image+(preview?'<button type="button" class="preview-edit-trigger" data-edit-preview-listing="'+esc(x.id)+'">✎ Modifier</button>':'')+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3>'+reviewSummary(x.id)+'<p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" data-open-listing="'+esc(x.id)+'" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
@@ -722,8 +747,8 @@ async function loadPublic(){
    if(item){
     $('publicApp').classList.add('detail-mode');
     const photos=(item.photo_urls||[]).filter(Boolean);
-    const heroPhoto=photos[0]||'';
-    const galleryPhotos=photos.slice(1);
+    const heroPhoto=siteImageUrl(photos[0]||'');
+    const galleryPhotos=photos.slice(1).map(siteImageUrl).filter(Boolean);
     const amenities=(item.amenities||[]).map(a=>'<span>'+esc(a)+'</span>').join('');
     const facts=[item.max_guests?item.max_guests+' voyageurs':'',item.bedroom_count?item.bedroom_count+' chambre(s)':'',item.bathroom_count?item.bathroom_count+' salle(s) de bain':''].filter(Boolean);
     const price=item.price_from?'<div class="detail-price">À partir de <strong>'+Number(item.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</div>':'<div class="detail-price">Tarif sur demande</div>';
@@ -804,18 +829,19 @@ async function uploadSiteImage(file){
  if(!session?.access_token||!currentUser?.id)throw new Error('Connectez-vous pour ajouter une image.');
  const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[file.type];
  const path=currentUser.id+'/'+Date.now()+'-'+crypto.randomUUID()+'.'+ext;
- const response=await fetch(SB_URL+'/storage/v1/object/site-images/'+path.split('/').map(encodeURIComponent).join('/'),{
+ const response=await fetch(SB_URL+'/storage/v1/object/site-images-private/'+path.split('/').map(encodeURIComponent).join('/'),{
   method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+session.access_token,'Content-Type':file.type,'x-upsert':'false'},body:file
  });
  if(!response.ok){const message=await response.text();throw new Error('Envoi impossible : '+message.slice(0,180));}
- return SB_URL+'/storage/v1/object/public/site-images/'+path.split('/').map(encodeURIComponent).join('/');
+ await createOwnerSignedImage(path);
+ return 'private:'+path;
 }
 function setupImageEditors(){
  document.querySelectorAll('[data-image-editor]').forEach(editor=>{
   if(editor.dataset.ready==='1')return;editor.dataset.ready='1';
   const field=editor.querySelector('[name]'),zone=editor.querySelector('[data-image-dropzone]'),picker=editor.querySelector('[data-image-files]'),choose=editor.querySelector('[data-image-choose]'),previews=editor.querySelector('[data-image-preview-list]');
   const values=()=>editor.dataset.multiple==='true'?field.value.split('\n').map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
-  const render=()=>{previews.innerHTML=values().map(url=>'<div class="image-preview"><img src="'+esc(url)+'" alt="Aperçu de la photo"><button type="button" title="Retirer cette image" aria-label="Retirer cette image" data-remove-image="'+esc(url)+'">×</button></div>').join('');previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{const next=values().filter(x=>x!==btn.dataset.removeImage);field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');render();}));};
+  const render=()=>{previews.innerHTML=values().map(url=>'<div class="image-preview"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><button type="button" title="Retirer cette image" aria-label="Retirer cette image" data-remove-image="'+esc(url)+'">×</button></div>').join('');previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{const next=values().filter(x=>x!==btn.dataset.removeImage);field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');render();}));};
   const addFiles=async files=>{const list=[...files].filter(f=>f.type?.startsWith('image/'));if(!list.length)return;zone.classList.add('uploading');zone.querySelector('span').textContent='Envoi des photos…';choose.disabled=true;
    try{const urls=[];for(const file of list)urls.push(await uploadSiteImage(file));const next=editor.dataset.multiple==='true'?[...values(),...urls]:[urls[0]];field.value=editor.dataset.multiple==='true'?next.join('\n'):next[0];render();zone.querySelector('span').textContent='Photo ajoutée. Vous pouvez en ajouter d’autres.';}
    catch(err){zone.querySelector('span').textContent=err.message;}
