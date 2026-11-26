@@ -6527,7 +6527,8 @@ async function deleteApartment(id){
     saveBookings();
     const pendingBookings=readPendingOps().filter(op=>{
       const bookingId=String(op && (op.id || (op.booking&&op.booking.id)) || '');
-      return !bookingIds.has(bookingId);
+      const opApartmentId=String(op && op.booking && op.booking.apartmentId || '');
+      return !bookingIds.has(bookingId) && opApartmentId!==String(id);
     });
     writePendingOps(pendingBookings);
     agendaEvents=agendaEvents.filter(e=>String(e.apartment_id||e.apartmentId||'')!==String(id));
