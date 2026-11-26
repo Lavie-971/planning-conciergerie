@@ -733,7 +733,7 @@ async function loadPublic(){
   const rows=await api((preview?'public_listings':'public_listings_public')+'?select=id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
   setSiteIdentity(site);
-  const reviewRows=await api('public_guest_reviews?select=listing_id,rating,comment,display_name,created_at');
+  const reviewRows=rows.length?await api('public_guest_reviews?select=listing_id,rating&listing_id=in.('+rows.map(row=>encodeURIComponent(row.id)).join(',')+')'):[];
   const reviewsFor=id=>reviewRows.filter(r=>r.listing_id===id);
   const reviewSummary=id=>{const list=reviewsFor(id);if(!list.length)return '';const avg=list.reduce((n,r)=>n+Number(r.rating||0),0)/list.length;return '<div class="guest-review-summary" aria-label="Note moyenne '+avg.toFixed(1).replace('.',',')+' sur 5">★ '.repeat(0)+'<span class="stars">'+('★'.repeat(Math.round(avg))+'☆'.repeat(5-Math.round(avg)))+'</span><strong>'+avg.toFixed(1).replace('.',',')+'/5</strong><span>('+list.length+' avis)</span></div>';};
   if(preview){const banner=$('previewBanner');if(banner)banner.remove();}
