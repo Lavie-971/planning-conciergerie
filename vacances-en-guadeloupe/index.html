@@ -523,6 +523,30 @@ body.private-preview-editing #heroCta:hover{
  -webkit-text-fill-color:#203d34!important;
 }
 
+
+/* Position fixe du bouton Modifier : ancrage à gauche dans chaque photo */
+#publicApp .listing-photo{position:relative!important;overflow:hidden!important}
+#publicApp .listing-photo > .preview-edit-trigger{
+ position:absolute!important;
+ top:12px!important;
+ left:12px!important;
+ right:auto!important;
+ bottom:auto!important;
+ inset:12px auto auto 12px!important;
+ transform:none!important;
+ margin:0!important;
+ box-sizing:border-box!important;
+ display:inline-flex!important;
+ width:auto!important;
+ min-width:0!important;
+ max-width:calc(100% - 24px)!important;
+ padding:7px 10px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ z-index:30!important;
+}
+
 </style>
 </head>
 <body>
