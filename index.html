@@ -6488,22 +6488,69 @@ function startEditApartment(item, id){
   });
   item.querySelector('[data-act=cancel]').addEventListener('click', renderApartmentsList);
 }
-function deleteApartment(id){
+async function deleteApartment(id){
   const errEl = document.getElementById('apartmentFormError');
-  const hasBookings = bookings.some(b=>b.apartmentId===id);
-  if(hasBookings){
-    errEl.style.display = 'block';
-    errEl.textContent = "Impossible de supprimer ce logement : des réservations lui sont associées. Supprimez ou réassignez d'abord ces réservations.";
-    return;
-  }
   errEl.style.display = 'none';
-  showConfirm('Supprimer ce logement ?', async ()=>{
-    await refreshApartmentsFromRemote();
-    apartments = apartments.filter(a=>a.id!==id);
-    await saveApartments();
+  try{
+    if(syncUrl){
+      await refreshApartmentsFromRemote();
+      await refreshBookingsFromRemote();
+    }
+    const apartment = apartments.find(a=>String(a.id)===String(id));
+    if(!apartment){
+      errEl.style.display='block';
+      errEl.textContent="Ce logement n'existe plus. Actualisez la liste.";
+      return;
+    }
+    const apartmentName=String(apartment.name||'').trim();
+    if(!apartmentName){
+      errEl.style.display='block';
+      errEl.textContent="Impossible de confirmer la suppression : le logement n'a pas de nom.";
+      return;
+    }
+    const linkedBookings=bookings.filter(b=>String(b.apartmentId)===String(id));
+    const typedName=window.prompt(
+      'ATTENTION : cette suppression est définitive. Toutes les réservations ('+linkedBookings.length+'), les événements d’agenda, les demandes et la fiche publique associés à « '+apartmentName+' » seront supprimés.\\n\\nPour confirmer, écrivez exactement le nom du logement :'
+    );
+    if(typedName===null) return;
+    if(typedName.trim().toLocaleLowerCase()!==apartmentName.toLocaleLowerCase()){
+      errEl.style.display='block';
+      errEl.textContent="Le nom saisi ne correspond pas. Le logement n'a pas été supprimé.";
+      return;
+    }
+    if(syncUrl){
+      const result=await sbRest('POST','rpc/delete_apartment_bundle',{target_apartment_id:String(id)});
+      if(!result || result.ok!==true) throw new Error("La base de données n'a pas confirmé la suppression complète.");
+    }
+    const bookingIds=new Set(linkedBookings.map(b=>String(b.id)));
+    bookings=bookings.filter(b=>String(b.apartmentId)!==String(id));
+    saveBookings();
+    const pendingBookings=readPendingOps().filter(op=>{
+      const bookingId=String(op && (op.id || (op.booking&&op.booking.id)) || '');
+      return !bookingIds.has(bookingId);
+    });
+    writePendingOps(pendingBookings);
+    agendaEvents=agendaEvents.filter(e=>String(e.apartment_id||e.apartmentId||'')!==String(id));
+    agendaPendingOps=readAgendaQueue().filter(op=>{
+      const event=op && op.event;
+      return String(event && (event.apartment_id||event.apartmentId)||'')!==String(id);
+    });
+    writeAgendaQueue();
+    saveAgendaLocal();
+    apartments=apartments.filter(a=>String(a.id)!==String(id));
+    const saved=await saveApartments();
     renderApartmentsList();
     renderAll();
-  });
+    if(!saved){
+      alert('Le logement et ses données associées ont été supprimés de la base, mais la mise à jour de la liste locale a rencontré un problème. Rechargez l’application.');
+    }else{
+      alert('Le logement « '+apartmentName+' » et ses données associées ont été supprimés.');
+    }
+  }catch(error){
+    console.error('Suppression complète du logement',error);
+    errEl.style.display='block';
+    errEl.textContent='Suppression impossible : '+(error&&error.message?error.message:'erreur inconnue');
+  }
 }
 async function addApartment(){
   const errEl = document.getElementById('apartmentFormError');
