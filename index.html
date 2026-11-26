@@ -8251,7 +8251,7 @@ async function saveAgendaEvent(event){
   agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
   agendaPendingOps.push({opId:crypto.randomUUID(),type:'upsert',id:item.id,event:item});
   writeAgendaQueue();
-  await syncAgendaPending();
+  await syncAgendaPending(false);
 
   return item;
 }
@@ -8263,10 +8263,10 @@ async function deleteAgendaEvent(id){
   agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
   agendaPendingOps.push({opId:crypto.randomUUID(),type:'delete',id:id});
   writeAgendaQueue();
-  await syncAgendaPending();
+  await syncAgendaPending(false);
 }
 
-async function syncAgendaPending(){
+async function syncAgendaPending(refreshRemote=true){
   if(agendaSyncInProgress) return;
   agendaSyncInProgress = true;
   let syncFailed = false;
@@ -8307,11 +8307,11 @@ async function syncAgendaPending(){
     agendaSyncInProgress = false;
   }
 
-  await loadAgendaEvents();
+  if(refreshRemote) await loadAgendaEvents();
   // Une nouvelle modification peut avoir été ajoutée pendant l'envoi du lot.
   // On relance uniquement après un lot réussi pour éviter une boucle en cas de panne réseau.
   if(!syncFailed && readAgendaQueue().length){
-    setTimeout(()=>syncAgendaPending(),150);
+    setTimeout(()=>syncAgendaPending(false),150);
   }
 }
 // ===== COMMANDES DE L'AGENDA =====
@@ -8624,7 +8624,7 @@ renderCalendar();
     }
   });
 
-  window.addEventListener('online',()=>{ if(accountApproved) syncAgendaPending(); });
+  window.addEventListener('online',()=>{ if(accountApproved) syncAgendaPending(false); });
   // En ligne : l'agenda est chargé par sbAfterLogin, une fois le compte vérifié.
   if(!navigator.onLine) loadAgendaEvents().then(renderAgenda);
 }  
