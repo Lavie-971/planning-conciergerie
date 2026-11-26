@@ -815,8 +815,13 @@ async function loadPublic(){
   await refreshSiteImageUrls(slug,preview);
   if(preview){const refreshedSite=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(slug));if(refreshedSite[0])Object.assign(site,refreshedSite[0]);}
   const detailId=new URLSearchParams(location.search).get('logement');
-  const listingFields=(preview||detailId)?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
-  const rows=await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
+  let rows=await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  if(preview){
+   const activeApartments=await api('apartments?select=id&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
+   const activeApartmentIds=new Set(activeApartments.map(a=>String(a.id)));
+   rows=rows.filter(row=>activeApartmentIds.has(String(row.apartment_id||'')));
+  }
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
   setSiteIdentity(site);
   const reviewFields=detailId?'listing_id,rating,comment,display_name,created_at':'listing_id,rating';
@@ -962,7 +967,9 @@ async function renderManager(profile){
    return {user_id:currentUser.id,apartment_id:a.id,site_slug:currentSite.site_slug,title:d.name||'Logement sans nom',location:d.commune||'',property_type:d.propertyType||'',max_guests:Number.isFinite(Number(d.maxGuests))&&d.maxGuests!==null?Number(d.maxGuests):null,bedroom_count:Number.isFinite(Number(d.bedroomCount))&&d.bedroomCount!==null?Number(d.bedroomCount):null,display_order:Number.isFinite(Number(d.sortOrder))?Number(d.sortOrder):0,is_published:false};
   });
   if(missingListings.length)await api('public_listings','POST',missingListings);
-  const rows=await api('public_listings?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&order=display_order.asc');
+  const allListingRows=await api('public_listings?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&order=display_order.asc');
+  const activeApartmentIds=new Set(apartmentRows.map(a=>String(a.id)));
+  const rows=allListingRows.filter(row=>activeApartmentIds.has(String(row.apartment_id||'')));
   const ownerReviews=await api('guest_reviews?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&order=created_at.desc');
   const siteUrl=currentSite.site_slug==='vacances-en-guadeloupe'?BASE_URL:BASE_URL+'?site='+encodeURIComponent(currentSite.site_slug);
   const creationAccepted=profile?.role==='admin'||currentSite.site_review_status==='approved'||(currentSite.site_review_status==='draft'&&String(currentSite.site_review_note||'').includes('Création acceptée par l’administrateur'));
