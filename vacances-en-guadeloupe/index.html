@@ -463,6 +463,66 @@ body.private-preview-editing [data-site-edit-key][contenteditable="true"]{cursor
 .suggestion-list button{border:1px solid #cbd9cc;background:#f5f8f4;color:#285f50;padding:8px 11px;border-radius:7px;cursor:pointer;font-size:11px}
 @media(max-width:600px){.preview-edit-dialog{padding:20px 15px}}
 
+
+/* Corrections robustes de l'aperçu privé : repérage des zones modifiables */
+body.private-preview-editing [data-site-edit-key],
+body.private-preview-editing [data-preview-photo]{
+ cursor:pointer!important;
+}
+body.private-preview-editing [data-site-edit-key]:hover{
+ outline:2px dashed #c49b55!important;
+ outline-offset:4px!important;
+ border-radius:4px!important;
+ background-color:rgba(255,248,233,.22)!important;
+ box-shadow:0 0 0 3px rgba(196,155,85,.12)!important;
+}
+body.private-preview-editing .hero:hover,
+body.private-preview-editing .experience-img:hover{
+ outline:2px dashed #c49b55!important;
+ outline-offset:-5px!important;
+}
+body.private-preview-editing .listing:hover{
+ outline:2px dashed #c49b55!important;
+ outline-offset:4px!important;
+}
+body.private-preview-editing .listing-photo .preview-edit-trigger{
+ position:absolute!important;
+ inset:12px 12px auto auto!important;
+ left:auto!important;
+ right:12px!important;
+ transform:none!important;
+ display:inline-flex!important;
+ width:auto!important;
+ max-width:calc(100% - 24px)!important;
+ min-width:0!important;
+ box-sizing:border-box!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ z-index:20!important;
+}
+body.private-preview-editing #heroCta,
+body.private-preview-editing #heroCta:link,
+body.private-preview-editing #heroCta:visited,
+body.private-preview-editing #heroCta:hover,
+body.private-preview-editing #heroCta:focus,
+body.private-preview-editing #heroCta:active{
+ background:#d8b77b!important;
+ background-color:#d8b77b!important;
+ color:#203d34!important;
+ -webkit-text-fill-color:#203d34!important;
+ border:1px solid #d8b77b!important;
+ opacity:1!important;
+ filter:none!important;
+ box-shadow:none!important;
+}
+body.private-preview-editing #heroCta:hover{
+ background:#e7c990!important;
+ background-color:#e7c990!important;
+ color:#203d34!important;
+ -webkit-text-fill-color:#203d34!important;
+}
+
 </style>
 </head>
 <body>
