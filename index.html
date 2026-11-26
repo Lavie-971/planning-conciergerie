@@ -2565,24 +2565,30 @@ function openDrawer(){
 function closeDrawer(){
   document.getElementById('drawerBackdrop').hidden = true;
 }
+let _silentRefreshInProgress = false;
 async function silentRefresh(){
-  if(!accountApproved || !syncUrl || !sbHasSession() || !activeUserId || anyModalOpen() || _initialSyncInProgress) return;
-  // Ne pas écraser les données si une sauvegarde est en cours ou vient de se terminer
-  if(_savingInProgress) return;
-  if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité après une sauvegarde pour éviter d'écraser une modification récente
-  // Ne jamais reconstruire le planning pendant que l'utilisateur le parcourt.
-  // Le rafraîchissement reprend après 30 secondes sans défilement.
-  if(_userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
-  await loadData();
-  // Après le premier défilement manuel, les données peuvent se synchroniser en arrière-plan,
-  // mais le planning visible ne doit plus être reconstruit pendant cette session.
-  if(_userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
-  preservePlanningScrollAndRender();
+  if(!accountApproved || !syncUrl || !sbHasSession() || !activeUserId || anyModalOpen() || _initialSyncInProgress || document.visibilityState==='hidden' || _silentRefreshInProgress) return;
+  _silentRefreshInProgress = true;
+  try{
+    // Ne pas écraser les données si une sauvegarde est en cours ou vient de se terminer
+    if(_savingInProgress) return;
+    if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité après une sauvegarde pour éviter d'écraser une modification récente
+    // Ne jamais reconstruire le planning pendant que l'utilisateur le parcourt.
+    // Le rafraîchissement reprend après 30 secondes sans défilement.
+    if(_userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
+    await loadData();
+    // Après le premier défilement manuel, les données peuvent se synchroniser en arrière-plan,
+    // mais le planning visible ne doit plus être reconstruit pendant cette session.
+    if(document.visibilityState==='hidden' || _userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
+    preservePlanningScrollAndRender();
+  }finally{
+    _silentRefreshInProgress = false;
+  }
 }
 function startAutoRefresh(){
   stopAutoRefresh();
   if(!syncUrl || !sbHasSession() || !activeUserId) return;
-  autoRefreshTimer = setInterval(silentRefresh, 8000);
+  autoRefreshTimer = setInterval(silentRefresh, 30000);
   document.addEventListener('visibilitychange', onVisibilityRefresh);
   window.addEventListener('focus', onVisibilityRefresh);
 }
@@ -2751,12 +2757,17 @@ async function refreshOwnerSiteReviewState(){
 function startSiteBookingRequestNotifications(){
  stopSiteBookingRequestNotifications();
  if(!accountApproved||!activeUserId||!ownerSiteSlug||(accountRole!=='user'&&accountRole!=='admin'))return;
+ let polling=false;
  const poll=async()=>{
+  if(polling||document.visibilityState==='hidden')return;
+  polling=true;
   try{await refreshOwnerSiteReviewState();if(ownerSiteCreationAccepted())await refreshSiteBookingRequests();}
   catch(error){console.warn('Actualisation du statut du site impossible',error);}
+  finally{polling=false;}
  };
  poll();
- siteBookingRequestPollTimer=setInterval(()=>{if(document.visibilityState==='visible')poll();},20000);
+ // Vérification moins fréquente pour limiter les lectures réseau, sans désactiver les notifications.
+ siteBookingRequestPollTimer=setInterval(poll,60000);
 }
 function stopSiteBookingRequestNotifications(){
  if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
@@ -8240,7 +8251,7 @@ async function saveAgendaEvent(event){
   agendaPendingOps = agendaPendingOps.filter(op => op.id !== item.id);
   agendaPendingOps.push({opId:crypto.randomUUID(),type:'upsert',id:item.id,event:item});
   writeAgendaQueue();
-  await syncAgendaPending();
+  await syncAgendaPending(false);
 
   return item;
 }
@@ -8252,10 +8263,10 @@ async function deleteAgendaEvent(id){
   agendaPendingOps = agendaPendingOps.filter(op => op.id !== id);
   agendaPendingOps.push({opId:crypto.randomUUID(),type:'delete',id:id});
   writeAgendaQueue();
-  await syncAgendaPending();
+  await syncAgendaPending(false);
 }
 
-async function syncAgendaPending(){
+async function syncAgendaPending(refreshRemote=true){
   if(agendaSyncInProgress) return;
   agendaSyncInProgress = true;
   let syncFailed = false;
@@ -8296,11 +8307,11 @@ async function syncAgendaPending(){
     agendaSyncInProgress = false;
   }
 
-  await loadAgendaEvents();
+  if(refreshRemote) await loadAgendaEvents();
   // Une nouvelle modification peut avoir été ajoutée pendant l'envoi du lot.
   // On relance uniquement après un lot réussi pour éviter une boucle en cas de panne réseau.
   if(!syncFailed && readAgendaQueue().length){
-    setTimeout(()=>syncAgendaPending(),150);
+    setTimeout(()=>syncAgendaPending(false),150);
   }
 }
 // ===== COMMANDES DE L'AGENDA =====
@@ -8613,7 +8624,7 @@ renderCalendar();
     }
   });
 
-  window.addEventListener('online',()=>{ if(accountApproved) syncAgendaPending(); });
+  window.addEventListener('online',()=>{ if(accountApproved) syncAgendaPending(false); });
   // En ligne : l'agenda est chargé par sbAfterLogin, une fois le compte vérifié.
   if(!navigator.onLine) loadAgendaEvents().then(renderAgenda);
 }  
