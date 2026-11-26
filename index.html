@@ -1671,7 +1671,7 @@ function showConfirm(message, onYes){
   const backdrop = document.getElementById('confirmBackdrop');
   const modal = backdrop.querySelector('.modal');
   const content = document.getElementById('confirmMessage');
-  content.textContent = String(message || '').replace(/\\n/g, '\n');
+  content.textContent = String(message || '').replace(/\n/g, '\n');
   content.style.lineHeight = '1.6';
   content.style.overflowWrap = 'anywhere';
   if(modal){
@@ -4182,7 +4182,7 @@ async function interpretVoiceCommandWithAI(phrase){
       renderApartmentsList();
       showConfirm(
         (result.action === 'create' ? 'Préparer l’ajout du logement ?' : 'Préparer la modification de '+apt.name+' ?')+
-        '\\n\\n'+changes.join('\\n'),
+        '\n\n'+changes.join('\n'),
         ()=>{
           if(result.action === 'create'){
             const fields = {
@@ -6510,7 +6510,7 @@ async function deleteApartment(id){
     }
     const linkedBookings=bookings.filter(b=>String(b.apartmentId)===String(id));
     const typedName=window.prompt(
-      'ATTENTION : cette suppression est définitive. Toutes les réservations ('+linkedBookings.length+'), les événements d’agenda, les demandes et la fiche publique associés à « '+apartmentName+' » seront supprimés.\\n\\nPour confirmer, écrivez exactement le nom du logement :'
+      'ATTENTION : cette suppression est définitive. Toutes les réservations ('+linkedBookings.length+'), les événements d’agenda, les demandes et la fiche publique associés à « '+apartmentName+' » seront supprimés.\n\nPour confirmer, écrivez exactement le nom du logement :'
     );
     if(typedName===null) return;
     if(typedName.trim().toLocaleLowerCase()!==apartmentName.toLocaleLowerCase()){
