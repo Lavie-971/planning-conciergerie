@@ -827,8 +827,9 @@ async function loadPublic(){
   const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
   let rows=!preview?await earlyListings:await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   if(preview){
-   const activeApartments=await api('apartments?select=id&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
-   const activeApartmentIds=new Set(activeApartments.map(a=>String(a.id)));
+   const activeApartments=await api('apartments?select=id,data&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
+   const guadeloupeToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Guadeloupe'}).format(new Date());
+   const activeApartmentIds=new Set(activeApartments.filter(a=>!a.data?.contractEndDate||String(a.data.contractEndDate)>=guadeloupeToday).map(a=>String(a.id)));
    rows=rows.filter(row=>activeApartmentIds.has(String(row.apartment_id||'')));
   }
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
