@@ -1162,7 +1162,28 @@ function addDays(date,n){const d=new Date(date.getFullYear(),date.getMonth(),dat
 function rangeForDay(value){return bookingAvailabilityRanges.find(r=>value>=r.start&&value<r.end);}
 function bookingRangeForDay(value){return bookingAvailabilityRanges.find(r=>r.kind==='booking'&&value>=r.start&&value<r.end);}
 function pendingRangeForDay(value){return bookingAvailabilityRanges.find(r=>r.kind==='request'&&value>=r.start&&value<r.end);}
-function dayIsBlocked(value){return !!bookingRangeForDay(value);}
+function shortGapRangeForDay(value){
+ const minNights=Math.max(1,Number(bookingRules.min_nights)||1);
+ const bookings=bookingAvailabilityRanges.filter(r=>r.kind==='booking').slice().sort((a,b)=>a.start.localeCompare(b.start));
+ for(let i=0;i<bookings.length-1;i++){
+  const previous=bookings[i],next=bookings[i+1];
+  const gapNights=bookingNights(previous.end,next.start);
+  if(gapNights>=0&&gapNights<minNights&&value>=previous.end&&value<next.start)return {start:previous.end,end:next.start,kind:'short-gap'};
+ }
+ return null;
+}
+function dayIsBlocked(value){return !!bookingRangeForDay(value)||!!shortGapRangeForDay(value);}
+function firstFeasibleCheckin(){
+ const start=dateFromIso(bookingEarliestCheckin());
+ const minNights=Math.max(1,Number(bookingRules.min_nights)||1);
+ const bookings=bookingAvailabilityRanges.filter(r=>r.kind==='booking').slice().sort((a,b)=>a.start.localeCompare(b.start));
+ for(let offset=0;offset<=365;offset++){
+  const candidate=addDays(start,offset),checkin=isoLocalDate(candidate),checkout=isoLocalDate(addDays(candidate,minNights));
+  const clash=bookings.find(r=>checkin<r.end&&checkout>r.start);
+  if(!clash)return checkin;
+ }
+ return null;
+}
 function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>r.kind==='booking'&&(value===r.start||value===r.end));}
 function bookingCheckinValue(){return $('bookingCheckin').value;}
 function bookingEarliestCheckin(){const d=dateFromIso(isoLocalDate(new Date()));d.setDate(d.getDate()+Math.max(0,Number(bookingRules.min_notice_days)||0));return isoLocalDate(d);}
@@ -1175,7 +1196,7 @@ function renderBookingCalendar(){
  const offset=(first.getDay()+6)%7;let html='';
  for(let i=0;i<offset;i++)html+='<span class="calendar-empty"></span>';
  for(let day=1;day<=last.getDate();day++){
-  const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
+  const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),shortGap=shortGapRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range||!!shortGap,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
   const past=value<today,tooSoon=value<bookingEarliestCheckin(),checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||past||tooSoon||(blocked&&!checkoutAllowed);
   const state=past?'past':blocked?'booked':pending?'pending':'available';
@@ -1184,7 +1205,7 @@ function renderBookingCalendar(){
   // Les dates passées restent grisées et non sélectionnables, même si elles apparaissent dans une période réservée.
   if(!past&&(isStart||isEnd))dayStyle+='background:#e6b85c!important;background-color:#e6b85c!important;color:#33250c!important;outline:3px solid #a87920!important;outline-offset:-3px;font-weight:900!important;';
   else if(!past&&inRange)dayStyle+='background:#fff0bd!important;background-color:#fff0bd!important;color:#75551a!important;box-shadow:inset 0 0 0 2px #e6c979!important;';
-  html+='<button type="button" class="'+cls+'" style="'+dayStyle+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(past?' date passée':blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
+  html+='<button type="button" class="'+cls+'" style="'+dayStyle+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(past?' date passée':range?' réservée':shortGap?' intervalle trop court pour le séjour minimum':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
  }
  $('bookingCalendarDays').innerHTML=html;
  $('bookingCalendarDays').querySelectorAll('[data-calendar-date]').forEach(btn=>btn.addEventListener('click',()=>selectBookingCalendarDate(btn.dataset.calendarDate)));
@@ -1223,7 +1244,9 @@ async function openBooking(id,title){
   const result=await bookingService({action:'availability',listing_id:id,from,to},new URLSearchParams(location.search).get('preview')==='1'?session?.access_token||'':'');
   if($('bookingListingId').value!==id)return;
   bookingAvailabilityRanges=result.ranges||[];bookingCalendarLoading=false;
-  $('bookingAvailability').textContent='Calendrier à jour : choisissez vos dates de séjour.';
+  const nextCheckin=firstFeasibleCheckin();
+  if(nextCheckin)bookingCalendarMonth=new Date(dateFromIso(nextCheckin).getFullYear(),dateFromIso(nextCheckin).getMonth(),1);
+  $('bookingAvailability').textContent=nextCheckin?'Calendrier positionné sur la prochaine disponibilité. Choisissez vos dates de séjour.':'Aucune période permettant un séjour minimum n’a été trouvée dans les 12 prochains mois.';
   renderBookingCalendar();
  }catch(e){bookingCalendarLoading=false;$('bookingAvailability').textContent='Impossible de charger les disponibilités : '+e.message;renderBookingCalendar();}
 }
