@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+/* Les polices sont chargées par le lien du head, pas une seconde fois via @import. */
 html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-workspace-ready) #adminApp{visibility:hidden!important}html.owner-entry #publicApp{display:none!important}html:not(.owner-entry):not(.public-ready) #publicApp{visibility:hidden!important}#publicApp [hidden]{display:none!important}
 :root{--forest:#173f36;--forest2:#285f50;--ink:#243b34;--muted:#718078;--sand:#f5f1e8;--paper:#fffefa;--line:#e8e5dc;--gold:#d8b77b;--shadow:0 18px 50px rgba(27,54,43,.10)}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}
@@ -656,7 +656,7 @@ function restoreOwnerSession(){
  })();
  return ownerRestorePromise.finally(()=>{ownerRestorePromise=null;});
 }
-let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false;
+let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false,bookingRules={min_notice_days:0,min_nights:1,max_nights:null};
 async function api(path,method='GET',body=null){
  const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
  if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
@@ -813,7 +813,7 @@ async function loadPublic(){
   if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
   // Mode public : site, photos signées et logements sont indépendants -> lancés ensemble (avant : en cascade).
   const earlyDetailId=new URLSearchParams(location.search).get('logement');
-  const earlyListingFields=earlyDetailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
+  const earlyListingFields=earlyDetailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
   const earlyImages=preview?null:refreshSiteImageUrls(slug,false);
   const earlyListings=preview?null:api('public_listings_public?select='+earlyListingFields+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   if(earlyImages)earlyImages.catch(()=>{});
@@ -824,11 +824,12 @@ async function loadPublic(){
   if(preview)await refreshSiteImageUrls(slug,true);else await earlyImages;
   if(preview){const refreshedSite=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(slug));if(refreshedSite[0])Object.assign(site,refreshedSite[0]);}
   const detailId=new URLSearchParams(location.search).get('logement');
-  const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
+  const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
   let rows=!preview?await earlyListings:await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   if(preview){
-   const activeApartments=await api('apartments?select=id&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
-   const activeApartmentIds=new Set(activeApartments.map(a=>String(a.id)));
+   const activeApartments=await api('apartments?select=id,data&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
+   const guadeloupeToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Guadeloupe'}).format(new Date());
+   const activeApartmentIds=new Set(activeApartments.filter(a=>!a.data?.contractEndDate||String(a.data.contractEndDate)>=guadeloupeToday).map(a=>String(a.id)));
    rows=rows.filter(row=>activeApartmentIds.has(String(row.apartment_id||'')));
   }
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
@@ -844,7 +845,7 @@ async function loadPublic(){
   $('listingCards').innerHTML=rows.map(x=>{
    const photo=(x.photo_urls||[])[0],photoUrl=siteImageUrl(photo),image=photoUrl?'<img class="zoomable-photo listing-card-photo" src="'+esc(photoUrl)+'" alt="'+esc(x.title)+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
    const features=[x.max_guests?'<span>♙ '+x.max_guests+' voyageurs</span>':'',x.bedroom_count?'<span>▣ '+x.bedroom_count+' chambre'+(x.bedroom_count>1?'s':'')+'</span>':''].filter(Boolean).join('');
-   const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</span>':'<span class="price">Tarif sur demande</span>';
+   const price=x.price_from?'<span class="price">À partir de <strong>'+Number(x.price_from).toLocaleString('fr-FR')+' €</strong>'+(x.price_to&&Number(x.price_to)>=Number(x.price_from)?' jusqu’à <strong>'+Number(x.price_to).toLocaleString('fr-FR')+' €</strong>':'')+' / nuit</span>':'<span class="price">Tarif sur demande</span>';
    return '<article class="listing"><div class="listing-photo">'+image+(preview?'<button type="button" class="preview-edit-trigger" data-edit-preview-listing="'+esc(x.id)+'">✎ Modifier</button>':'')+'<span class="photo-tag">Séjour en Guadeloupe</span></div><div class="listing-body"><div class="listing-location">⌖ '+esc(x.location||'Guadeloupe')+'</div><h3>'+esc(x.title)+'</h3>'+reviewSummary(x.id)+'<p>'+esc(x.summary||'Un hébergement confortable pour profiter pleinement de votre séjour.')+'</p><div class="features">'+features+'</div><div class="listing-bottom">'+price+'<a class="details" data-open-listing="'+esc(x.id)+'" href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'&logement='+encodeURIComponent(x.id)+'">Découvrir le logement</a><button class="details" type="button" data-book-listing="'+esc(x.id)+'" data-book-title="'+esc(x.title)+'">Réserver</button></div></div></article>';
   }).join('');
   if(detailId){
@@ -856,7 +857,7 @@ async function loadPublic(){
     const galleryPhotos=photos.slice(1).map(siteImageUrl).filter(Boolean);
     const amenities=(item.amenities||[]).map(a=>'<span>'+esc(a)+'</span>').join('');
     const facts=[item.max_guests?item.max_guests+' voyageurs':'',item.bedroom_count?item.bedroom_count+' chambre(s)':'',item.bathroom_count?item.bathroom_count+' salle(s) de bain':''].filter(Boolean);
-    const price=item.price_from?'<div class="detail-price">À partir de <strong>'+Number(item.price_from).toLocaleString('fr-FR')+' €</strong> / nuit</div>':'<div class="detail-price">Tarif sur demande</div>';
+    const price=item.price_from?'<div class="detail-price">À partir de <strong>'+Number(item.price_from).toLocaleString('fr-FR')+' €</strong>'+(item.price_to&&Number(item.price_to)>=Number(item.price_from)?' jusqu’à <strong>'+Number(item.price_to).toLocaleString('fr-FR')+' €</strong>':'')+' / nuit</div>':'<div class="detail-price">Tarif sur demande</div>';
     $('listingDetailContent').innerHTML=(preview?'<button type="button" class="btn preview-edit-trigger" data-edit-preview-listing="'+esc(item.id)+'">Modifier ce logement</button>':'')+'<a class="detail-back" data-back-listings href="'+BASE_URL+'?site='+encodeURIComponent(slug)+(preview?'&preview=1':'')+'">← Retour à tous les logements</a><div class="detail-grid"><div><img class="detail-main-photo zoomable-photo" src="'+esc(heroPhoto)+'" alt="'+esc(item.title)+'">'+(galleryPhotos.length?'<div class="detail-thumbs">'+galleryPhotos.map((p,i)=>'<img class="zoomable-photo" src="'+esc(p)+'" alt="'+esc(item.title)+' — photo '+(i+2)+'" loading="lazy">').join('')+'</div>':'')+'</div><div><div class="detail-location">⌖ '+esc(item.location||'Guadeloupe')+'</div><h1>'+esc(item.title)+'</h1><p class="detail-summary">'+esc(item.summary||'Découvrez ce logement en Guadeloupe.')+'</p><div class="detail-facts">'+facts.map(f=>'<span>'+esc(f)+'</span>').join('')+'</div>'+price+'<div class="detail-description">'+(item.description||item.summary||'').split(/\\n\\s*\\n/).map(p=>p.trim()).filter(Boolean).map(p=>'<p>'+esc(p).replace(/\\n/g,'<br>')+'</p>').join('')+'</div>'+(amenities?'<h3>Équipements et services</h3><div class="detail-amenities">'+amenities+'</div>':'')+'<div class="detail-booking"><h2>Choisissez vos dates</h2><p>Consultez le calendrier des disponibilités et sélectionnez votre arrivée et votre départ. Les réservations confirmées sont bloquées ; les demandes en attente restent sélectionnables.</p><button class="btn" type="button" id="detailBookButton">Voir le calendrier et réserver →</button></div></div></div>';
     const itemReviews=reviewsFor(item.id);
     const reviewHtml=itemReviews.length?'<section class="guest-reviews"><h2>Avis des voyageurs</h2><div class="guest-review-average"><strong>'+ (itemReviews.reduce((n,r)=>n+Number(r.rating||0),0)/itemReviews.length).toFixed(1).replace('.',',') +'/5</strong><span class="stars">'+('★'.repeat(Math.round(itemReviews.reduce((n,r)=>n+Number(r.rating||0),0)/itemReviews.length))+'☆'.repeat(5-Math.round(itemReviews.reduce((n,r)=>n+Number(r.rating||0),0)/itemReviews.length)))+'</span><span>'+itemReviews.length+' avis</span></div>'+itemReviews.map(r=>'<article class="guest-review"><div><span class="stars">'+('★'.repeat(Number(r.rating))+'☆'.repeat(5-Number(r.rating)))+'</span><strong>'+esc(r.display_name||'Voyageur')+'</strong></div><p>'+esc(r.comment||'')+'</p></article>').join('')+'</section>':'<section class="guest-reviews"><h2>Avis des voyageurs</h2><p>Les premiers avis seront bientôt disponibles.</p></section>';
@@ -901,7 +902,7 @@ function enablePrivatePreviewEditing(site,rows){
 function openPreviewListingEditor(item){
  if(!item)return;const suggestions=suggestListingText(item);
  const modal=previewModal('<h2>Modifier '+esc(item.title)+'</h2><p>Personnalisez la fiche de ce logement. Vos changements seront enregistrés et visibles immédiatement dans l’aperçu privé.</p><form id="previewListingEditForm" data-id="'+esc(item.id)+'"><div class="formgrid">'+
-  '<div class="field full form-section-heading"><h4>01 · Informations du logement</h4><p>Les informations essentielles affichées aux voyageurs.</p></div>'+field('Nom du logement','title',item.title)+field('Commune / secteur','location',item.location)+field('Type de logement','property_type',item.property_type)+field('Voyageurs maximum','max_guests',item.max_guests,'number')+field('Nombre de chambres','bedroom_count',item.bedroom_count,'number')+field('Nombre de salles de bain','bathroom_count',item.bathroom_count,'number')+field('Prix à partir de (€ / nuit)','price_from',item.price_from,'number')+
+  '<div class="field full form-section-heading"><h4>01 · Informations du logement</h4><p>Les informations essentielles affichées aux voyageurs.</p></div>'+field('Nom du logement','title',item.title)+field('Commune / secteur','location',item.location)+field('Type de logement','property_type',item.property_type)+field('Voyageurs maximum','max_guests',item.max_guests,'number')+field('Nombre de chambres','bedroom_count',item.bedroom_count,'number')+field('Nombre de salles de bain','bathroom_count',item.bathroom_count,'number')+field('Prix à partir de (€ / nuit)','price_from',item.price_from,'number')+field('Prix maximum (€ / nuit)','price_to',item.price_to,'number')+'<div class="field full form-section-heading"><h4>Conditions de réservation</h4><p>Ces règles s’appliquent à chaque demande sur ce logement.</p></div>'+field('Réserver au minimum X jours avant l’arrivée','min_notice_days',item.min_notice_days??0,'number')+field('Nombre minimum de nuits','min_nights',item.min_nights??1,'number')+field('Nombre maximum de nuits (0 = sans limite)','max_nights',item.max_nights??0,'number')+
   '<div class="field full form-section-heading"><h4>02 · Textes de présentation</h4><p>Présentez votre hébergement avec des textes accueillants et précis.</p></div><div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(item.summary||'')+'" placeholder="Une phrase courte qui donne envie de découvrir le logement"><div class="suggestion-list"><strong>Choisir une suggestion</strong>'+suggestListingSummary(item).map((v,i)=>'<button type="button" data-use-summary="'+i+'">Proposition '+(i+1)+'</button>').join('')+'</div></div><div class="field full description-editor-field"><label>Description détaillée</label><textarea name="description" placeholder="Décrivez les espaces, l’ambiance et les points forts du logement…">'+esc(item.description||'')+'</textarea><div class="suggestion-list"><strong>Suggestions adaptées à ce logement</strong>'+suggestions.map((v,i)=>'<button type="button" data-use-suggestion="'+i+'">Utiliser la proposition '+(i+1)+'</button>').join('')+'</div></div>'+
   '<div class="field full form-section-heading"><h4>03 · Photos du logement</h4><p>Ajoutez plusieurs photos pour mettre en valeur les pièces et les espaces extérieurs.</p></div>'+imagePickerMarkup('photo_urls','Galerie de photos',(item.photo_urls||[]).join('\n'),true)+
   '<div class="field full form-section-heading"><h4>04 · Équipements et services</h4><p>Cochez les prestations réellement disponibles dans le logement.</p></div><div class="field full"><label>Équipements disponibles</label>'+buildAmenityChoices(item.amenities||[])+'<label>Autres équipements ou services</label><input name="custom_amenities" value="'+esc((item.amenities||[]).filter(a=>!PREVIEW_AMENITIES.includes(a)).join(', '))+'" placeholder="Ex. Plancha, douche extérieure, coffre-fort"></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les modifications</button><span class="status" id="previewListingEditStatus" aria-live="polite"></span></div></form>');
@@ -911,7 +912,7 @@ function openPreviewListingEditor(item){
  modal.querySelector('#previewListingEditForm').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form),st=$('previewListingEditStatus'),value=k=>String(data.get(k)||'').trim();
   const amenities=[...modal.querySelectorAll('[data-preview-amenity]:checked')].map(x=>x.value).concat(value('custom_amenities').split(',').map(x=>x.trim()).filter(Boolean));
-  const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean),amenities,updated_at:new Date().toISOString()};
+  const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,price_to:value('price_to')?Number(value('price_to')):null,min_notice_days:Math.max(0,Number(value('min_notice_days')||0)),min_nights:Math.max(1,Number(value('min_nights')||1)),max_nights:Math.max(0,Number(value('max_nights')||0))||null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean),amenities,updated_at:new Date().toISOString()};
   st.textContent='Enregistrement…';try{await api('public_listings?id=eq.'+encodeURIComponent(item.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);modal.hidden=true;await loadPublic();}catch(err){st.textContent='Erreur : '+err.message;}
  });
 }
@@ -1164,6 +1165,8 @@ function pendingRangeForDay(value){return bookingAvailabilityRanges.find(r=>r.ki
 function dayIsBlocked(value){return !!bookingRangeForDay(value);}
 function dayCanBeCheckout(value){return !!bookingCheckinValue()&&value>bookingCheckinValue()&&bookingAvailabilityRanges.some(r=>r.kind==='booking'&&(value===r.start||value===r.end));}
 function bookingCheckinValue(){return $('bookingCheckin').value;}
+function bookingEarliestCheckin(){const d=dateFromIso(isoLocalDate(new Date()));d.setDate(d.getDate()+Math.max(0,Number(bookingRules.min_notice_days)||0));return isoLocalDate(d);}
+function bookingNights(checkin,checkout){return Math.round((dateFromIso(checkout)-dateFromIso(checkin))/86400000);}
 function renderBookingCalendar(){
  const today=isoLocalDate(new Date()),month=bookingCalendarMonth,first=new Date(month.getFullYear(),month.getMonth(),1),last=new Date(month.getFullYear(),month.getMonth()+1,0);
  $('calendarMonth').textContent=month.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
@@ -1174,10 +1177,10 @@ function renderBookingCalendar(){
  for(let day=1;day<=last.getDate();day++){
   const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
-  const past=value<today,checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||past||(blocked&&!checkoutAllowed);
+  const past=value<today,tooSoon=value<bookingEarliestCheckin(),checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||past||tooSoon||(blocked&&!checkoutAllowed);
   const state=past?'past':blocked?'booked':pending?'pending':'available';
   const cls=['calendar-day',state,isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
-  let dayStyle=past?'background:#e5e7eb!important;background-color:#e5e7eb!important;background-image:none!important;color:#9ca3af!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;cursor:not-allowed!important;':blocked?'background:#f3caca!important;background-color:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':pending?'background:#ffe6b8!important;background-color:#ffe6b8!important;background-image:none!important;color:#82520d!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':'background:#dff0e4!important;background-color:#dff0e4!important;background-image:none!important;color:#205f3b!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;';
+  let dayStyle=(past||tooSoon)?'background:#e5e7eb!important;background-color:#e5e7eb!important;background-image:none!important;color:#9ca3af!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;cursor:not-allowed!important;':blocked?'background:#f3caca!important;background-color:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':pending?'background:#ffe6b8!important;background-color:#ffe6b8!important;background-image:none!important;color:#82520d!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':'background:#dff0e4!important;background-color:#dff0e4!important;background-image:none!important;color:#205f3b!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;';
   // Les dates passées restent grisées et non sélectionnables, même si elles apparaissent dans une période réservée.
   if(!past&&(isStart||isEnd))dayStyle+='background:#e6b85c!important;background-color:#e6b85c!important;color:#33250c!important;outline:3px solid #a87920!important;outline-offset:-3px;font-weight:900!important;';
   else if(!past&&inRange)dayStyle+='background:#fff0bd!important;background-color:#fff0bd!important;color:#75551a!important;box-shadow:inset 0 0 0 2px #e6c979!important;';
@@ -1189,10 +1192,12 @@ function renderBookingCalendar(){
 function selectBookingCalendarDate(value){
  const checkin=$('bookingCheckin'),checkout=$('bookingCheckout');
  if(!checkin.value||checkout.value||value<=checkin.value){
+  if(value<bookingEarliestCheckin()){$('calendarHint').textContent='Réservation à effectuer au moins '+bookingRules.min_notice_days+' jour(s) avant l’arrivée.';return;}
   if(dayIsBlocked(value))return;
   checkin.value=value;checkout.value='';
   $('calendarHint').textContent='Arrivée sélectionnée. Choisissez maintenant votre départ.';
  }else{
+  const nights=bookingNights(checkin.value,value);if(nights<bookingRules.min_nights){$('calendarHint').textContent='Séjour minimum : '+bookingRules.min_nights+' nuit(s).';return;}if(bookingRules.max_nights&&nights>bookingRules.max_nights){$('calendarHint').textContent='Séjour maximum : '+bookingRules.max_nights+' nuit(s).';return;}
   const clash=bookingAvailabilityRanges.some(r=>r.kind==='booking'&&checkin.value<r.end&&value>r.start);
   if(clash){$('calendarHint').textContent='Cette période chevauche une indisponibilité. Choisissez un autre jour de départ.';return;}
   checkout.value=value;
@@ -1201,6 +1206,8 @@ function selectBookingCalendarDate(value){
  renderBookingCalendar();refreshBookingAvailability();
 }
 async function openBooking(id,title){
+ bookingRules={min_notice_days:0,min_nights:1,max_nights:null};
+ try{const preview=new URLSearchParams(location.search).get('preview')==='1';const path=preview?'public_listings?select=min_notice_days,min_nights,max_nights&id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(currentUser.id):'public_listings_public?select=min_notice_days,min_nights,max_nights&id=eq.'+encodeURIComponent(id);const rows=await api(path);if(rows[0])bookingRules={min_notice_days:Number(rows[0].min_notice_days)||0,min_nights:Math.max(1,Number(rows[0].min_nights)||1),max_nights:rows[0].max_nights?Number(rows[0].max_nights):null};}catch(e){console.warn('Conditions de réservation indisponibles',e);}
  const form=$('bookingForm');form.reset();form.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=false);
  $('bookingListingId').value=id;
  $('bookingModalTitle').textContent='Demander une réservation — '+title;
@@ -1228,6 +1235,7 @@ async function refreshBookingAvailability(){
  bookingDatesAvailable=false;
  $('bookingSubmit').disabled=true;
  if(!checkin||!checkout||checkout<=checkin){$('bookingAvailability').textContent='Sélectionnez une arrivée et un départ valides.';return false;}
+ const nights=bookingNights(checkin,checkout);if(checkin<bookingEarliestCheckin()){$('bookingAvailability').textContent='Ce logement doit être réservé au moins '+bookingRules.min_notice_days+' jour(s) avant l’arrivée.';return false;}if(nights<bookingRules.min_nights){$('bookingAvailability').textContent='Séjour minimum : '+bookingRules.min_nights+' nuit(s).';return false;}if(bookingRules.max_nights&&nights>bookingRules.max_nights){$('bookingAvailability').textContent='Séjour maximum : '+bookingRules.max_nights+' nuit(s).';return false;}
  $('bookingAvailability').textContent='Vérification des disponibilités…';
  try{
   const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout},new URLSearchParams(location.search).get('preview')==='1'?session?.access_token||'':'');
