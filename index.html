@@ -2723,9 +2723,13 @@ function siteBookingStatusMessage(request,status){
  const fmt=value=>{const p=String(value||'').split('-').map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2]).toLocaleDateString('fr-FR'):'—';};
  const name=String(request.guest_name||'').trim(),logement=String(request.listing_title||'notre logement');
  const dates='du '+fmt(request.checkin)+' au '+fmt(request.checkout);
+ const greeting='Bonjour '+(name||'')+' ☀️';
+ const signature='\n\nL’équipe Conciergerie Évasion Soleil';
  const message=status==='rejected'
-  ?'Bonjour '+(name||'')+',\n\nMerci pour votre intérêt pour '+logement+' ('+dates+'). Après vérification, nous sommes malheureusement au regret de vous informer que nous ne pouvons pas donner suite à votre demande de réservation.\n\nMerci de votre compréhension et au plaisir de vous accueillir une prochaine fois.\n\nBien cordialement.'
-  :'Bonjour '+(name||'')+',\n\nNous avons bien reçu votre demande de réservation pour '+logement+' ('+dates+'). Votre demande est actuellement en cours de traitement. Nous vérifions les disponibilités et les modalités du séjour et revenons vers vous dès que possible.\n\nMerci pour votre patience.\n\nBien cordialement.';
+  ?greeting+'\n\nNous vous remercions sincèrement d’avoir pensé à notre logement pour votre séjour en Guadeloupe ('+dates+').\n\nMalheureusement, nous ne sommes pas en mesure de donner une suite favorable à votre demande de réservation pour les dates souhaitées.\n\nNous sommes désolés de ne pas pouvoir vous accueillir cette fois-ci et espérons avoir l’occasion de vous recevoir lors d’un prochain séjour sous le soleil des Antilles. 🌴\n\nNous vous souhaitons une excellente recherche et un très beau séjour en Guadeloupe !'+signature
+  :status==='accepted'
+   ?greeting+'\n\nExcellente nouvelle ! Nous avons le plaisir de vous confirmer que votre demande de réservation pour '+logement+' ('+dates+') est acceptée. 🎉\n\nNous sommes ravis de pouvoir vous accueillir prochainement en Guadeloupe !\n\nNous vous communiquerons les prochaines informations utiles pour préparer votre arrivée et profiter pleinement de votre séjour.\n\nÀ très bientôt sous le soleil des Antilles ! 🌴'+signature
+   :greeting+'\n\nMerci beaucoup pour votre intérêt et pour votre demande de séjour dans '+logement+' ('+dates+') !\n\nNous avons bien reçu votre demande et sommes ravis que vous envisagiez de séjourner chez nous en Guadeloupe. 🌴\n\nNous vérifions actuellement les disponibilités et les détails de votre séjour.\n\nNous revenons vers vous très rapidement avec une réponse.\n\nÀ très bientôt,'+signature;
  const rawPhone=String(request.guest_phone||'').trim(),digits=rawPhone.replace(/\D/g,'');
  if(digits){let waNumber=digits;if((digits.length===10&&digits.startsWith('0690'))||(digits.length===10&&digits.startsWith('0691')))waNumber='590'+digits.slice(1);else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);return {url:'https://wa.me/'+waNumber+'?text='+encodeURIComponent(message),channel:'WhatsApp',message};}
  const email=String(request.guest_email||'').trim();
@@ -2836,16 +2840,18 @@ async function openSiteBookingRequests(){
 async function decideSiteBookingRequest(request,decision,button,otherButton){
  const message=decision==='accept'?'Le voyageur a-t-il accepté votre tarif et les conditions du séjour ? La demande sera ajoutée au planning avec le statut Option.':'Refuser cette demande de réservation ? Un message de refus sera préparé dans WhatsApp ou dans votre messagerie e-mail.';
  if(!confirm(message))return;
- // Ouvrir la fenêtre pendant le clic utilisateur pour éviter le blocage après la réponse serveur.
- const refusalMessage=decision==='reject'?siteBookingStatusMessage(request,'rejected'):null;
- const messageWindow=refusalMessage?window.open('about:blank','_blank'):null;
+ // Préparer le message correspondant à la décision, sans jamais l’envoyer automatiquement.
+ const statusMessage=decision==='reject'?siteBookingStatusMessage(request,'rejected'):decision==='accept'?siteBookingStatusMessage(request,'accepted'):null;
+ const messageWindow=statusMessage?window.open('about:blank','_blank'):null;
  button.disabled=true;if(otherButton)otherButton.disabled=true;
  try{
   await siteBookingRequestApi({action:'manager_decide',request_id:request.id,decision});
   if(decision==='accept'){await loadData();renderAll();}
-  if(decision==='reject'&&refusalMessage){
-   if(messageWindow){messageWindow.location.href=refusalMessage.url;messageWindow.opener=null;}
-   else alert('La demande a bien été refusée, mais le navigateur a bloqué l’ouverture du message. Autorisez les fenêtres surgissantes pour préparer le message au client.');
+  if(statusMessage){
+   const actionLabel=decision==='reject'?'refusée':'acceptée';
+   if(messageWindow&&statusMessage.url){messageWindow.location.href=statusMessage.url;messageWindow.opener=null;}
+   else if(statusMessage.url){alert('La demande a bien été '+actionLabel+', mais le navigateur a bloqué l’ouverture du message. Autorisez les fenêtres surgissantes pour le préparer.');}
+   else if(messageWindow){messageWindow.close();}
   }
   await refreshSiteBookingRequests();
  }catch(error){if(messageWindow)messageWindow.close();alert('Impossible de traiter cette demande : '+error.message);button.disabled=false;if(otherButton)otherButton.disabled=false;}
