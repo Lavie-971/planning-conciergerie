@@ -253,6 +253,11 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #adminApp .image-preview .photo-tools button[data-remove-image]{background:#f8eaea;color:#8e2e2e}
 #adminApp .image-preview .photo-cover{font-size:10px;font-weight:700;color:#245b49;text-align:center;padding:3px}
 #adminApp .image-preview .photo-tools button:disabled{opacity:.45;cursor:wait}
+#adminApp .image-preview[draggable="true"]{cursor:grab}
+#adminApp .image-preview.photo-dragging{opacity:.4;cursor:grabbing}
+#adminApp .image-preview.photo-drop-target{outline:3px dashed #c49b55;outline-offset:3px}
+#adminApp .image-preview .photo-tools button[data-move-photo]{background:#e5eee9;color:#214d3d;font-weight:700}
+
 
 
 @media(max-width:600px){
@@ -968,8 +973,15 @@ function setupImageEditors(){
   const field=editor.querySelector('[name]'),zone=editor.querySelector('[data-image-dropzone]'),picker=editor.querySelector('[data-image-files]'),choose=editor.querySelector('[data-image-choose]'),previews=editor.querySelector('[data-image-preview-list]');
   const values=()=>editor.dataset.multiple==='true'?field.value.split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
   const setValues=next=>{field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');field.dispatchEvent(new Event('input',{bubbles:true}));};
-  const render=()=>{const list=values();previews.innerHTML=list.map((url,i)=>'<div class="image-preview"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><div class="photo-cover">'+(i===0?'★ Photo principale':'Photo '+(i+1))+'</div><div class="photo-tools"><button type="button" data-move-photo="-1" data-photo-index="'+i+'" '+(i===0?'disabled':'')+'>←</button><button type="button" data-move-photo="1" data-photo-index="'+i+'" '+(i===list.length-1?'disabled':'')+'>→</button><button type="button" data-enhance-photo="'+i+'">☀ Embellir</button><button type="button" data-remove-image="'+esc(url)+'">Retirer</button></div></div>').join('');
-   previews.querySelectorAll('[data-move-photo]').forEach(btn=>btn.addEventListener('click',()=>{const next=values(),i=Number(btn.dataset.photoIndex),j=i+Number(btn.dataset.movePhoto);if(j<0||j>=next.length)return;[next[i],next[j]]=[next[j],next[i]];setValues(next);render();}));
+   const render=()=>{const list=values();previews.innerHTML=list.map((url,i)=>'<div class="image-preview" draggable="true" data-photo-card="'+i+'" title="Glissez cette photo pour changer sa place"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><div class="photo-cover">'+(i===0?'★ Photo principale':'Photo '+(i+1))+'</div><div class="photo-tools"><button type="button" data-move-photo="-1" data-photo-index="'+i+'" '+(i===0?'disabled':'')+' aria-label="Monter la photo">↑ Monter</button><button type="button" data-move-photo="1" data-photo-index="'+i+'" '+(i===list.length-1?'disabled':'')+' aria-label="Descendre la photo">↓ Descendre</button><button type="button" data-enhance-photo="'+i+'">☀ Embellir</button><button type="button" data-remove-image="'+esc(url)+'">Retirer</button></div></div>').join('');
+    previews.querySelectorAll('[data-photo-card]').forEach(card=>{
+     card.addEventListener('dragstart',e=>{card.classList.add('photo-dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',card.dataset.photoCard);});
+     card.addEventListener('dragend',()=>{previews.querySelectorAll('.photo-dragging,.photo-drop-target').forEach(el=>el.classList.remove('photo-dragging','photo-drop-target'));});
+     card.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';card.classList.add('photo-drop-target');});
+     card.addEventListener('dragleave',()=>card.classList.remove('photo-drop-target'));
+     card.addEventListener('drop',e=>{e.preventDefault();const from=Number(e.dataTransfer.getData('text/plain')),to=Number(card.dataset.photoCard),next=values();if(!Number.isInteger(from)||from<0||from>=next.length||from===to)return;const [moved]=next.splice(from,1);next.splice(to,0,moved);setValues(next);render();});
+    });
+    previews.querySelectorAll('[data-move-photo]').forEach(btn=>btn.addEventListener('click',()=>{const next=values(),i=Number(btn.dataset.photoIndex),j=i+Number(btn.dataset.movePhoto);if(j<0||j>=next.length)return;[next[i],next[j]]=[next[j],next[i]];setValues(next);render();}));
    previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{setValues(values().filter(x=>x!==btn.dataset.removeImage));render();}));
    previews.querySelectorAll('[data-enhance-photo]').forEach(btn=>btn.addEventListener('click',async()=>{const i=Number(btn.dataset.enhancePhoto),next=values();btn.disabled=true;btn.textContent='Traitement…';try{const file=await gentlyEnhanceSiteImage(next[i]),replacement=await uploadSiteImage(file);next[i]=replacement;setValues(next);render();}catch(err){btn.disabled=false;btn.textContent='Réessayer';zone.querySelector('span').textContent='Amélioration impossible : '+err.message;}}));
   };
