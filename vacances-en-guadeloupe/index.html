@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
-html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-workspace-ready) #adminApp{visibility:hidden!important}#publicApp [hidden]{display:none!important}
+html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-workspace-ready) #adminApp{visibility:hidden!important}html.owner-entry #publicApp{display:none!important}html:not(.owner-entry):not(.public-ready) #publicApp{visibility:hidden!important}#publicApp [hidden]{display:none!important}
 :root{--forest:#173f36;--forest2:#285f50;--ink:#243b34;--muted:#718078;--sand:#f5f1e8;--paper:#fffefa;--line:#e8e5dc;--gold:#d8b77b;--shadow:0 18px 50px rgba(27,54,43,.10)}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}
 #publicApp .wrap{width:min(1180px,calc(100% - 56px));margin:0 auto}
@@ -806,6 +806,7 @@ function setSiteIdentity(site){
  if(new URLSearchParams(location.search).get('preview')==='1')enableIndividualTextEditing(site);
 }
 async function loadPublic(){
+ document.documentElement.classList.remove('public-ready');
  try{
   const params=new URLSearchParams(location.search),slug=currentSlug(),preview=params.get('preview')==='1';
   $('publicApp').classList.remove('detail-mode');$('listingDetailContent').innerHTML='';document.title='Vacances en Guadeloupe';
@@ -869,6 +870,7 @@ async function loadPublic(){
   document.querySelectorAll('[data-book-listing]').forEach(btn=>btn.addEventListener('click',()=>openBooking(btn.dataset.bookListing,btn.dataset.bookTitle)));
   if(preview)document.querySelectorAll('[data-edit-preview-listing]').forEach(btn=>btn.addEventListener('click',()=>openPreviewListingEditor(rows.find(x=>x.id===btn.dataset.editPreviewListing))));
  }catch(e){console.error('Chargement du site indisponible',e);$('listingCards').innerHTML='<div class="empty"><h3>Chargement temporairement indisponible</h3><p>'+esc(e?.message||'Erreur inconnue')+'</p><button type="button" class="btn" id="retryPublicLoad">Réessayer</button></div>';$('retryPublicLoad')?.addEventListener('click',loadPublic)}
+ finally{document.documentElement.classList.add('public-ready');}
 }
 
 const PREVIEW_AMENITIES=['Wi-Fi','Climatisation','Piscine','Piscine privée','Jacuzzi','Vue mer','Accès plage','Parking','Cuisine équipée','Lave-linge','Lave-vaisselle','Télévision','Terrasse','Balcon','Jardin','Barbecue','Lit bébé','Chaise haute','Draps fournis','Serviettes fournies','Sèche-cheveux','Cafetière','Four','Micro-ondes','Réfrigérateur','Congélateur','Animaux acceptés','Logement non-fumeur','Bureau','Espace de travail','Transfert aéroport'];
@@ -1253,7 +1255,8 @@ $('bookingForm').addEventListener('submit',async e=>{
    children:Number($('bookingChildren').value||0),babies:Number($('bookingBabies').value||0),
    message:$('bookingMessage').value,website:$('bookingWebsite').value
   });
-  $('bookingResult').textContent=result.ok?'Votre demande a bien été transmise. Elle reste en attente de validation par le gérant.':'Votre demande a été prise en compte.';
+  if(!result||result.ok!==true)throw new Error(result?.error||'La demande n’a pas été enregistrée. Merci de réessayer.');
+  $('bookingResult').textContent='Votre demande a bien été transmise. Elle reste en attente de validation par le gérant.';
   $('bookingForm').querySelectorAll('input,textarea,button').forEach(el=>{if(el.id!=='closeBookingModal')el.disabled=true;});
  }catch(err){$('bookingResult').textContent=err.message;$('bookingSubmit').disabled=false;}
 });
