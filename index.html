@@ -2756,7 +2756,7 @@ function renderSiteBookingRequests(){
  });
 }
 async function refreshSiteBookingRequests(){
- if(!accountApproved||!activeUserId||!ownerSiteCreationAccepted()){
+ if(!accountApproved||!activeUserId){
   const button=document.getElementById('siteBookingNotificationsBtn');if(button)button.hidden=true;
   return [];
  }
@@ -2802,7 +2802,7 @@ function startSiteBookingRequestNotifications(){
    const settled=ownerSiteReviewStatus==='approved'&&ownerSiteEnabled===true;
    if(!settled||pollCount%5===0)await refreshOwnerSiteReviewState();
    pollCount++;
-   if(ownerSiteCreationAccepted())await refreshSiteBookingRequests();
+   await refreshSiteBookingRequests();
   }
   catch(error){console.warn('Actualisation du statut du site impossible',error);}
   finally{polling=false;}
@@ -2818,7 +2818,6 @@ function stopSiteBookingRequestNotifications(){
  const count=document.getElementById('siteBookingNotificationCount');if(count){count.textContent='0';count.hidden=true;}
 }
 async function openSiteBookingRequests(){
- if(!ownerSiteCreationAccepted())return;
  document.getElementById('siteBookingRequestsBackdrop').hidden=false;
  renderSiteBookingRequests();
  await refreshSiteBookingRequests();
