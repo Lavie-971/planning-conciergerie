@@ -271,7 +271,7 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 .calendar-day,.calendar-empty{min-width:0;aspect-ratio:1;border-radius:9px;display:grid;place-items:center}
 .calendar-day{border:0;background:#e8f5ed;color:#246b45;font-weight:700;font-size:13px}
 .calendar-day.booked{background:#f9e1e1;color:#a52d2d;cursor:not-allowed}
-.calendar-day.pending{background:#fff0d8;color:#966016;cursor:not-allowed}
+.calendar-day.pending{background:#fff0d8;color:#966016;cursor:pointer}
 .calendar-day:disabled{opacity:1}
 .calendar-day.selected{background:var(--forest);color:#fff;outline:2px solid #b6d7c3}
 .calendar-day.in-range{background:#dcece2;color:#245d3d;border-radius:0}
@@ -299,7 +299,7 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 .booking-dialog .calendar-day{border-radius:9px!important;background:#e5f2e9!important;color:#246b45!important;font-weight:700!important;transition:transform .12s,filter .12s}
 .booking-dialog .calendar-day.available:not(:disabled):hover{filter:brightness(.96);transform:scale(1.05)}
 .booking-dialog .calendar-day.booked,.booking-dialog .calendar-day.booked:disabled{background:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;cursor:not-allowed!important}
-.booking-dialog .calendar-day.pending,.booking-dialog .calendar-day.pending:disabled{background:#fff0d5!important;color:#8b5b12!important;cursor:not-allowed!important}
+.booking-dialog .calendar-day.pending,.booking-dialog .calendar-day.pending:disabled{background:#fff0d5!important;color:#8b5b12!important;cursor:pointer!important}
 .booking-dialog .calendar-day.selected{background:var(--forest)!important;color:#fff!important;outline:2px solid #b6d7c3}
 .booking-dialog .calendar-day.in-range{background:#dcece2!important;color:#245d3d!important}
 .booking-dialog .calendar-day:disabled{opacity:1!important}
