@@ -1107,6 +1107,11 @@ function setupCustomBlocksManager(){
 }
 
 async function renderManager(profile){
+ // Nettoyer immédiatement les éléments propres à l’aperçu privé en revenant dans l’espace propriétaire.
+ document.body.classList.remove('private-preview-editing');
+ $('previewReturnOwner')?.remove();
+ $('previewPhotoPicker')?.remove();
+ $('previewPhotoNotice')?.remove();
  currentProfile=profile;
  $('adminContent').innerHTML='<div class="admin-card"><h3>Chargement…</h3><p>Récupération de vos paramètres et logements.</p></div>';
  try{
@@ -1452,7 +1457,7 @@ document.addEventListener('keydown',e=>{if(propertyPhotoLightbox.hidden)return;i
 function route(){const params=new URLSearchParams(location.search);const adminHash=/^#admin(?:\/|$)/i.test(location.hash||'');const adminQuery=params.get('espace')==='proprietaire';if(adminHash||adminQuery){document.documentElement.classList.add('owner-entry');document.documentElement.classList.remove('owner-workspace-ready');$('publicApp').style.display='none';$('adminApp').style.display='block';if(!ownerSessionReady)return;if(session?.access_token&&currentUser?.id&&currentProfile){renderManager(currentProfile);}else{renderLogin();}return;}document.documentElement.classList.remove('owner-entry');document.documentElement.classList.remove('owner-workspace-ready');$('adminApp').style.display='none';$('publicApp').style.display='block';loadPublic();}
 document.addEventListener('click',e=>{
  const backOwner=e.target.closest('#previewReturnOwner');
- if(backOwner){e.preventDefault();document.body.classList.remove('private-preview-editing');const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);document.documentElement.classList.add('owner-entry');$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
+ if(backOwner){e.preventDefault();backOwner.remove();document.body.classList.remove('private-preview-editing');$('previewPhotoPicker')?.remove();$('previewPhotoNotice')?.remove();const u=new URL(location.href);u.hash='';u.searchParams.delete('preview');u.searchParams.set('espace','proprietaire');history.pushState({view:'owner'},'',u.pathname+u.search);document.documentElement.classList.add('owner-entry');$('publicApp').style.display='none';$('adminApp').style.display='block';if(session?.access_token&&currentUser?.id&&currentProfile)renderManager(currentProfile);else renderLogin();return;}
  const photoTarget=e.target.closest('[data-preview-photo]');
  const textBlock=e.target.closest('[data-site-edit-key]');
  const editableTarget=photoTarget||textBlock;
