@@ -4824,7 +4824,8 @@ function goToPrevPeriod(){
     currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;}
   }
   renderCalendar(); renderSummary();
-  resetCalendarScrollToStart();
+  // Sur téléphone, le mois précédent doit s'ouvrir sur ses derniers jours.
+  resetCalendarScrollToStart('end');
 }
 function goToNextPeriod(){
   if(viewMode==='week'){
@@ -4835,11 +4836,15 @@ function goToNextPeriod(){
     currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;}
   }
   renderCalendar(); renderSummary();
-  resetCalendarScrollToStart();
+  // Le mois suivant s'ouvre toujours sur son premier jour.
+  resetCalendarScrollToStart('start');
 }
-function resetCalendarScrollToStart(){
+function resetCalendarScrollToStart(edge='start'){
   const scrollEl = document.getElementById('calendarScroll');
-  if(scrollEl) scrollEl.scrollLeft = 0;
+  if(!scrollEl) return;
+  requestAnimationFrame(()=>{
+    scrollEl.scrollLeft = edge==='end' ? Math.max(0,scrollEl.scrollWidth-scrollEl.clientWidth) : 0;
+  });
 }
 
 function bindCalendarSwipe(){
