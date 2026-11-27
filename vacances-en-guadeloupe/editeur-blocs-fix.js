@@ -232,7 +232,7 @@
   function positionBar(bar, box) {
     // La barre d'édition reste toujours en haut de l'écran, centrée,
     // quelle que soit la position de la case en cours de création.
-    bar.style.top = '12px';
+    bar.style.top = '0px';
     bar.style.left = '50%';
     bar.style.transform = 'translateX(-50%)';
   }
@@ -437,11 +437,11 @@
     '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}',
     /* aucun cadre autour des blocs ; seul le survol / la sélection en montre un, comme les autres éléments modifiables */
     '#publicApp .custom-site-block.custom-site-block-canvas{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important;outline:none!important}',
-    'body.private-preview-editing #publicApp .custom-site-block-canvas:hover,body.private-preview-editing #publicApp [data-custom-block-id]:hover,body.custom-inline-editing #publicApp .custom-site-block-canvas:hover,body.custom-inline-editing #publicApp [data-custom-block-id]:hover{outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px}',
+    'body.private-preview-editing #publicApp .custom-site-block-canvas:hover,body.private-preview-editing #publicApp [data-custom-block-id]:hover,body.custom-inline-editing #publicApp .custom-site-block-canvas:hover,body.custom-inline-editing #publicApp [data-custom-block-id]:hover{outline:2px dashed #c49b55!important;outline-offset:5px!important;border-radius:5px}',
     'body.custom-inline-editing #publicApp .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing #publicApp [data-custom-block-id].custom-block-selected{outline:3px solid #2878b8!important;outline-offset:6px!important;border-radius:5px;background:transparent!important}',
     'body:not(.custom-inline-editing) .custom-block-editable-text:before{content:none!important}',
     /* barre flottante */
-    '.cit-bar{position:fixed;z-index:30000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100vw - 16px);padding:8px 10px;background:#fff;color:#173f36;border:1px solid #dbe4dc;border-radius:12px;box-shadow:0 10px 30px #173f3633;font:13px Arial,sans-serif}',
+    '.cit-bar{position:fixed;top:0!important;z-index:30000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100vw - 16px);padding:8px 10px;background:#fff;color:#173f36;border:1px solid #dbe4dc;border-radius:12px;box-shadow:0 10px 30px #173f3633;font:13px Arial,sans-serif}',
     '.cit-bar[hidden],.cit-menu[hidden],.cit-pill[hidden],.cit-toast[hidden]{display:none!important}',
     '.cit-bar button,.cit-bar select,.cit-bar label{font:inherit;color:#173f36}',
     '.cit-bar button{min-width:34px;height:34px;padding:0 10px;border:1px solid #dbe4dc;border-radius:8px;background:#f4f7f3;cursor:pointer}',
