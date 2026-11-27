@@ -76,7 +76,7 @@ document.getElementById('reviewForm').addEventListener('submit',async event=>{
   const response=await fetch(SUPABASE_URL+'/functions/v1/submit-guest-review',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({token,rating,comment:document.getElementById('comment').value})});
   const result=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(result.error||'Votre avis n’a pas pu être enregistré.');
-  document.getElementById('reviewForm').innerHTML='<div class="status success">⭐ Merci beaucoup pour votre avis ! Votre note a bien été enregistrée. Nous vous souhaitons une très belle continuation. 🌴</div>';
+  document.getElementById('reviewForm').innerHTML='<div class="status success">⭐ Merci beaucoup pour votre avis ! Votre note a bien été enregistrée. Elle sera affichée après validation par votre hôte. Merci pour votre confiance ! 🌴</div>';
  }catch(error){statusEl.className='status error';statusEl.textContent=error.message||'Une erreur est survenue.';submitBtn.disabled=false;submitBtn.textContent='Réessayer';}
 });
 </script>
