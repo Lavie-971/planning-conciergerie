@@ -224,10 +224,11 @@
 
   const getBox = () => { const id = customInlineEditor.selectedId; return id ? document.querySelector('.custom-site-block-canvas[data-custom-canvas-id="' + CSS.escape(id) + '"]') : null; };
   function positionBar(bar, box) {
-    const r = box.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight;
-    let top = r.top - bh - 38; if (top < 8) top = r.bottom + 12;
-    bar.style.top = clamp(top, 8, Math.max(8, innerHeight - bh - 8)) + 'px';
-    bar.style.left = clamp(r.left, 8, Math.max(8, innerWidth - bw - 8)) + 'px';
+    // La barre d'édition reste toujours en haut de l'écran, centrée,
+    // quelle que soit la position de la case en cours de création.
+    bar.style.top = '12px';
+    bar.style.left = '50%';
+    bar.style.transform = 'translateX(-50%)';
   }
   function refreshUI() {
     const bar = document.getElementById('customInlineToolbar'); if (!bar) return;
