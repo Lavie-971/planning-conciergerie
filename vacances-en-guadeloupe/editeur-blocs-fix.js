@@ -222,7 +222,13 @@
     + '<button type="button" data-inline-save class="save">Enregistrer</button>'
     + '<span data-inline-status hidden></span>';
 
-  const getBox = () => { const id = customInlineEditor.selectedId; return id ? document.querySelector('.custom-site-block-canvas[data-custom-canvas-id="' + CSS.escape(id) + '"]') : null; };
+  // Accepte les blocs récents (canvas) et les anciens blocs encore au format historique.
+  const getBox = () => {
+    const id = customInlineEditor.selectedId;
+    if (!id) return null;
+    const safeId = CSS.escape(id);
+    return document.querySelector('.custom-site-block-canvas[data-custom-canvas-id="' + safeId + '"], [data-custom-block-id="' + safeId + '"]');
+  };
   function positionBar(bar, box) {
     // La barre d'édition reste toujours en haut de l'écran, centrée,
     // quelle que soit la position de la case en cours de création.
@@ -431,7 +437,7 @@
     '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}',
     /* aucun cadre autour des blocs ; seul le survol / la sélection en montre un, comme les autres éléments modifiables */
     '#publicApp .custom-site-block.custom-site-block-canvas{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important;outline:none!important}',
-    'body.private-preview-editing #publicApp .custom-site-block-canvas:hover,body.private-preview-editing #publicApp [data-custom-block-id]:hover,body.custom-inline-editing #publicApp .custom-site-block-canvas:hover{outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px}',
+    'body.private-preview-editing #publicApp .custom-site-block-canvas:hover,body.private-preview-editing #publicApp [data-custom-block-id]:hover,body.custom-inline-editing #publicApp .custom-site-block-canvas:hover,body.custom-inline-editing #publicApp [data-custom-block-id]:hover{outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px}',
     'body.custom-inline-editing #publicApp .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing #publicApp [data-custom-block-id].custom-block-selected{outline:3px solid #2878b8!important;outline-offset:6px!important;border-radius:5px;background:transparent!important}',
     'body:not(.custom-inline-editing) .custom-block-editable-text:before{content:none!important}',
     /* barre flottante */
