@@ -101,9 +101,23 @@
     const sel = getSelection();
     if (!sel.rangeCount) return;
     const r = sel.getRangeAt(0), ed = editorOf(r.commonAncestorContainer);
-    if (ed) { saved = r.cloneRange(); savedEditor = ed; }
+    if (ed) { saved = r.cloneRange(); savedEditor = ed; syncBar(); }
   });
   document.addEventListener('focusin', e => { if (editorOf(e.target)) { try { ex('defaultParagraphSeparator', 'p'); } catch (_) {} } });
+
+  function syncBar() {
+    const bar = document.getElementById('customInlineToolbar'); if (!bar || !saved) return;
+    let el = saved.startContainer; el = el.nodeType === 1 ? el : el.parentElement; if (!el) return;
+    const cs = getComputedStyle(el), sizeSel = bar.querySelector('[data-inline-font-size]'), fontSel = bar.querySelector('[data-inline-font]'), col = bar.querySelector('[data-inline-color]');
+    const px = parseFloat(cs.fontSize) || 16, opts = [...sizeSel.options].map(o => parseInt(o.value, 10));
+    sizeSel.value = opts.reduce((best, n) => Math.abs(n - px) < Math.abs(best - px) ? n : best, opts[0]) + 'px';
+    const f = matchFont(cs.fontFamily); if (f) fontSel.value = f;
+    const hx = toHex(cs.color); if (/^#[0-9a-f]{6}$/.test(hx)) col.value = hx;
+    ['bold', 'italic', 'underline', 'strikeThrough'].forEach(c => {
+      let on = false; try { on = document.queryCommandState(c); } catch (_) {}
+      bar.querySelector('[data-inline-command="' + c + '"]')?.classList.toggle('on', !!on);
+    });
+  }
 
   function activeEditor() {
     const sel = window.customInlineSelectedText && customInlineSelectedText();
@@ -193,26 +207,33 @@
   }
 
   /* ---------- 5. Barre d'outils (toujours visible en mode édition) ---------- */
+  const ICON = w => '<svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">'
+    + { Left: '<path d="M1 2h14M1 5.5h9M1 9h14M1 12.5h9"/>', Center: '<path d="M1 2h14M4 5.5h8M1 9h14M4 12.5h8"/>', Right: '<path d="M1 2h14M6 5.5h9M1 9h14M6 12.5h9"/>' }[w] + '</svg>';
   const BAR = '<strong>Édition du site</strong>'
+    + '<span class="grp"><em>Ajouter</em>'
     + '<button type="button" data-add="text" title="Ajouter une zone de texte">＋ Texte</button>'
     + '<button type="button" data-add="image" title="Ajouter une image">＋ Image</button>'
     + '<button type="button" data-add="link" title="Ajouter un bouton-lien">＋ Lien</button>'
-    + '<button type="button" data-draw title="Dessiner un rectangle sur la page">▭ Dessiner</button>'
+    + '<button type="button" data-draw title="Dessiner la zone de votre choix sur la page">▭ Dessiner une zone</button></span>'
+    + '<span class="grp"><button type="button" data-inline-delete title="Supprimer le bloc sélectionné">Supprimer le bloc</button>'
+    + '<button type="button" data-inline-save class="save">Enregistrer</button>'
+    + '<button type="button" data-inline-exit title="Quitter l’édition">Quitter ✕</button></span>'
+    + '<span class="brk"></span>'
+    + '<span class="grp"><em>Texte</em>'
     + '<button type="button" data-inline-command="bold" title="Gras"><b>G</b></button>'
     + '<button type="button" data-inline-command="italic" title="Italique"><i>I</i></button>'
-    + '<button type="button" data-inline-command="underline" title="Souligné"><u>U</u></button>'
-    + '<button type="button" data-inline-command="strikeThrough" title="Barré"><s>S</s></button>'
-    + '<select data-inline-font-size title="Taille du texte">' + [12, 14, 16, 18, 20, 24, 28, 32, 40, 48].map(n => '<option value="' + n + 'px"' + (n === 16 ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>'
-    + '<select data-inline-font title="Police">' + FONTS.map(f => '<option>' + f + '</option>').join('') + '</select>'
-    + '<input type="color" data-inline-color title="Couleur du texte" value="#173f36">'
-    + '<button type="button" data-inline-align="Left" title="Aligner à gauche">⇤</button>'
-    + '<button type="button" data-inline-align="Center" title="Centrer">↔</button>'
-    + '<button type="button" data-inline-align="Right" title="Aligner à droite">⇥</button>'
-    + '<button type="button" data-text-link title="Lien sur le texte sélectionné">🔗</button>'
-    + '<button type="button" data-clear title="Effacer la mise en forme">Tₓ</button>'
-    + '<button type="button" data-inline-delete title="Supprimer le bloc sélectionné">Supprimer le bloc</button>'
-    + '<button type="button" data-inline-save class="save">Enregistrer</button>'
-    + '<button type="button" data-inline-exit title="Quitter l’édition">✕</button><span data-inline-status></span>';
+    + '<button type="button" data-inline-command="underline" title="Souligné"><u>S</u></button>'
+    + '<button type="button" data-inline-command="strikeThrough" title="Barré"><s>B</s></button></span>'
+    + '<label class="grp"><em>Taille</em><select data-inline-font-size title="Taille du texte">' + [12, 14, 16, 18, 20, 24, 28, 32, 40, 48].map(n => '<option value="' + n + 'px"' + (n === 16 ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>'
+    + '<label class="grp"><em>Police</em><select data-inline-font title="Police">' + FONTS.map(f => '<option>' + f + '</option>').join('') + '</select></label>'
+    + '<label class="grp"><em>Couleur</em><input type="color" data-inline-color title="Couleur du texte" value="#173f36"></label>'
+    + '<span class="grp"><em>Alignement</em>'
+    + '<button type="button" data-inline-align="Left" title="Aligner à gauche" aria-label="Aligner à gauche">' + ICON('Left') + '</button>'
+    + '<button type="button" data-inline-align="Center" title="Centrer" aria-label="Centrer">' + ICON('Center') + '</button>'
+    + '<button type="button" data-inline-align="Right" title="Aligner à droite" aria-label="Aligner à droite">' + ICON('Right') + '</button></span>'
+    + '<span class="grp"><button type="button" data-text-link title="Transformer le texte sélectionné en lien">🔗 Lien sur le texte</button>'
+    + '<button type="button" data-clear title="Effacer la mise en forme">Effacer la mise en forme</button></span>'
+    + '<span data-inline-status></span>';
 
   window.customInlineToolbar = function () {
     let bar = document.getElementById('customInlineToolbar');
@@ -305,6 +326,8 @@
     del.addEventListener('pointerdown', e => e.stopPropagation());
     del.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); customInlineEditor.selectedId = box.dataset.customCanvasId; customInlineDeleteSelected(); });
     box.appendChild(drag); box.appendChild(del);
+    const ar = box.parentElement && box.parentElement.getBoundingClientRect();
+    if (ar && box.getBoundingClientRect().top - ar.top < 30) box.classList.add('handles-in');
   }
   const baseAttach = window.customInlineAttachInteractions;
   window.customInlineAttachInteractions = function () {
@@ -313,12 +336,33 @@
     return r;
   };
 
+  const baseSave = window.customInlineSave;
+  window.customInlineSave = async function () {
+    const r = await baseSave.apply(this, arguments);
+    if (!customInlineEditor.dirty) {
+      customInlineEditor.selectedId = null; customInlineUpdateSelectionUI();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      getSelection().removeAllRanges();
+    }
+    return r;
+  };
+
   const css = document.createElement('style');
-  css.textContent = '.custom-drag-handle,.custom-delete-handle{position:absolute;top:-1px;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}'
-    + '.custom-drag-handle{left:-1px;background:#d5a64c;color:#173f36;cursor:grab;border-radius:0 0 8px 0}'
-    + '.custom-delete-handle{right:-1px;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 0 0 8px}'
+  css.textContent = '.custom-drag-handle,.custom-delete-handle{position:absolute;top:-28px;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}'
+    + '.custom-drag-handle{left:-1px;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 0}'
+    + '.custom-delete-handle{right:-1px;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 0 0}'
     + 'body.custom-inline-editing .custom-site-block-canvas:hover>.custom-drag-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-delete-handle,'
     + 'body.custom-inline-editing .custom-block-selected>.custom-drag-handle,body.custom-inline-editing .custom-block-selected>.custom-delete-handle{display:flex}'
-    + '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}';
+    + '.custom-site-block-canvas.handles-in>.custom-drag-handle,.custom-site-block-canvas.handles-in>.custom-delete-handle{top:0}'
+    + '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}'
+    + '#publicApp .custom-site-block.custom-site-block-canvas{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important;outline:none!important}'
+    + 'body.custom-inline-editing #publicApp .custom-site-block-canvas:hover{outline:1px dashed #d5a64c!important}'
+    + 'body.custom-inline-editing #publicApp .custom-site-block-canvas.custom-block-selected{outline:2px solid #d5a64c!important;background:#fffefa66!important}'
+    + 'body:not(.custom-inline-editing) .custom-block-editable-text:before{content:none!important}'
+    + '.custom-inline-toolbar .grp{display:flex;align-items:center;gap:4px;padding:0 6px;border-left:1px solid #ffffff33}'
+    + '.custom-inline-toolbar .grp em{font-style:normal;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#cfe3d9;margin-right:2px}'
+    + '.custom-inline-toolbar .brk{flex-basis:100%;height:0}'
+    + '.custom-inline-toolbar button.on{background:#d7b36d;font-weight:700}'
+    + '.custom-inline-toolbar button svg{display:block}';
   document.head.appendChild(css);
 })();
