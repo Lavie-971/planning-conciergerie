@@ -274,7 +274,9 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #adminApp .image-preview img{height:92px;border-radius:8px 8px 0 0}
 #adminApp .image-preview .photo-tools{display:flex;flex-wrap:wrap;gap:4px;padding:5px;justify-content:center}
 #adminApp .image-preview .photo-tools button{position:static;width:auto;height:auto;border-radius:6px;padding:5px 7px;font-size:10px;line-height:1.2;box-shadow:none;background:#edf4ee;color:#28543e}
-#adminApp .image-preview .photo-tools button[data-remove-image]{background:#f8eaea;color:#8e2e2e}
+#adminApp .image-preview .photo-tools button[data-remove-image]{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:32px!important;padding:7px 10px!important;border:1px solid #8f2424!important;border-radius:7px!important;background:#a92f2f!important;color:#fff!important;font-size:11px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:.1px!important;box-shadow:0 1px 3px #0002!important;opacity:1!important;visibility:visible!important}
+#adminApp .image-preview .photo-tools button[data-remove-image]:hover{background:#842020!important;color:#fff!important}
+#adminApp .image-preview .photo-tools button[data-remove-image]:focus-visible{outline:3px solid #e6a3a3!important;outline-offset:2px!important}
 #adminApp .image-preview .photo-cover{font-size:10px;font-weight:700;color:#245b49;text-align:center;padding:3px}
 #adminApp .image-preview .photo-tools button:disabled{opacity:.45;cursor:wait}
 #adminApp .image-preview[draggable="true"]{cursor:grab}
@@ -475,7 +477,9 @@ body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:0!impor
 .preview-edit-dialog .image-preview-list{display:flex;flex-wrap:wrap;gap:10px}
 .preview-edit-dialog .image-preview{position:relative;width:94px;height:76px;border-radius:8px;overflow:hidden;background:#e8eee8}
 .preview-edit-dialog .image-preview img{width:100%;height:100%;object-fit:cover}
-.preview-edit-dialog .image-preview button{position:absolute;top:4px;right:4px;width:23px;height:23px;border:0;border-radius:50%;background:#173f36;color:#fff;font-size:17px;cursor:pointer}
+.preview-edit-dialog .image-preview button{position:absolute;top:4px;right:4px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#a92f2f;color:#fff;font-size:19px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 7px #0008;z-index:2}
+.preview-edit-dialog .image-preview button:hover{background:#842020;color:#fff}
+.preview-edit-dialog .image-preview button:focus-visible{outline:3px solid #e6a3a3;outline-offset:2px}
 .preview-edit-dialog .image-editor small{font-size:10px;color:#7a887e}
 .preview-edit-dialog .preview-amenities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
 .preview-edit-dialog .preview-amenities label{display:flex;align-items:center;gap:9px;min-height:40px;padding:9px 11px;border:1px solid #e0e8df;border-radius:9px;background:#fff;color:#40564a;font-size:12px;white-space:normal;cursor:pointer}
