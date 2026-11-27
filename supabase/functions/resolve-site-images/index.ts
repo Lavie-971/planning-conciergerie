@@ -82,6 +82,14 @@ Deno.serve(async (req: Request) => {
         newTexts.presentation_photo_url = newPresentation;
         siteChanged = true;
       }
+      const customBlocks = Array.isArray(newTexts.custom_blocks) ? newTexts.custom_blocks : [];
+      const migratedBlocks = [];
+      for (const block of customBlocks) {
+        const imageUrl = await migrateRef(block?.image_url);
+        migratedBlocks.push({ ...block, image_url: imageUrl });
+        if (imageUrl !== (block?.image_url || "")) siteChanged = true;
+      }
+      if (siteChanged) newTexts.custom_blocks = migratedBlocks;
       if (siteChanged) {
         const { error } = await admin.from("public_owner_sites").update({ site_texts: newTexts }).eq("user_id", ownerId).eq("site_slug", slug);
         if (error) throw error;
@@ -124,6 +132,7 @@ Deno.serve(async (req: Request) => {
         for (const path of migratedPaths) {
           const oldUrl = legacyPrefix + path.split("/").map(encodeURIComponent).join("/");
           const stillReferenced = (allSites || []).some((row) => row.hero_photo_url === oldUrl || row.site_texts?.presentation_photo_url === oldUrl)
+            || (allSites || []).some((row) => (Array.isArray(row.site_texts?.custom_blocks) ? row.site_texts.custom_blocks : []).some((block: any) => block?.image_url === oldUrl))
             || (allListings || []).some((row) => (row.photo_urls || []).some((photo: string) => typeof photo === "string" && photo.includes(oldUrl)));
           if (!stillReferenced) {
             const { error } = await admin.storage.from("site-images").remove([path]);
@@ -142,6 +151,7 @@ Deno.serve(async (req: Request) => {
     };
     add(site.hero_photo_url);
     add(site.site_texts?.presentation_photo_url);
+    for (const block of Array.isArray(site.site_texts?.custom_blocks) ? site.site_texts.custom_blocks : []) add(block?.image_url);
     for (const listing of listings || []) for (const photo of listing.photo_urls || []) add(photo);
 
     // Une seule requête groupée pour toutes les photos (avant : une requête par photo,
