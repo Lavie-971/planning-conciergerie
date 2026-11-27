@@ -484,9 +484,9 @@ body.private-preview-editing [data-site-edit-key]{cursor:pointer;outline:0!impor
 .preview-edit-dialog .image-preview-list{display:flex;flex-wrap:wrap;gap:10px}
 .preview-edit-dialog .image-preview{position:relative;width:94px;height:76px;border-radius:8px;overflow:hidden;background:#e8eee8}
 .preview-edit-dialog .image-preview img{width:100%;height:100%;object-fit:cover}
-.preview-edit-dialog .image-preview button{position:absolute;top:4px;right:4px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#a92f2f;color:#fff;font-size:19px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 7px #0008;z-index:2}
-.preview-edit-dialog .image-preview button:hover{background:#842020;color:#fff}
-.preview-edit-dialog .image-preview button:focus-visible{outline:3px solid #e6a3a3;outline-offset:2px}
+.preview-edit-dialog .image-preview button[data-remove-image]{position:absolute!important;top:4px!important;right:4px!important;z-index:5!important;display:flex!important;align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;padding:0!important;border:0!important;border-radius:50%!important;background:rgba(255,255,255,.92)!important;color:#333!important;font:20px/1 Arial,sans-serif!important;font-weight:400!important;box-shadow:none!important;cursor:pointer!important}
+.preview-edit-dialog .image-preview button[data-remove-image]:hover{background:#fff!important;color:#000!important}
+.preview-edit-dialog .image-preview button[data-remove-image]:focus-visible{outline:2px solid #333!important;outline-offset:1px!important}
 .preview-edit-dialog .image-editor small{font-size:10px;color:#7a887e}
 .preview-edit-dialog .preview-amenities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
 .preview-edit-dialog .preview-amenities label{display:flex;align-items:center;gap:9px;min-height:40px;padding:9px 11px;border:1px solid #e0e8df;border-radius:9px;background:#fff;color:#40564a;font-size:12px;white-space:normal;cursor:pointer}
