@@ -6964,11 +6964,20 @@ function ensureBookingWhatsAppWorkflow(b){
   if(b.checkin<=today && !b.whatsappWorkflow)return false;
   const workflow=b.whatsappWorkflow||{activatedAt:null,welcomeSentAt:null,steps:{}};
   workflow.steps=workflow.steps||{};
-  if(!workflow.welcomeSentAt&&!workflow.steps.welcome&&!workflow.steps.reminder){
-    workflow.steps.welcome={dueDate:addDaysISO(b.checkin,-3),template:'1',sentAt:null,promptedDate:null};
+  let changed=!b.whatsappWorkflow;
+  // Toujours créer l'étape de bienvenue si elle manque, même si une ancienne étape
+  // "reminder" existe déjà. Ne jamais écraser un message déjà confirmé comme envoyé.
+  if(!workflow.welcomeSentAt && (!workflow.steps.welcome || !workflow.steps.welcome.sentAt)){
+    const welcome=workflow.steps.welcome||{};
+    const dueDate=addDaysISO(b.checkin,-3);
+    if(welcome.dueDate!==dueDate){welcome.dueDate=dueDate;changed=true;}
+    if(!welcome.template){welcome.template='1';changed=true;}
+    if(!Object.prototype.hasOwnProperty.call(welcome,'sentAt')){welcome.sentAt=null;changed=true;}
+    if(!Object.prototype.hasOwnProperty.call(welcome,'promptedDate')){welcome.promptedDate=null;changed=true;}
+    workflow.steps.welcome=welcome;
   }
-  if(!b.whatsappWorkflow || b.whatsappWorkflow!==workflow) b.whatsappWorkflow=workflow;
-  if(!b.whatsappWorkflow.__savedAt){saveBookingWhatsAppWorkflow(b,workflow);}
+  if(!b.whatsappWorkflow || b.whatsappWorkflow!==workflow){b.whatsappWorkflow=workflow;changed=true;}
+  if(changed)saveBookingWhatsAppWorkflow(b,workflow);
   return true;
 }
 function activateBookingWhatsAppWorkflow(b){
@@ -7194,7 +7203,9 @@ function checkWhatsAppSchedules(){
   const today=toISO(now.getFullYear(),now.getMonth(),now.getDate());
   for(const booking of bookings){
     if(!booking || !booking.checkin)continue;
-    if(!booking.whatsappWorkflow)ensureBookingWhatsAppWorkflow(booking);
+    if(['annulation','nemeconcerne','indisponible'].includes(booking.status))continue;
+    // Répare aussi les anciens suivis incomplets, pas seulement les réservations sans workflow.
+    ensureBookingWhatsAppWorkflow(booking);
     const steps=booking.whatsappWorkflow&&booking.whatsappWorkflow.steps;
     if(!steps)continue;
     // Les rappels automatiques ne démarrent qu'après confirmation de l'envoi du message de bienvenue.
