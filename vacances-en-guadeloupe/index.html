@@ -626,6 +626,9 @@ body.custom-inline-editing .custom-site-block-canvas.custom-block-selected{outli
 @media(max-width:650px){.custom-inline-toolbar{top:5px;left:5px;right:5px;transform:none;justify-content:center;gap:3px;padding:7px}.custom-inline-toolbar button,.custom-inline-toolbar select{padding:6px;font-size:11px}.custom-inline-toolbar strong{display:none}.custom-inline-toolbar [data-inline-status]{width:100%;text-align:center}}
 
 /* Recherche et filtres du catalogue */
+#publicApp .listing-search-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin:0 0 18px;padding:12px 17px;border:1px solid #cbd9ce;border-radius:9px;background:#fff;color:var(--forest);font:700 12px "DM Sans",sans-serif;cursor:pointer;transition:background .2s,border-color .2s}
+#publicApp .listing-search-toggle:hover{background:#f0f5ef;border-color:#9bb49f}
+#publicApp .listing-search-toggle:focus-visible{outline:3px solid #dce9dd;outline-offset:2px}
 #publicApp .listing-search{margin:0 0 28px;padding:22px;background:#fff;border:1px solid #e3e9e1;border-radius:14px;box-shadow:0 8px 26px #173f3609}
 #publicApp .listing-search-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;color:var(--forest);font-size:15px}
 #publicApp .listing-search-heading button{border:0;background:transparent;color:var(--forest2);text-decoration:underline;font:600 12px "DM Sans",sans-serif;cursor:pointer}
@@ -657,7 +660,7 @@ body.custom-inline-editing .custom-site-block-canvas.custom-block-selected{outli
 <section id="listingDetail"><div class="wrap" id="listingDetailContent"></div></section>
 <section class="intro wrap"><div class="eyebrow" id="introEyebrow">Bienvenue chez vous</div><h2 id="introTitle">Des séjours qui ont le goût des vacances</h2><p id="introText">Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.</p></section>
 <section id="customSiteBlocks" class="custom-site-blocks" aria-label="Informations complémentaires"></section>
-<section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow" id="catalogEyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p id="catalogText">Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="listing-search" id="listingSearch" aria-label="Filtres de recherche des logements">
+<section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow" id="catalogEyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p id="catalogText">Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><button type="button" class="listing-search-toggle" id="toggleListingFilters" aria-expanded="false" aria-controls="listingSearch">＋ Afficher les filtres</button><div class="listing-search" id="listingSearch" aria-label="Filtres de recherche des logements" hidden>
  <div class="listing-search-heading"><strong>🔎 Trouvez votre séjour idéal</strong><button type="button" id="resetListingFilters">Effacer les filtres</button></div>
  <div class="listing-search-grid">
   <label class="listing-search-field listing-search-wide"><span>Recherche libre</span><input id="filterKeyword" type="search" placeholder="Nom du logement, description, commune…"></label>
@@ -959,7 +962,9 @@ async function loadPublic(){
   if(!detailId){
    const searchBox=$('listingSearch'),cardsHost=$('listingCards');
    if(searchBox&&cardsHost){
-    searchBox.hidden=false;
+    const toggleFilters=$('toggleListingFilters');
+    if(toggleFilters){toggleFilters.addEventListener('click',()=>{const opening=searchBox.hidden;searchBox.hidden=!opening;toggleFilters.setAttribute('aria-expanded',String(opening));toggleFilters.textContent=opening?'− Masquer les filtres':'＋ Afficher les filtres';});}
+    searchBox.hidden=true;
     const loc=$('filterLocation'),typ=$('filterType'),keyword=$('filterKeyword'),guests=$('filterGuests'),beds=$('filterBedrooms'),priceMax=$('filterPrice'),amenity=$('filterAmenity'),result=$('listingSearchResult');
     const fillOptions=(select,values,label)=>{const current=select.value;select.innerHTML='<option value="">'+label+'</option>'+values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(values.includes(current))select.value=current;};
     fillOptions(loc,[...new Set(rows.map(x=>String(x.location||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr')),'Toutes les destinations');
