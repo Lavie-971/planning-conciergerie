@@ -72,6 +72,30 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #publicApp .empty .symbol{font-size:32px}
 #publicApp .empty h3{font:500 25px "Playfair Display",serif;color:var(--forest);margin:12px 0 7px}
 #publicApp .empty p{color:var(--muted);font-size:13px;max-width:460px;margin:auto;line-height:1.7}
+#publicApp .custom-site-blocks:empty{display:none}
+#publicApp .custom-site-blocks{padding:42px 0}
+#publicApp .custom-site-block{width:min(1120px,calc(100% - 48px));margin:0 auto 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:center;background:#fff;border:1px solid #eceae3;box-shadow:0 5px 22px rgba(30,60,45,.045);padding:26px}
+#publicApp .custom-site-block:nth-child(even) .custom-site-block-image{order:2}
+#publicApp .custom-site-block-image{width:100%;max-height:430px;object-fit:cover;border-radius:4px;display:block}
+#publicApp .custom-site-block-text-only .custom-site-block-copy{grid-column:1/-1}
+#publicApp .custom-site-block-image-only{grid-template-columns:1fr}
+#publicApp.detail-mode .custom-site-blocks{display:none}
+#publicApp .custom-site-block-copy h2{font:500 clamp(26px,3vw,38px)/1.16 "Playfair Display",serif;color:var(--forest);margin:0 0 14px}
+#publicApp .custom-site-block-copy p{font-size:13px;line-height:1.9;color:var(--muted);margin:0 0 12px}
+#publicApp .custom-site-block-link{display:inline-flex;margin-top:12px;padding:12px 17px;background:var(--forest);color:white;text-decoration:none;font-size:11px;font-weight:700}
+#publicApp .custom-site-block-link:hover{background:var(--forest2)}
+@media(max-width:700px){#publicApp .custom-site-block{grid-template-columns:1fr;padding:17px;gap:18px}#publicApp .custom-site-block:nth-child(even) .custom-site-block-image{order:0}}
+#adminApp .custom-block-card{border:1px solid #e0e8df;border-radius:10px;padding:15px;margin:12px 0;background:#fbfcfa}
+#adminApp .custom-block-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+#adminApp .custom-block-card-head strong{font-size:13px;color:var(--forest)}
+#adminApp .custom-block-actions{display:flex;gap:6px;flex-wrap:wrap}
+#adminApp .custom-block-actions button,#adminApp .custom-block-card button{border:1px solid #dce5dc;border-radius:6px;padding:7px 10px;background:#edf4ee;color:#28543e;font-size:11px;font-weight:700;cursor:pointer}
+#adminApp .custom-block-card button[data-block-delete]{background:#f8eaea;color:#8e2e2e}
+#adminApp .custom-block-card .field{margin:8px 0}
+#adminApp .custom-block-card textarea{min-height:84px}
+#adminApp .custom-block-image-preview{display:flex;align-items:center;gap:12px;margin:8px 0}
+#adminApp .custom-block-image-preview img{width:110px;height:76px;object-fit:cover;border-radius:6px}
+#adminApp .custom-block-image-preview button{background:#f8eaea;color:#8e2e2e}
 #publicApp .experience{background:var(--sand);padding:88px 0}
 #publicApp .experience-grid{display:grid;grid-template-columns:1fr 1fr;gap:65px;align-items:center}
 #publicApp .experience-img{height:465px;background:radial-gradient(ellipse at 65% 30%,rgba(198,174,126,.34),transparent 38%),linear-gradient(145deg,#dce7dc,#a9c0b0 52%,#688d7b);box-shadow:var(--shadow)}
@@ -577,6 +601,7 @@ body.private-preview-editing #heroCta:hover{
 </div></div></section>
 <section id="listingDetail"><div class="wrap" id="listingDetailContent"></div></section>
 <section class="intro wrap"><div class="eyebrow" id="introEyebrow">Bienvenue chez vous</div><h2 id="introTitle">Des séjours qui ont le goût des vacances</h2><p id="introText">Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.</p></section>
+<section id="customSiteBlocks" class="custom-site-blocks" aria-label="Informations complémentaires"></section>
 <section class="listings wrap" id="logements"><div class="section-head"><div><div class="eyebrow" id="catalogEyebrow">Nos adresses</div><h2 id="catalogTitle">Nos logements en Guadeloupe</h2><p id="catalogText">Découvrez nos hébergements et choisissez votre prochaine escale.</p></div><span class="count" id="listingCount"></span></div><div class="cards" id="listingCards"><div class="empty"><div class="symbol">🌴</div><h3>Préparation de nos logements</h3><p>Nos hébergements seront bientôt présentés ici. Revenez découvrir nos premières adresses.</p></div></div></section>
 <section class="experience" id="destination"><div class="wrap experience-grid"><div class="experience-img" role="img" aria-label="Paysage de plage tropicale en Guadeloupe"></div><div><div class="eyebrow" id="destinationEyebrow">L'île papillon vous attend</div><h2 id="destinationTitle">Un concentré de nature, de soleil et de liberté</h2><p id="destinationText">Plages de sable blond ou noir, lagons turquoise, forêt tropicale, marchés colorés et cuisine créole… La Guadeloupe offre mille façons de vivre des vacances inoubliables.</p><p id="destinationText2">Installez-vous dans votre logement et partez explorer les trésors de l'archipel, à votre rythme.</p><div class="perks"><div class="perk"><i>✦</i> <span id="perk1">Plages paradisiaques</span></div><div class="perk"><i>✦</i> <span id="perk2">Saveurs créoles</span></div><div class="perk"><i>✦</i> <span id="perk3">Nature préservée</span></div><div class="perk"><i>✦</i> <span id="perk4">Accueil chaleureux</span></div></div></div></div></section>
 <section class="contact" id="contact"><div class="wrap"><div class="eyebrow" id="contactEyebrow">Parlons de vos vacances</div><h2 id="contactTitle">Votre prochaine escapade commence ici</h2><p id="contactText">Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.</p><a class="btn" id="contactLink" href="#logements">Découvrir les logements <span>→</span></a><div id="contactDetails" style="margin-top:14px;font-size:12px;color:#d8e5de"></div></div></section>
@@ -847,6 +872,7 @@ async function loadPublic(){
   }
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
   setSiteIdentity(site);
+  renderCustomSiteBlocks(site);
   const reviewFields=detailId?'listing_id,rating,comment,display_name,created_at':'listing_id,rating';
   const reviewRows=rows.length?await api('public_guest_reviews?select='+reviewFields+'&listing_id=in.('+rows.map(row=>encodeURIComponent(row.id)).join(',')+')'):[];
   const reviewsFor=id=>reviewRows.filter(r=>r.listing_id===id);
@@ -1000,6 +1026,66 @@ function setupImageEditors(){
  });
 }
 
+function safeCustomBlockUrl(raw){
+ const value=String(raw||'').trim();if(!value)return '';
+ const normalized=/^www\./i.test(value)?'https://'+value:value;
+ if(/^#[A-Za-z][A-Za-z0-9_-]*$/.test(normalized))return normalized;
+ if(/^(https?:\/\/|mailto:|tel:)/i.test(normalized)){
+  try{const parsed=new URL(normalized,location.href);if(['http:','https:','mailto:','tel:'].includes(parsed.protocol))return normalized;}catch(_){}
+ }
+ throw new Error('Lien invalide : utilisez une adresse https://, http://, mailto: ou tel:.');
+}
+function renderCustomSiteBlocks(site){
+ const host=$('customSiteBlocks');if(!host)return;
+ const blocks=Array.isArray(site?.site_texts?.custom_blocks)?site.site_texts.custom_blocks:[];
+ host.innerHTML=blocks.map(block=>{
+  const title=String(block.title||'').trim(),body=String(block.text||'').trim(),image=siteImageUrl(block.image_url||''),href=safeCustomBlockUrl(block.link_url||'');
+  if(!title&&!body&&!image&&!href)return '';
+  const imageHtml=image?'<img class="custom-site-block-image" src="'+esc(image)+'" alt="'+esc(title||'Illustration')+'" loading="lazy">':'';
+  const textHtml=body.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean).map(p=>'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>').join('');
+  const copy=title||body||href?'<div class="custom-site-block-copy">'+(title?'<h2>'+esc(title)+'</h2>':'')+textHtml+(href?'<a class="custom-site-block-link" href="'+esc(href)+'"'+(/^https?:\/\//i.test(href)?' target="_blank" rel="noopener noreferrer"':'')+'>'+esc(block.link_label||'En savoir plus')+' →</a>':'')+'</div>':'';
+  const layoutClass=!image?'custom-site-block-text-only':(!copy?'custom-site-block-image-only':'');
+  return '<article class="custom-site-block '+layoutClass+'">'+imageHtml+copy+'</article>';
+ }).join('');
+}
+function setupCustomBlocksManager(){
+ const host=$('customBlocksManager');if(!host||host.dataset.ready==='1')return;host.dataset.ready='1';
+ const list=host.querySelector('[data-custom-block-list]'),status=host.querySelector('[data-custom-block-status]');
+ let blocks=Array.isArray(currentSite?.site_texts?.custom_blocks)?JSON.parse(JSON.stringify(currentSite.site_texts.custom_blocks)):[];
+ const render=()=>{
+  list.innerHTML=blocks.map((b,i)=>'<div class="custom-block-card" data-custom-block="'+esc(b.id)+'"><div class="custom-block-card-head"><strong>Rubrique '+(i+1)+'</strong><div class="custom-block-actions"><button type="button" data-block-up '+(i===0?'disabled':'')+'>↑ Monter</button><button type="button" data-block-down '+(i===blocks.length-1?'disabled':'')+'>↓ Descendre</button><button type="button" data-block-delete>Supprimer</button></div></div><div class="field"><label>Titre</label><input data-block-field="title" value="'+esc(b.title||'')+'" maxlength="140" placeholder="Ex. Découvrez notre région"></div><div class="field"><label>Texte</label><textarea data-block-field="text" maxlength="5000" placeholder="Ajoutez votre texte…">'+esc(b.text||'')+'</textarea></div><div class="field"><label>Lien (facultatif)</label><input data-block-field="link_url" value="'+esc(b.link_url||'')+'" placeholder="https://… ou mailto:… ou tel:…"></div><div class="field"><label>Texte du lien</label><input data-block-field="link_label" value="'+esc(b.link_label||'')+'" maxlength="60" placeholder="En savoir plus"></div><div class="field"><label>Image (facultative)</label><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-block-image><div class="custom-block-image-preview">'+(b.image_url&&siteImageUrl(b.image_url)?'<img src="'+esc(siteImageUrl(b.image_url))+'" alt="Image de la rubrique">':'<span>Aucune image sélectionnée</span>')+(b.image_url?'<button type="button" data-block-remove-image>Retirer l’image</button>':'')+'</div></div></div>').join('')||'<p>Aucune rubrique supplémentaire. Cliquez sur « Ajouter une rubrique » pour commencer.</p>';
+ };
+ render();
+ list.addEventListener('input',e=>{const card=e.target.closest('[data-custom-block]'),field=e.target.dataset.blockField;if(!card||!field)return;const b=blocks.find(x=>x.id===card.dataset.customBlock);if(b)b[field]=e.target.value;});
+ list.addEventListener('change',async e=>{
+  if(!e.target.matches('[data-block-image]'))return;
+  const card=e.target.closest('[data-custom-block]'),b=blocks.find(x=>x.id===card?.dataset.customBlock),file=e.target.files?.[0];if(!b||!file)return;
+  status.textContent='Envoi de l’image…';e.target.disabled=true;
+  try{b.image_url=await uploadSiteImage(file);render();status.textContent='Image ajoutée. Enregistrez les rubriques pour publier.';}
+  catch(err){status.textContent='Erreur d’envoi : '+err.message;e.target.disabled=false;}
+ });
+ list.addEventListener('click',e=>{
+  const card=e.target.closest('[data-custom-block]');if(!card)return;const i=blocks.findIndex(x=>x.id===card.dataset.customBlock);if(i<0)return;
+  if(e.target.closest('[data-block-delete]')){blocks.splice(i,1);render();}
+  else if(e.target.closest('[data-block-up]')&&i>0){[blocks[i-1],blocks[i]]=[blocks[i],blocks[i-1]];render();}
+  else if(e.target.closest('[data-block-down]')&&i<blocks.length-1){[blocks[i+1],blocks[i]]=[blocks[i],blocks[i+1]];render();}
+  else if(e.target.closest('[data-block-remove-image]')){blocks[i].image_url='';render();}
+ });
+ host.querySelector('[data-custom-block-add]').addEventListener('click',()=>{blocks.push({id:crypto.randomUUID(),title:'',text:'',image_url:'',link_url:'',link_label:'En savoir plus'});render();status.textContent='Nouvelle rubrique ajoutée.';});
+ host.querySelector('[data-custom-block-save]').addEventListener('click',async()=>{
+  try{
+   const cleaned=blocks.map(b=>({...b,title:String(b.title||'').trim(),text:String(b.text||'').trim(),link_url:safeCustomBlockUrl(b.link_url||''),link_label:String(b.link_label||'').trim()||'En savoir plus'}));
+   if(cleaned.some(b=>!b.title&&!b.text&&!b.image_url))throw new Error('Chaque rubrique doit contenir au moins un titre, un texte ou une image.');
+   status.textContent='Enregistrement…';
+   const texts={...(currentSite.site_texts||{}),custom_blocks:cleaned};
+   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
+   const saved=await api('public_owner_sites?select=site_texts&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(currentSite.site_slug));
+   if(!saved[0]||JSON.stringify(saved[0].site_texts?.custom_blocks||[])!==JSON.stringify(cleaned))throw new Error('L’enregistrement n’a pas pu être confirmé.');
+   currentSite.site_texts=saved[0].site_texts;blocks=cleaned;render();status.textContent='Rubriques enregistrées ✓';
+  }catch(err){status.textContent='Erreur : '+err.message;}
+ });
+}
+
 async function renderManager(profile){
  currentProfile=profile;
  $('adminContent').innerHTML='<div class="admin-card"><h3>Chargement…</h3><p>Récupération de vos paramètres et logements.</p></div>';
@@ -1035,8 +1121,11 @@ async function renderManager(profile){
   '<div class="admin-card"><h3>Choisir les logements à afficher</h3><p>Cochez uniquement les logements de votre Planning Conciergerie que vous souhaitez présenter aux voyageurs. Vous pouvez modifier cette sélection à tout moment.</p><div class="property-selection">'+
   (rows.length?rows.map(x=>'<label class="checkline property-choice"><input type="checkbox" data-publish-toggle="'+esc(x.id)+'" '+(x.is_published?'checked':'')+'> <span><strong>'+esc(x.title||'Logement sans nom')+'</strong><small>'+esc(x.location||'Commune à préciser')+' · '+esc(x.property_type||'Type non précisé')+'</small></span><em class="status">'+(x.is_published?'Visible sur le site':'Non affiché')+'</em></label>').join(''):'<p>Aucun logement disponible dans votre compte Planning Conciergerie.</p>')+
   '</div></div>'+
+  '<section class="admin-card" id="customBlocksManager"><h3>Rubriques supplémentaires du site</h3><p>Ajoutez des zones avec titre, texte, image et lien. Vous pourrez les déplacer, les modifier ou les supprimer.</p><div data-custom-block-list></div><div class="admin-actions"><button class="btn" type="button" data-custom-block-add>＋ Ajouter une rubrique</button><button class="btn" type="button" data-custom-block-save>Enregistrer les rubriques</button><span class="status" data-custom-block-status aria-live="polite"></span></div></section>'+
+  '';
   decorateManagerWorkspace(profile);
   setupImageEditors();
+  setupCustomBlocksManager();
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;localStorage.removeItem(PLANNING_SESSION_KEY);renderLogin()});
   $('previewSiteBtn').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!session?.access_token||!currentUser?.id){renderLogin();return;}const button=$('previewSiteBtn');button.disabled=true;try{const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));if(!sites.length)throw new Error('Aucun site propriétaire trouvé.');currentSite=sites[0];const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);document.documentElement.classList.remove('owner-entry');document.documentElement.classList.remove('owner-workspace-ready');$('adminApp').style.display='none';$('publicApp').style.display='block';await loadPublic();}catch(err){button.disabled=false;const note=document.createElement('p');note.className='admin-note';note.textContent='Impossible d’ouvrir l’aperçu : '+err.message;button.insertAdjacentElement('afterend',note);}});
   $('siteForm').addEventListener('submit',saveSite);
