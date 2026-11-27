@@ -133,7 +133,7 @@ input,select,textarea{font-family:inherit;font-size:14px;}
 .actions button.owner-site-action:hover{filter:brightness(.96);}
 .site-notification-btn{position:relative!important;display:inline-flex;align-items:center;gap:7px;border-color:#e6c5a0!important;background:#fff8ed!important;color:#875319!important}
 .site-notification-btn[hidden]{display:none!important}
-.site-notification-btn b{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#d84b3e;color:#fff;font-size:11px;line-height:1}.site-notification-btn.has-pending::after{content:"";position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#d93025;border:2px solid #fff;box-shadow:0 0 0 1px #d93025}
+.site-notification-btn b{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#d84b3e;color:#fff;font-size:11px;line-height:1}
 .site-request-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 11px;background:#fff}
 .site-request-card h3{margin:0 0 7px;font-size:15px;color:var(--ink)}
 .site-request-contact{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
@@ -2769,7 +2769,7 @@ async function refreshSiteBookingRequests(){
   const button=document.getElementById('siteBookingNotificationsBtn');
   const count=document.getElementById('siteBookingNotificationCount');
   // Afficher uniquement lorsqu'un propriétaire avec site accepté a des demandes en attente.
-  if(button){button.hidden=pending.length===0;button.classList.toggle('has-pending',pending.length>0);}
+  if(button){button.hidden=pending.length===0;button.classList.remove('has-pending');}
   if(count){count.textContent=String(pending.length);count.hidden=pending.length===0;}
   if(button)button.title=pending.length+' demande(s) en attente';
   if(!document.getElementById('siteBookingRequestsBackdrop').hidden)renderSiteBookingRequests();
@@ -2814,7 +2814,7 @@ function startSiteBookingRequestNotifications(){
 function stopSiteBookingRequestNotifications(){
  if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
  siteBookingRequests=[];siteBookingRequestKnownIds=new Set();siteBookingRequestsInitialized=false;
- const button=document.getElementById('siteBookingNotificationsBtn');if(button){button.hidden=true;button.classList.remove('has-pending');}
+ const button=document.getElementById('siteBookingNotificationsBtn');if(button){button.hidden=true;}
  const count=document.getElementById('siteBookingNotificationCount');if(count){count.textContent='0';count.hidden=true;}
 }
 async function openSiteBookingRequests(){
