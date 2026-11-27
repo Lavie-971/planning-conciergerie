@@ -805,6 +805,7 @@ body.printing-doc #printPanel{
         <button id="ownerSiteAccessBtn" class="owner-site-action" type="button" hidden>🌴 Mon espace site / Mon lien</button>
         <button id="ownerSiteShareBtn" class="owner-site-action primary" type="button" hidden>↗ Partager mon site</button>
         <button id="syncBtn">☁️ Synchro</button>
+        <button id="guestReviewsBtn" type="button">⭐ Avis des voyageurs</button>
         <button id="annualRecapBtn">📊 Récap annuel</button>
         
         <button id="backupBtn">💾 Sauvegarde</button>
@@ -8028,7 +8029,39 @@ function restoreBackup(){
 }
 
 /* ---------------- events ---------------- */
-async function openWhatsAppSettings(){
+async async function openGuestReviewsManager(){
+  let modal=document.getElementById('guestReviewsManager');
+  if(!modal){
+    modal=document.createElement('div');modal.id='guestReviewsManager';
+    modal.style.cssText='position:fixed;inset:0;z-index:12010;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:14px;';
+    modal.innerHTML='<section style="width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;color:#243044;border-radius:16px;padding:20px;box-shadow:0 20px 60px #0004"><header style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font-size:20px">⭐ Avis des voyageurs</h2><button type="button" id="closeGuestReviews" class="btn">Fermer</button></header><p style="font-size:13px;color:#66736d">Les nouveaux avis sont enregistrés en attente de validation. Publie uniquement les avis que tu souhaites afficher sur ton site.</p><div id="guestReviewsContent">Chargement des avis…</div></section>';
+    document.body.appendChild(modal);
+    modal.querySelector('#closeGuestReviews').onclick=()=>modal.remove();
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+  }
+  modal.style.display='flex';
+  const area=modal.querySelector('#guestReviewsContent');
+  area.textContent='Chargement des avis…';
+  try{
+    const rows=await sbRest('GET','guest_reviews?select=id,listing_id,rating,comment,display_name,is_published,created_at&order=created_at.desc');
+    if(!rows.length){area.innerHTML='<p style="padding:18px;text-align:center;color:#718078">Aucun avis reçu pour le moment.</p>';return;}
+    const listingNames=new Map();
+    (await sbRest('GET','public_listings?select=id,title,apartment_id')).forEach(x=>listingNames.set(String(x.id),x.title||'Logement'));
+    const avg=rows.reduce((n,r)=>n+Number(r.rating||0),0)/rows.length;
+    const published=rows.filter(r=>r.is_published).length;
+    area.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0"><div style="background:#f3f6f3;padding:10px 14px;border-radius:10px"><strong>'+avg.toFixed(1).replace('.',',')+'/5</strong><div style="font-size:12px;color:#66736d">Moyenne · '+rows.length+' avis</div></div><div style="background:#f3f6f3;padding:10px 14px;border-radius:10px"><strong>'+published+' / '+rows.length+'</strong><div style="font-size:12px;color:#66736d">Avis publiés</div></div></div>'+
+      rows.map(r=>'<article style="border:1px solid #e1e8e3;border-radius:12px;padding:13px;margin:10px 0"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>'+escapeHtml(listingNames.get(String(r.listing_id))||'Logement')+'</strong><span style="color:#b8892e">'+('★'.repeat(Number(r.rating))+'☆'.repeat(5-Number(r.rating)))+' '+Number(r.rating)+'/5</span></div><p style="margin:8px 0;color:#43534b;white-space:pre-wrap">'+escapeHtml(r.comment||'Aucun commentaire')+'</p><div style="font-size:12px;color:#7a867f">'+escapeHtml(r.display_name||'Voyageur')+' · '+new Date(r.created_at).toLocaleDateString('fr-FR')+' · '+(r.is_published?'Publié':'En attente de validation')+'</div><div style="display:flex;gap:8px;margin-top:10px"><button type="button" data-review-id="'+escapeHtml(r.id)+'" data-review-publish="'+(!r.is_published)+'" style="border:0;border-radius:8px;padding:9px 12px;background:'+(r.is_published?'#f8e9e7':'#e5f3e9')+';color:'+(r.is_published?'#9a3028':'#21663b')+';font-weight:700">'+(r.is_published?'Masquer l’avis':'Publier l’avis')+'</button></div></article>').join('');
+    area.querySelectorAll('[data-review-id]').forEach(btn=>btn.addEventListener('click',async()=>{
+      btn.disabled=true;
+      try{
+        await sbRest('PATCH','guest_reviews?id=eq.'+encodeURIComponent(btn.dataset.reviewId),{is_published:btn.dataset.reviewPublish==='true',updated_at:new Date().toISOString()},{'Prefer':'return=minimal'});
+        await openGuestReviewsManager();
+      }catch(error){btn.disabled=false;alert('Impossible de modifier cet avis : '+(error.message||error));}
+    }));
+  }catch(error){area.textContent='Impossible de charger les avis : '+(error.message||error);}
+}
+
+function openWhatsAppSettings(){
   let modal=document.getElementById('whatsappSettingsModal');
   if(!modal){
     modal=document.createElement('div');modal.id='whatsappSettingsModal';
@@ -8338,6 +8371,7 @@ document.getElementById('detailDeleteBtn').addEventListener('click', ()=>{
   document.getElementById('statsEyeBtn').addEventListener('click', togglePrivacyMode);
   document.getElementById('annualEyeBtn').addEventListener('click', togglePrivacyMode);
 
+  document.getElementById('guestReviewsBtn').addEventListener('click',openGuestReviewsManager);
   document.getElementById('annualRecapBtn').addEventListener('click', ()=>{ closeDrawer(); openAnnualRecap(); });
   document.getElementById('myProfileBtn').addEventListener('click', ()=>{ closeDrawer(); openMyProfileModal(); });
   document.getElementById('closeMyProfileXBtn').addEventListener('click', closeMyProfileModal);
