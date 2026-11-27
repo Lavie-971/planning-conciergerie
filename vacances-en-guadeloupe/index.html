@@ -689,7 +689,7 @@ body.custom-inline-editing .custom-site-block-canvas.custom-block-selected{outli
   <h2 id="bookingModalTitle">Demander une réservation</h2>
   <p>Envoyez votre demande au gérant du logement. Votre séjour ne sera confirmé qu’après son acceptation.</p>
   <form id="bookingForm">
-   <input type="hidden" id="bookingListingId">
+   <input type="hidden" id="bookingListingId"><input type="hidden" id="bookingFormStartedAt">
    <div class="formgrid">
     <div class="field full"><label>Choisissez vos dates sur le calendrier</label><div class="availability-legend"><span><i class="available-dot"></i> Disponible</span><span><i class="booked-dot"></i> Indisponible</span><span><i class="pending-dot"></i> Demande en attente</span></div><div class="booking-calendar"><div class="calendar-head"><button type="button" id="calendarPrev" aria-label="Mois précédent">‹</button><strong id="calendarMonth"></strong><button type="button" id="calendarNext" aria-label="Mois suivant">›</button></div><div class="calendar-weekdays"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div><div class="calendar-days" id="bookingCalendarDays"></div></div><p class="calendar-hint" id="calendarHint">Sélectionnez d’abord votre jour d’arrivée, puis votre jour de départ.</p></div>
     <div class="field"><label for="bookingCheckin">Arrivée</label><input id="bookingCheckin" type="date" required readonly></div>
@@ -1648,6 +1648,7 @@ async function openBooking(id,title){
  bookingRules={min_notice_days:0,min_nights:1,max_nights:null,contract_end_date:null};
  try{const preview=new URLSearchParams(location.search).get('preview')==='1';const path=preview?'public_listings?select=min_notice_days,min_nights,max_nights,apartment_id&id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(currentUser.id):'public_listings_public?select=min_notice_days,min_nights,max_nights,contract_end_date&id=eq.'+encodeURIComponent(id);const rows=await api(path);if(rows[0]){let contractEnd=rows[0].contract_end_date||null;if(preview&&rows[0].apartment_id){const apartments=await api('apartments?select=data&id=eq.'+encodeURIComponent(rows[0].apartment_id)+'&user_id=eq.'+encodeURIComponent(currentUser.id));contractEnd=apartments[0]?.data?.contractEndDate||null;}bookingRules={min_notice_days:Number(rows[0].min_notice_days)||0,min_nights:Math.max(1,Number(rows[0].min_nights)||1),max_nights:rows[0].max_nights?Number(rows[0].max_nights):null,contract_end_date:contractEnd};}}catch(e){console.warn('Conditions de réservation indisponibles',e);}
  const form=$('bookingForm');form.reset();form.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=false);
+ $('bookingFormStartedAt').value=String(Date.now());
  $('bookingListingId').value=id;
  $('bookingModalTitle').textContent='Demander une réservation — '+title;
  const today=new Date();bookingCalendarMonth=new Date(today.getFullYear(),today.getMonth(),1);
@@ -1702,7 +1703,8 @@ $('bookingForm').addEventListener('submit',async e=>{
    guest_phone:$('bookingGuestPhone').value,checkin:$('bookingCheckin').value,
    checkout:$('bookingCheckout').value,adults:Number($('bookingAdults').value||1),
    children:Number($('bookingChildren').value||0),babies:Number($('bookingBabies').value||0),
-   message:$('bookingMessage').value,website:$('bookingWebsite').value
+   message:$('bookingMessage').value,website:$('bookingWebsite').value,
+   form_started_at:$('bookingFormStartedAt').value
   });
   if(!result||result.ok!==true)throw new Error(result?.error||'La demande n’a pas été enregistrée. Merci de réessayer.');
   $('bookingResult').textContent='Votre demande a bien été reçue et elle est actuellement en cours de traitement. Le propriétaire vérifie les disponibilités et les modalités du séjour. Il reviendra vers vous dès que possible.';
