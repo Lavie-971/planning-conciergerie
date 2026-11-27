@@ -133,7 +133,7 @@ input,select,textarea{font-family:inherit;font-size:14px;}
 .actions button.owner-site-action:hover{filter:brightness(.96);}
 .site-notification-btn{position:relative!important;display:inline-flex;align-items:center;gap:7px;border-color:#e6c5a0!important;background:#fff8ed!important;color:#875319!important}
 .site-notification-btn[hidden]{display:none!important}
-.site-notification-btn b{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#d84b3e;color:#fff;font-size:11px;line-height:1}
+.site-notification-btn b{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#d84b3e;color:#fff;font-size:11px;line-height:1}.site-notification-btn.has-pending::after{content:"";position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#d93025;border:2px solid #fff;box-shadow:0 0 0 1px #d93025}
 .site-request-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 11px;background:#fff}
 .site-request-card h3{margin:0 0 7px;font-size:15px;color:var(--ink)}
 .site-request-contact{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
@@ -1183,6 +1183,11 @@ body.printing-doc #printPanel{
         <input type="number" id="newAptCleaningDuration" min="1" step="1" placeholder="À renseigner">
       </div>
     </div>
+    <div class="field-row">
+      <div class="field"><label for="newAptContractStart">Début du contrat</label><input type="date" id="newAptContractStart"></div>
+      <div class="field"><label for="newAptContractEnd">Fin du contrat</label><input type="date" id="newAptContractEnd"></div>
+    </div>
+    <p style="font-size:11px;color:var(--ink-faint);margin:-4px 0 10px;">La ligne du logement apparaît à partir du mois de début et reste visible jusqu’au mois de fin inclus. L’historique est conservé.</p>
     <div class="field-row">
       <div class="field">
         <label for="newAptOwnerPhone">Téléphone du propriétaire</label>
@@ -2762,7 +2767,7 @@ async function refreshSiteBookingRequests(){
   const button=document.getElementById('siteBookingNotificationsBtn');
   const count=document.getElementById('siteBookingNotificationCount');
   // Afficher uniquement lorsqu'un propriétaire avec site accepté a des demandes en attente.
-  if(button)button.hidden=pending.length===0;
+  if(button){button.hidden=pending.length===0;button.classList.toggle('has-pending',pending.length>0);}
   if(count){count.textContent=String(pending.length);count.hidden=pending.length===0;}
   if(button)button.title=pending.length+' demande(s) en attente';
   if(!document.getElementById('siteBookingRequestsBackdrop').hidden)renderSiteBookingRequests();
@@ -2807,7 +2812,7 @@ function startSiteBookingRequestNotifications(){
 function stopSiteBookingRequestNotifications(){
  if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
  siteBookingRequests=[];siteBookingRequestKnownIds=new Set();siteBookingRequestsInitialized=false;
- const button=document.getElementById('siteBookingNotificationsBtn');if(button)button.hidden=true;
+ const button=document.getElementById('siteBookingNotificationsBtn');if(button){button.hidden=true;button.classList.remove('has-pending');}
  const count=document.getElementById('siteBookingNotificationCount');if(count){count.textContent='0';count.hidden=true;}
 }
 async function openSiteBookingRequests(){
@@ -4852,6 +4857,15 @@ function centerOnToday(daysBeforeToday = 0){
   });
 }
 
+function apartmentActiveForCalendarRange(apt,startISO,endExclusiveISO){
+  const firstMonth=String(startISO||'').slice(0,7);
+  const lastDay=addDaysISO(endExclusiveISO,-1);
+  const lastMonth=String(lastDay||startISO||'').slice(0,7);
+  const contractStart=String(apt&&apt.contractStartDate||'').slice(0,7);
+  const contractEnd=String(apt&&apt.contractEndDate||'').slice(0,7);
+  return (!contractStart||contractStart<=lastMonth)&&(!contractEnd||contractEnd>=firstMonth);
+}
+
 function renderYearView(){
   const scroll = document.getElementById('calendarScroll');
   scroll.innerHTML = '';
@@ -4886,7 +4900,8 @@ function renderYearView(){
   header.appendChild(monthsHead);
   scroll.appendChild(header);
 
-  apartments.forEach(apt=>{
+  const yearStartISO=toISO(currentYear,0,1),yearEndExclISO=toISO(currentYear+1,0,1);
+  apartments.filter(apt=>apartmentActiveForCalendarRange(apt,yearStartISO,yearEndExclISO)).forEach(apt=>{
     const row = document.createElement('div');
     row.className = 'apartment-row';
     const info = document.createElement('div');
@@ -4915,11 +4930,12 @@ function renderYearView(){
       const cell = document.createElement('div');
       cell.className = 'year-month-cell';
       const isCurrentMonth = (m===new Date().getMonth() && currentYear===new Date().getFullYear());
-      cell.style.background = pct>0 ? `linear-gradient(to top, var(--accent) ${Math.min(pct,100)}%, var(--surface) ${Math.min(pct,100)}%)` : 'var(--surface)';
-      cell.style.color = pct>55 ? '#fff' : 'var(--ink)';
-      if(isCurrentMonth) cell.style.boxShadow = 'inset 0 0 0 2px var(--accent-dark)';
-      cell.textContent = privacyMode ? '••' : (pct+'%');
-      cell.title = `${MONTH_NAMES[m]} ${currentYear} — ${maskNum(nights)}/${mDays} nuits occupées`;
+      const inContract=apartmentActiveForCalendarRange(apt,mStartISO,mEndExclISO);
+      cell.style.background = !inContract ? 'var(--bg)' : pct>0 ? `linear-gradient(to top, var(--accent) ${Math.min(pct,100)}%, var(--surface) ${Math.min(pct,100)}%)` : 'var(--surface)';
+      cell.style.color = inContract&&pct>55 ? '#fff' : 'var(--ink-faint)';
+      if(isCurrentMonth&&inContract) cell.style.boxShadow = 'inset 0 0 0 2px var(--accent-dark)';
+      cell.textContent = !inContract ? '—' : privacyMode ? '••' : (pct+'%');
+      cell.title = !inContract ? `${MONTH_NAMES[m]} ${currentYear} — hors contrat` : `${MONTH_NAMES[m]} ${currentYear} — ${maskNum(nights)}/${mDays} nuits occupées`;
       cell.addEventListener('click', ()=>{
         currentMonth = m;
         if(window.setViewMode) window.setViewMode('month');
@@ -5062,7 +5078,7 @@ function renderCalendar(){
   agendaRow.style.minHeight = (agendaRowCount*agendaLaneHeight+8)+'px';
   agendaRow.appendChild(agendaDays);
   scroll.appendChild(agendaRow);
-  apartments.forEach(apt=>{
+  apartments.filter(apt=>apartmentActiveForCalendarRange(apt,monthStartISO,monthEndExclISO)).forEach(apt=>{
     let aptBookings = bookings.filter(b=>b.apartmentId===apt.id && b.checkin < monthEndExclISO && b.checkout > monthStartISO);
     if(hideNeMeConcerne) aptBookings = aptBookings.filter(b=>b.status!=='nemeconcerne');
 
@@ -5254,7 +5270,7 @@ function buildInvoiceHtml(b, apt){
   const totalTVA = tvaStatus==='oui' ? Math.round((total - totalHT) * 100) / 100 : 0;
   return `
     <div class="doc-header">
-      <h1>Attestation de location</h1>
+      <h1>Facture</h1>
       <div class="doc-meta">N° ${escapeHtml(invoiceNum)}<br>Date d'émission : ${todayFR}</div>
     </div>
     <div class="doc-parties">
@@ -5308,6 +5324,21 @@ function buildInvoiceHtml(b, apt){
       ${buildLegalMentions(p, todayISO())}
     </div>
   `;
+}
+
+function generateInvoiceFromBooking(bookingId){
+  const booking=bookings.find(item=>String(item.id)===String(bookingId));
+  if(!booking)return;
+  const apt=apartments.find(item=>String(item.id)===String(booking.apartmentId));
+  if(!apt){alert('Le logement associé à cette réservation est introuvable.');return;}
+  let tenantAddress=String(booking.tenantAddress||'').trim();
+  if(!tenantAddress){
+    const entered=window.prompt('Adresse complète du locataire à afficher sur la facture :','');
+    if(entered===null)return;
+    tenantAddress=entered.trim();
+  }
+  if(!tenantAddress){alert('L’adresse du locataire est nécessaire pour générer la facture.');return;}
+  openPrintDocument(buildInvoiceHtml(Object.assign({},booking,{tenantAddress}),apt));
 }
 
 function generateInvoiceFromForm(){
@@ -6464,6 +6495,11 @@ function startEditApartment(item, id){
         <input type="text" id="editAptOwnerAddress" value="${escapeHtml(apt.ownerAddress||'')}" placeholder="Adresse du propriétaire" style="flex:1;">
         <input type="number" id="editAptCleaningDuration" value="${apt.cleaningDurationMinutes!=null?escapeHtml(apt.cleaningDurationMinutes):''}" min="1" step="1" placeholder="Durée ménage (min)" style="max-width:170px;">
       </div>
+      <div style="display:flex;gap:6px;">
+        <label style="flex:1;font-size:11px;color:var(--ink-soft);">Début du contrat<input type="date" id="editAptContractStart" value="${escapeHtml(apt.contractStartDate||'')}" style="display:block;width:100%;margin-top:4px;"></label>
+        <label style="flex:1;font-size:11px;color:var(--ink-soft);">Fin du contrat<input type="date" id="editAptContractEnd" value="${escapeHtml(apt.contractEndDate||'')}" style="display:block;width:100%;margin-top:4px;"></label>
+      </div>
+      <div style="font-size:10.5px;color:var(--ink-faint);">La ligne reste visible pendant tout le mois de début et le mois de fin. Les réservations passées restent conservées.</div>
       <div style="border-top:1px solid var(--line);padding-top:9px;margin-top:5px;">
         <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Synchronisation des calendriers iCal (facultatif)</div>
         <input type="url" id="editAptAirbnbIcal" value="${escapeHtml(apt.icalAirbnbUrl||'')}" placeholder="Lien iCal Airbnb (https://…)" autocomplete="off" style="width:100%;margin-bottom:6px;">
@@ -6484,6 +6520,8 @@ function startEditApartment(item, id){
     const newCommission = parseFloat(document.getElementById('editAptCommission').value);
     const cleaningRaw = document.getElementById('editAptCleaningDuration').value.trim();
     const cleaningDuration = cleaningRaw==='' ? null : Number(cleaningRaw);
+    const contractStartDate = document.getElementById('editAptContractStart').value || null;
+    const contractEndDate = document.getElementById('editAptContractEnd').value || null;
     const bedroomsRaw = document.getElementById('editAptBedrooms').value.trim();
     const bedroomCount = bedroomsRaw==='' ? null : Number(bedroomsRaw);
     const guestsRaw = document.getElementById('editAptMaxGuests').value.trim();
@@ -6504,6 +6542,11 @@ function startEditApartment(item, id){
       document.getElementById('editAptCleaningDuration').focus();
       return;
     }
+    if(contractStartDate&&contractEndDate&&contractEndDate<contractStartDate){
+      alert('La fin du contrat doit être postérieure ou égale à son début.');
+      document.getElementById('editAptContractEnd').focus();
+      return;
+    }
     apt.name = newName;
     apt.owner = newOwner;
     apt.commissionPercent = isNaN(newCommission) ? 20 : newCommission;
@@ -6516,6 +6559,8 @@ function startEditApartment(item, id){
     apt.ownerAddress = document.getElementById('editAptOwnerAddress').value.trim();
     apt.propertyAddress = document.getElementById('editAptPropertyAddress').value.trim();
     apt.cleaningDurationMinutes = cleaningDuration;
+    apt.contractStartDate = contractStartDate;
+    apt.contractEndDate = contractEndDate;
     const airbnbIcal = document.getElementById('editAptAirbnbIcal').value.trim();
     const bookingIcal = document.getElementById('editAptBookingIcal').value.trim();
     for(const [label,value] of [['Airbnb',airbnbIcal],['Booking.com',bookingIcal]]){
@@ -6662,6 +6707,8 @@ async function addApartment(){
   const propertyAddress = document.getElementById('newAptPropertyAddress').value.trim();
   const cleaningDurationRaw = parseInt(document.getElementById('newAptCleaningDuration').value,10);
   const cleaningDurationMinutes = Number.isInteger(cleaningDurationRaw) && cleaningDurationRaw>0 ? cleaningDurationRaw : null;
+  const contractStartDate = document.getElementById('newAptContractStart').value || null;
+  const contractEndDate = document.getElementById('newAptContractEnd').value || null;
   if(!name){
     errEl.style.display = 'block';
     errEl.textContent = 'Merci de donner un nom au logement.';
@@ -6677,9 +6724,12 @@ async function addApartment(){
     errEl.textContent = 'La capacité doit être un nombre entier supérieur à zéro.';
     return;
   }
+  if(contractStartDate&&contractEndDate&&contractEndDate<contractStartDate){
+    errEl.style.display='block';errEl.textContent='La fin du contrat doit être postérieure ou égale à son début.';return;
+  }
   errEl.style.display = 'none';
   await refreshApartmentsFromRemote();
-  apartments.push({id: generateId(), name, owner, commissionPercent, propertyType, commune, bedroomCount, maxGuests, ownerPhone, ownerEmail, ownerAddress, propertyAddress, cleaningDurationMinutes, advances: [], globalServices: [], comment: ''});
+  apartments.push({id: generateId(), name, owner, commissionPercent, propertyType, commune, bedroomCount, maxGuests, ownerPhone, ownerEmail, ownerAddress, propertyAddress, cleaningDurationMinutes, contractStartDate, contractEndDate, advances: [], globalServices: [], comment: ''});
   await saveApartments();
   document.getElementById('newAptName').value = '';
   document.getElementById('newAptOwner').value = '';
@@ -6693,6 +6743,8 @@ async function addApartment(){
   document.getElementById('newAptOwnerAddress').value = '';
   document.getElementById('newAptPropertyAddress').value = '';
   document.getElementById('newAptCleaningDuration').value = '';
+  document.getElementById('newAptContractStart').value = '';
+  document.getElementById('newAptContractEnd').value = '';
   closeApartmentsModal();
   renderAll();
 }
@@ -6900,6 +6952,10 @@ function openBookingDetail(id){
     });
   }
   document.getElementById('detailContent').innerHTML = html;
+  const invoiceButton=document.createElement('button');
+  invoiceButton.type='button';invoiceButton.className='btn primary';invoiceButton.textContent='🧾 Générer la facture';
+  invoiceButton.style.marginTop='14px';invoiceButton.addEventListener('click',()=>generateInvoiceFromBooking(id));
+  document.getElementById('detailContent').appendChild(invoiceButton);
   openModal('detailBackdrop');
 }
 function ensureBookingWhatsAppWorkflow(b){
@@ -7073,7 +7129,7 @@ function prepareBookingWhatsApp(choiceOverride){
       '',
       'Nous espérons que vous êtes bien rentrés et que vous gardez de beaux souvenirs'+(lodging ? ' de votre séjour à '+lodging : ' de votre séjour')+'.',
       '',
-      'Un grand merci d’avoir choisi notre logement ! Ce fut un plaisir de vous accueillir. 💛',
+      'Un grand merci d’avoir choisi notre logement ! Ce fut un plaisir de vous accueillir. ☀️',
       '',
       'Si vous avez quelques instants, votre avis nous ferait très plaisir. Votre retour compte beaucoup et aide les prochains voyageurs à faire leur choix.',
       '',
@@ -7086,7 +7142,9 @@ function prepareBookingWhatsApp(choiceOverride){
     return;
   }
   const message = templates[choice].filter(line=>line!==null&&line!==undefined).join('\n');
-  const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(message);
+  const whatsappParams=new URLSearchParams();
+  whatsappParams.set('text',String(message).normalize('NFC'));
+  const url = 'https://wa.me/'+phone+'?'+whatsappParams.toString();
   // Prépare le message dans WhatsApp sans considérer son ouverture comme un envoi.
   _pendingWhatsAppSend={bookingId:b.id,choice};
   _returnToMainAfterWhatsApp=true;
