@@ -77,6 +77,9 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #publicApp .custom-site-block{width:min(1120px,calc(100% - 48px));margin:0 auto 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:center;background:#fff;border:1px solid #eceae3;box-shadow:0 5px 22px rgba(30,60,45,.045);padding:26px}
 #publicApp .custom-site-block:nth-child(even) .custom-site-block-image{order:2}
 #publicApp .custom-site-block-image{width:100%;max-height:430px;object-fit:cover;border-radius:4px;display:block}
+#publicApp .custom-site-block-text-only .custom-site-block-copy{grid-column:1/-1}
+#publicApp .custom-site-block-image-only{grid-template-columns:1fr}
+#publicApp.detail-mode .custom-site-blocks{display:none}
 #publicApp .custom-site-block-copy h2{font:500 clamp(26px,3vw,38px)/1.16 "Playfair Display",serif;color:var(--forest);margin:0 0 14px}
 #publicApp .custom-site-block-copy p{font-size:13px;line-height:1.9;color:var(--muted);margin:0 0 12px}
 #publicApp .custom-site-block-link{display:inline-flex;margin-top:12px;padding:12px 17px;background:var(--forest);color:white;text-decoration:none;font-size:11px;font-weight:700}
@@ -1041,7 +1044,8 @@ function renderCustomSiteBlocks(site){
   const imageHtml=image?'<img class="custom-site-block-image" src="'+esc(image)+'" alt="'+esc(title||'Illustration')+'" loading="lazy">':'';
   const textHtml=body.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean).map(p=>'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>').join('');
   const copy=title||body||href?'<div class="custom-site-block-copy">'+(title?'<h2>'+esc(title)+'</h2>':'')+textHtml+(href?'<a class="custom-site-block-link" href="'+esc(href)+'"'+(/^https?:\/\//i.test(href)?' target="_blank" rel="noopener noreferrer"':'')+'>'+esc(block.link_label||'En savoir plus')+' →</a>':'')+'</div>':'';
-  return '<article class="custom-site-block">'+imageHtml+copy+'</article>';
+  const layoutClass=!image?'custom-site-block-text-only':(!copy?'custom-site-block-image-only':'');
+  return '<article class="custom-site-block '+layoutClass+'">'+imageHtml+copy+'</article>';
  }).join('');
 }
 function setupCustomBlocksManager(){
