@@ -1265,14 +1265,15 @@ function customInlineAdd(){
  const block={id:crypto.randomUUID(),type:'mixed',title:'',text:'',text_html:'<p><br></p>',image_url:'',link_url:'',link_label:'Ouvrir le lien',placement:{...(selected?.placement||{}),mode:'canvas',target:selected?.placement?.target||'intro',x:selected?.placement?.x??5,y:selected?.placement?.y??5,width:selected?.placement?.width??40,height:selected?.placement?.height??180}};
  customInlineEditor.blocks.push(block);customInlineEditor.selectedId=block.id;customInlineRender();customInlineFocusText(block.id);customInlineMarkDirty();
 }
-function customInlineDeleteSelected(){
+async function customInlineDeleteSelected(){
  const id=customInlineEditor.selectedId;
  if(!id){const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Sélectionnez d’abord un bloc à supprimer.';return;}
  const block=customInlineEditor.blocks.find(b=>b.id===id);if(!block)return;
  if(!confirm('Supprimer définitivement ce bloc du site ?'))return;
  customInlineEditor.blocks=customInlineEditor.blocks.filter(b=>b.id!==id);
  customInlineEditor.selectedId=null;customInlineEditor.dirty=true;customInlineRender();
- const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Bloc supprimé — cliquez sur Enregistrer pour confirmer.';
+ const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Suppression en cours…';
+ await customInlineSave();
 }
 function customInlineUpdateSelectionUI(){
  const bar=$('customInlineToolbar');if(!bar)return;
