@@ -7096,7 +7096,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',returnToMainAfterWhatsApp);
 
-function prepareBookingWhatsApp(choiceOverride){
+async function prepareBookingWhatsApp(choiceOverride){
   // Un clic DOM transmet un événement : il ne doit jamais être interprété comme un choix.
   if(choiceOverride && typeof choiceOverride==='object') choiceOverride=undefined;
   const b = bookings.find(x=>String(x.id)===String(detailBookingId));
@@ -7124,6 +7124,27 @@ function prepareBookingWhatsApp(choiceOverride){
   const enteredChoice = String(choiceOverride).trim();
   // Compatibilité avec les anciens programmes où le remerciement portait le numéro 4.
   const choice = enteredChoice === '4' ? '3' : enteredChoice;
+  let reviewLink = '';
+  let reviewWindow = null;
+  if(choice === '3'){
+    // Ouvre une fenêtre immédiatement au clic pour éviter le blocage des popups après l'appel réseau.
+    reviewWindow = window.open('about:blank', '_blank');
+    try{
+      const accessToken = await sbToken();
+      const response = await fetch(SB_URL+'/functions/v1/issue-guest-review',{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({booking_id:String(b.id)})
+      });
+      const result = await response.json().catch(()=>({}));
+      if(!response.ok || !result.url) throw new Error(result.error || "Lien de notation indisponible.");
+      reviewLink = result.url;
+    }catch(error){
+      if(reviewWindow)reviewWindow.close();
+      alert("Impossible de créer le lien de notation : "+(error.message||"réessaie plus tard."));
+      return;
+    }
+  }
   const templates = {
     "1": [
       'Bonjour'+(name ? ' '+name : '')+' 😊',
@@ -7172,7 +7193,9 @@ function prepareBookingWhatsApp(choiceOverride){
       'Un grand merci d’avoir choisi notre logement ! Ce fut un plaisir de vous accueillir. ☀️',
       '',
       '⭐ Votre avis compte beaucoup pour nous !',
-      'Pour noter directement votre séjour, répondez simplement à ce message WhatsApp avec une note de 1 à 5 étoiles :',
+      'Pour noter directement votre séjour, cliquez sur ce lien sécurisé :',
+      '👉 '+reviewLink,
+      'Choisissez de 1 à 5 étoiles et laissez-nous un commentaire si vous le souhaitez.',
       '1 ⭐  Pas satisfait',
       '2 ⭐⭐  Peut mieux faire',
       '3 ⭐⭐⭐  Bien',
@@ -7199,7 +7222,8 @@ function prepareBookingWhatsApp(choiceOverride){
   _pendingWhatsAppSend={bookingId:b.id,choice};
   _returnToMainAfterWhatsApp=true;
   _leftSiteForWhatsApp=false;
-  window.open(url,'_blank','noopener,noreferrer');
+  if(reviewWindow){ reviewWindow.location.href=url; }
+  else { window.open(url,'_blank','noopener,noreferrer'); }
 }
 
 function saveBookingWhatsAppWorkflow(booking,workflow){
