@@ -775,6 +775,7 @@ body.printing-doc #printPanel{
 <button id="addBookingBtn" class="primary">+ Réservation</button>
 <button id="agendaBtn" class="primary">📅 Agenda</button>
       <button id="voiceCommandBtn" class="primary" type="button">🎙️ Assistant vocal</button>
+      <button id="whatsappSettingsBtn" type="button">💬 WhatsApp</button>
     </div>
   </header>
 
@@ -7998,6 +7999,38 @@ function restoreBackup(){
 }
 
 /* ---------------- events ---------------- */
+function openWhatsAppSettings(){
+  let modal=document.getElementById('whatsappSettingsModal');
+  if(!modal){
+    modal=document.createElement('div');modal.id='whatsappSettingsModal';
+    modal.style.cssText='position:fixed;inset:0;z-index:12000;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML="<section style=\"width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;color:#243044;border-radius:18px;padding:22px;box-shadow:0 20px 60px #0004;font:14px/1.5 system-ui,sans-serif\"><div style=\"display:flex;justify-content:space-between;align-items:center;gap:12px\"><h2 style=\"margin:0;font-size:21px\">💬 WhatsApp et automatisations</h2><button id=\"closeWhatsAppSettings\" type=\"button\" aria-label=\"Fermer\" style=\"border:0;background:#eef2f5;border-radius:9px;padding:8px 12px\">✕</button></div><p style=\"color:#5d6877\">Choisissez le mode adapté à votre compte. Le mode classique fonctionne avec WhatsApp installé sur votre téléphone.</p><div style=\"border:1px solid #dce5e1;border-radius:12px;padding:14px;margin:14px 0;background:#f7faf8\"><strong>WhatsApp classique</strong><p style=\"margin:6px 0 0\">Messages préparés dans WhatsApp, envoi manuel. Les avis clients seront recueillis par un lien sécurisé et enregistrés dans Planning Conciergerie.</p><span style=\"display:inline-block;margin-top:8px;padding:4px 9px;border-radius:20px;background:#e4f3e9;color:#216b43;font-size:12px;font-weight:700\">Disponible</span></div><div style=\"border:1px solid #dce5e1;border-radius:12px;padding:14px;margin:14px 0\"><div style=\"display:flex;align-items:center;justify-content:space-between;gap:8px\"><strong>WhatsApp Business Cloud API</strong><span id=\"waCloudStatus\" style=\"font-size:12px;color:#946200;background:#fff4d8;padding:4px 9px;border-radius:20px\">Non connecté</span></div><p style=\"margin:6px 0 12px;color:#5d6877\">Pour les comptes ayant activé la plateforme WhatsApp Cloud API de Meta. L’application WhatsApp Business seule ne suffit pas.</p><label style=\"display:block;margin:10px 0 4px;font-weight:600\" for=\"waCloudPhoneId\">Phone Number ID</label><input id=\"waCloudPhoneId\" autocomplete=\"off\" placeholder=\"Identifiant du numéro Meta\" style=\"box-sizing:border-box;width:100%;padding:10px;border:1px solid #cbd5df;border-radius:8px\"><label style=\"display:block;margin:10px 0 4px;font-weight:600\" for=\"waCloudWabaId\">WhatsApp Business Account ID</label><input id=\"waCloudWabaId\" autocomplete=\"off\" placeholder=\"Identifiant du compte WhatsApp Business\" style=\"box-sizing:border-box;width:100%;padding:10px;border:1px solid #cbd5df;border-radius:8px\"><label style=\"display:block;margin:10px 0 4px;font-weight:600\" for=\"waCloudAppId\">Meta App ID (facultatif)</label><input id=\"waCloudAppId\" autocomplete=\"off\" placeholder=\"Identifiant de l’application Meta\" style=\"box-sizing:border-box;width:100%;padding:10px;border:1px solid #cbd5df;border-radius:8px\"><p style=\"font-size:12px;color:#7a5b18;background:#fff8e8;border-radius:8px;padding:10px;margin:12px 0 0\">Ces champs enregistrent les identifiants de référence, mais ne connectent pas encore l’API. Le jeton d’accès et le secret Meta ne doivent jamais être saisis ici : ils seront stockés côté serveur. Les envois et la réception resteront désactivés jusqu’à la configuration et au test du webhook.</p></div><div style=\"display:flex;justify-content:flex-end;gap:8px;margin-top:16px\"><button id=\"saveWhatsAppSettings\" type=\"button\" style=\"border:0;background:#256b58;color:white;padding:10px 16px;border-radius:9px;font-weight:700\">Enregistrer</button></div><div id=\"whatsappSettingsFeedback\" role=\"status\" style=\"margin-top:8px;color:#276749\"></div></section>";
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+    modal.querySelector('#closeWhatsAppSettings').onclick=()=>modal.remove();
+    modal.querySelector('#saveWhatsAppSettings').onclick=async()=>{
+      const config={phone_number_id:modal.querySelector('#waCloudPhoneId').value.trim(),waba_id:modal.querySelector('#waCloudWabaId').value.trim(),meta_app_id:modal.querySelector('#waCloudAppId').value.trim(),connection_status:'not_connected'};
+      try{
+        if(syncUrl && accountApproved) await sbSetSetting('whatsapp_cloud_config',config);
+        else localStorage.setItem('whatsapp_cloud_config',JSON.stringify(config));
+        modal.querySelector('#whatsappSettingsFeedback').textContent='Identifiants enregistrés. La connexion API reste désactivée tant que la configuration serveur n’est pas terminée.';
+      }catch(err){modal.querySelector('#whatsappSettingsFeedback').textContent='Enregistrement impossible : '+(err.message||err);}
+    };
+  }
+  const feedback=modal.querySelector('#whatsappSettingsFeedback');
+  try{
+    let config={};
+    if(syncUrl && accountApproved){const settings=await sbGetSettings();config=settings.whatsapp_cloud_config||{};}
+    else{try{config=JSON.parse(localStorage.getItem('whatsapp_cloud_config')||'{}');}catch(e){}}
+    modal.querySelector('#waCloudPhoneId').value=config.phone_number_id||'';
+    modal.querySelector('#waCloudWabaId').value=config.waba_id||'';
+    modal.querySelector('#waCloudAppId').value=config.meta_app_id||'';
+    const configured=!!(config.phone_number_id&&config.waba_id);
+    const status=modal.querySelector('#waCloudStatus');
+    status.textContent=configured?'Identifiants enregistrés · API non connectée':'Non connecté';
+  }catch(e){feedback.textContent='Impossible de charger les paramètres : '+(e.message||e);}
+  modal.style.display='flex';
+}
 function bindEvents(){
   bindCalendarSwipe();
   // Un défilement récent suspend l'actualisation qui reconstruirait le calendrier.
@@ -8013,6 +8046,7 @@ function bindEvents(){
     planningScroll.addEventListener('pointerdown', markPlanningScrollIntent, {passive:true});
   }
   document.getElementById('voiceCommandBtn').addEventListener('click', startVoiceCommand);
+  document.getElementById('whatsappSettingsBtn').addEventListener('click',openWhatsAppSettings);
   document.getElementById('ownerSiteRequestBtn').addEventListener('click',requestOwnerSiteCreation);
   document.getElementById('ownerSiteAccessBtn').addEventListener('click',openOwnerSiteSpace);
   document.getElementById('ownerSiteShareBtn').addEventListener('click',shareOwnerPublicSite);
