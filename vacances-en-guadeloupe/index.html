@@ -587,8 +587,8 @@ body.private-preview-editing #heroCta:hover{
     <div class="field"><label for="bookingChildren">Enfants</label><input id="bookingChildren" type="number" min="0" max="20" value="0"></div>
     <div class="field"><label for="bookingBabies">Bébés</label><input id="bookingBabies" type="number" min="0" max="20" value="0"></div>
     <div class="field"><label for="bookingGuestName">Votre nom</label><input id="bookingGuestName" type="text" maxlength="160" required></div>
-    <div class="field"><label for="bookingGuestEmail">E-mail</label><input id="bookingGuestEmail" type="email" maxlength="254" required></div>
-    <div class="field"><label for="bookingGuestPhone">Téléphone</label><input id="bookingGuestPhone" type="tel" maxlength="50"></div>
+    <div class="field"><label for="bookingGuestEmail">E-mail (facultatif si téléphone renseigné)</label><input id="bookingGuestEmail" type="email" maxlength="254" autocomplete="email"></div>
+    <div class="field"><label for="bookingGuestPhone">Téléphone (facultatif si e-mail renseigné)</label><input id="bookingGuestPhone" type="tel" maxlength="50" autocomplete="tel"></div>
     <div class="field full"><label for="bookingMessage">Votre message (facultatif)</label><textarea id="bookingMessage" maxlength="2000"></textarea></div>
     <div class="field" style="position:absolute;left:-10000px" aria-hidden="true"><label for="bookingWebsite">Site web</label><input id="bookingWebsite" tabindex="-1" autocomplete="off"></div>
    </div>
@@ -1275,7 +1275,7 @@ $('bookingModal').addEventListener('click',e=>{if(e.target.id==='bookingModal')c
 $('bookingCheckin').addEventListener('change',()=>{if($('bookingCheckin').value)$('bookingCheckout').min=$('bookingCheckin').value;renderBookingCalendar();refreshBookingAvailability();});
 $('bookingCheckout').addEventListener('change',()=>{renderBookingCalendar();refreshBookingAvailability();});
 $('bookingForm').addEventListener('submit',async e=>{
- e.preventDefault();if(new URLSearchParams(location.search).get('preview')==='1'){$('bookingResult').textContent='Aperçu privé : aucun envoi de demande n’est effectué.';return;}$('bookingResult').textContent='Envoi de votre demande…';$('bookingSubmit').disabled=true;
+ e.preventDefault();const guestEmail=$('bookingGuestEmail').value.trim(),guestPhone=$('bookingGuestPhone').value.trim();if(!guestEmail&&!guestPhone){$('bookingResult').textContent='Veuillez renseigner au moins une adresse e-mail ou un numéro de téléphone.';return;}if(guestEmail&&!/^\S+@\S+\.\S+$/.test(guestEmail)){$('bookingResult').textContent='Veuillez vérifier votre adresse e-mail.';return;}if(new URLSearchParams(location.search).get('preview')==='1'){$('bookingResult').textContent='Aperçu privé : aucun envoi de demande n’est effectué.';return;}$('bookingResult').textContent='Envoi de votre demande…';$('bookingSubmit').disabled=true;
  try{
   if(!bookingDatesAvailable && !(await refreshBookingAvailability()))throw new Error('Veuillez choisir des dates disponibles.');
   const result=await bookingService({
