@@ -1104,13 +1104,14 @@ function sanitizeCustomTextHtml(value){
 function customInlineToolbar(){
  let bar=$('customInlineToolbar');if(bar)return bar;
  bar=document.createElement('div');bar.id='customInlineToolbar';bar.className='custom-inline-toolbar';
- bar.innerHTML='<strong>Édition du site</strong><button type="button" data-inline-command="bold" title="Gras"><b>G</b></button><button type="button" data-inline-command="italic" title="Italique"><i>I</i></button><button type="button" data-inline-command="underline" title="Souligné"><u>U</u></button><select data-inline-font-size title="Taille du texte"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option><option value="48px">48</option></select><select data-inline-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-inline-color title="Couleur du texte" value="#173f36"><button type="button" data-inline-align="left" title="Aligner à gauche">≡</button><button type="button" data-inline-align="center" title="Centrer">☰</button><button type="button" data-inline-align="right" title="Aligner à droite">≡</button><button type="button" data-inline-save class="save">Enregistrer</button><button type="button" data-inline-exit title="Quitter l’édition">✕</button><span data-inline-status></span>';
+ bar.innerHTML='<strong>Édition du site</strong><button type="button" data-inline-command="bold" title="Gras"><b>G</b></button><button type="button" data-inline-command="italic" title="Italique"><i>I</i></button><button type="button" data-inline-command="underline" title="Souligné"><u>U</u></button><select data-inline-font-size title="Taille du texte"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option><option value="48px">48</option></select><select data-inline-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-inline-color title="Couleur du texte" value="#173f36"><button type="button" data-inline-align="left" title="Aligner à gauche">≡</button><button type="button" data-inline-align="center" title="Centrer">☰</button><button type="button" data-inline-align="right" title="Aligner à droite">≡</button><button type="button" data-inline-delete title="Supprimer le bloc sélectionné">Supprimer le bloc</button><button type="button" data-inline-save class="save">Enregistrer</button><button type="button" data-inline-exit title="Quitter l’édition">✕</button><span data-inline-status></span>';
  document.body.appendChild(bar);
  bar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
  bar.addEventListener('click',e=>{
   const cmd=e.target.closest('[data-inline-command]')?.dataset.inlineCommand;if(cmd){document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);customInlineMarkDirty();return;}
   const align=e.target.closest('[data-inline-align]')?.dataset.inlineAlign;if(align){document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);customInlineMarkDirty();return;}
   const add=e.target.closest('[data-inline-add]')?.dataset.inlineAdd;if(add){customInlineAdd(add);return;}
+  if(e.target.closest('[data-inline-delete]')){customInlineDeleteSelected();return;}
   if(e.target.closest('[data-inline-save]'))customInlineSave();
   if(e.target.closest('[data-inline-exit]'))customInlineExit();
  });
@@ -1162,6 +1163,15 @@ function customInlineAdd(){
  const block={id:crypto.randomUUID(),type:'mixed',title:'',text:'',text_html:'<p><br></p>',image_url:'',link_url:'',link_label:'Ouvrir le lien',placement:{...(selected?.placement||{}),mode:'canvas',target:selected?.placement?.target||'intro',x:selected?.placement?.x??5,y:selected?.placement?.y??5,width:selected?.placement?.width??40,height:selected?.placement?.height??180}};
  customInlineEditor.blocks.push(block);customInlineEditor.selectedId=block.id;customInlineRender();customInlineFocusText(block.id);customInlineMarkDirty();
 }
+function customInlineDeleteSelected(){
+ const id=customInlineEditor.selectedId;
+ if(!id){const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Sélectionnez d’abord un bloc à supprimer.';return;}
+ const block=customInlineEditor.blocks.find(b=>b.id===id);if(!block)return;
+ if(!confirm('Supprimer définitivement ce bloc du site ?'))return;
+ customInlineEditor.blocks=customInlineEditor.blocks.filter(b=>b.id!==id);
+ customInlineEditor.selectedId=null;customInlineEditor.dirty=true;customInlineRender();
+ const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Bloc supprimé — cliquez sur Enregistrer pour confirmer.';
+}
 function customInlineRender(){renderCustomSiteBlocks({...currentSite,site_texts:{...(currentSite?.site_texts||{}),custom_blocks:customInlineEditor.blocks}});customInlineAttachInteractions();}
 async function customInlineSave(){
  try{customInlineSyncFromPage();const cleaned=customInlineEditor.blocks.map(b=>({...b,placement:{mode:'canvas',target:['hero','intro','listings','destination','contact','footer'].includes(b.placement?.target)?b.placement.target:'intro',x:Math.max(0,Math.min(100,Number(b.placement?.x)||0)),y:Math.max(0,Math.min(100,Number(b.placement?.y)||0)),width:Math.max(10,Math.min(100,Number(b.placement?.width)||40)),height:Math.max(60,Math.min(1600,Number(b.placement?.height)||180))},type:'mixed',text:String(b.text||'').trim(),text_html:sanitizeCustomTextHtml(b.text_html||''),image_url:b.image_url||'',link_url:safeCustomBlockUrl(b.link_url||''),link_label:String(b.link_label||b.link_url||'Ouvrir le lien').trim()||'Ouvrir le lien'}));
@@ -1178,7 +1188,7 @@ function customInlineExit(){if(customInlineEditor.dirty&&!confirm('Des modificat
 function openCustomBlocksManager(initialBlock){
  customInlineEditor.blocks=Array.isArray(currentSite?.site_texts?.custom_blocks)?JSON.parse(JSON.stringify(currentSite.site_texts.custom_blocks)):[];
  customInlineEditor.blocks=customInlineEditor.blocks.map(b=>({...b,type:'mixed'}));
- if(initialBlock){initialBlock.type='mixed';customInlineEditor.blocks.push(initialBlock);}
+ if(initialBlock){initialBlock.type='mixed';customInlineEditor.blocks.push(initialBlock);customInlineEditor.selectedId=initialBlock.id;}
  document.body.classList.add('custom-inline-editing');customInlineToolbar();customInlineRender();
 }
 function setupCustomBlocksManager(initialBlock=null){openCustomBlocksManager(initialBlock);}
