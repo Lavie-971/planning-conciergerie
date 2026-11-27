@@ -1134,15 +1134,33 @@ function customInlineSyncFromPage(){
   const txt=box.querySelector('[data-custom-text]');if(txt){b.text_html=sanitizeCustomTextHtml(txt.innerHTML);b.text=txt.innerText.trim();}
  });
 }
+function customInlineConvertLegacyBlockToCanvas(id,element){
+ const block=customInlineEditor.blocks.find(item=>String(item.id)===String(id));if(!block)return;
+ const placement=block.placement||{},target=['hero','intro','listings','destination','contact','footer'].includes(placement.target)?placement.target:'intro';
+ const selectors={hero:'.hero',intro:'.intro',listings:'.listings',destination:'.experience',contact:'.contact',footer:'footer'};
+ const anchor=document.querySelector(selectors[target]);if(!anchor)return;
+ const blockRect=element.getBoundingClientRect(),anchorRect=anchor.getBoundingClientRect();
+ const title=String(block.title||'').trim(),body=String(block.text||'').trim();
+ const content=block.text_html?sanitizeCustomTextHtml(block.text_html):[
+  title?'<h2>'+esc(title)+'</h2>':'',
+  ...body.split(/\\n\\s*\\n/).map(part=>part.trim()).filter(Boolean).map(part=>'<p>'+esc(part).replace(/\\n/g,'<br>')+'</p>')
+ ].join('');
+ block.text_html=content||'<p><br></p>';
+ block.placement={mode:'canvas',target,x:Math.max(0,Math.min(90,(blockRect.left-anchorRect.left)/Math.max(1,anchorRect.width)*100)),y:placement.position==='before'?0:Math.max(0,Math.min(95,100-(Math.max(60,blockRect.height)/Math.max(1,anchorRect.height)*100))),width:Math.max(10,Math.min(100,blockRect.width/Math.max(1,anchorRect.width)*100)),height:Math.max(60,Math.min(1600,blockRect.height))};
+ block.type='mixed';customInlineEditor.selectedId=block.id;customInlineEditor.dirty=true;customInlineRender();customInlineFocusText(block.id);customInlineMarkDirty();
+ const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Bloc converti en éditeur complet — Enregistrez pour conserver les modifications.';
+}
 function customInlineAttachInteractions(){
  document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box=>{
   if(box.dataset.inlineReady==='1')return;box.dataset.inlineReady='1';
   box.addEventListener('click',e=>{
    if(e.target.closest('.custom-resize-handle'))return;
    const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
+   if(!box.classList.contains('custom-site-block-canvas')){
+    e.preventDefault();customInlineConvertLegacyBlockToCanvas(id,box);return;
+   }
    customInlineEditor.selectedId=id;
    document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(x=>x.classList.toggle('custom-block-selected',x===box));
-   if(!box.classList.contains('custom-site-block-canvas')&&e.target.closest('a'))e.preventDefault();
    const txt=box.querySelector('[data-custom-text]');if(txt){txt.contentEditable='true';txt.focus();}
   });
   if(!box.classList.contains('custom-site-block-canvas'))return;
