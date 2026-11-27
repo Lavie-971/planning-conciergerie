@@ -2719,6 +2719,19 @@ function showSiteBookingToast(count){
  toast.textContent=count===1?'Nouvelle demande de réservation reçue depuis votre site.':count+' nouvelles demandes de réservation reçues depuis votre site.';
  clearTimeout(toast._timer);toast._timer=setTimeout(()=>toast.remove(),6500);
 }
+function siteBookingStatusMessage(request,status){
+ const fmt=value=>{const p=String(value||'').split('-').map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2]).toLocaleDateString('fr-FR'):'—';};
+ const name=String(request.guest_name||'').trim(),logement=String(request.listing_title||'notre logement');
+ const dates='du '+fmt(request.checkin)+' au '+fmt(request.checkout);
+ const message=status==='rejected'
+  ?'Bonjour '+(name||'')+',\\n\\nMerci pour votre intérêt pour '+logement+' ('+dates+'). Après vérification, nous sommes malheureusement au regret de vous informer que nous ne pouvons pas donner suite à votre demande de réservation.\\n\\nMerci de votre compréhension et au plaisir de vous accueillir une prochaine fois.\\n\\nBien cordialement.'
+  :'Bonjour '+(name||'')+',\\n\\nNous avons bien reçu votre demande de réservation pour '+logement+' ('+dates+'). Votre demande est actuellement en cours de traitement. Nous vérifions les disponibilités et les modalités du séjour et revenons vers vous dès que possible.\\n\\nMerci pour votre patience.\\n\\nBien cordialement.';
+ const rawPhone=String(request.guest_phone||'').trim(),digits=rawPhone.replace(/\\D/g,'');
+ if(digits){let waNumber=digits;if((digits.length===10&&digits.startsWith('0690'))||(digits.length===10&&digits.startsWith('0691')))waNumber='590'+digits.slice(1);else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);return {url:'https://wa.me/'+waNumber+'?text='+encodeURIComponent(message),channel:'WhatsApp'};}
+ const email=String(request.guest_email||'').trim();
+ if(email)return {url:'mailto:'+email+'?subject='+encodeURIComponent(status==='rejected'?'Réponse à votre demande de réservation':'Votre demande de réservation est en cours de traitement')+'&body='+encodeURIComponent(message),channel:'e-mail'};
+ return null;
+}
 function renderSiteBookingRequests(){
  const target=document.getElementById('siteBookingRequestsList');if(!target)return;
  target.innerHTML='';
@@ -2733,17 +2746,15 @@ function renderSiteBookingRequests(){
   const contacts=document.createElement('div');contacts.className='site-request-contact';
   const email=String(request.guest_email||'').trim();
   if(email){
-   const link=document.createElement('a');link.className='email';link.href='mailto:'+email+'?subject='+encodeURIComponent('Votre demande de séjour - '+(request.listing_title||'Vacances en Guadeloupe'))+'&body='+encodeURIComponent('Bonjour '+(request.guest_name||'')+',\n\nMerci pour votre demande de séjour du '+fmt(request.checkin)+' au '+fmt(request.checkout)+'.\n\nJe reviens vers vous avec notre proposition tarifaire.\n\nBien cordialement.');link.textContent='✉ Envoyer un e-mail';contacts.appendChild(link);
+   const statusMessage=siteBookingStatusMessage(request,'pending');
+   const link=document.createElement('a');link.className='email';link.href=statusMessage?.url||('mailto:'+email);link.textContent='✉ Message : demande en traitement';contacts.appendChild(link);
   }
   const rawPhone=String(request.guest_phone||'').trim();
   const digits=rawPhone.replace(/\D/g,'');
   if(digits){
    const link=document.createElement('a');link.className='phone';link.href='tel:'+rawPhone;link.textContent='☎ Appeler';contacts.appendChild(link);
-   let waNumber=digits;
-   if(rawPhone.startsWith('+'))waNumber=digits;
-   else if(digits.length===10&&digits.startsWith('0690')||digits.length===10&&digits.startsWith('0691'))waNumber='590'+digits.slice(1);
-   else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);
-   const wa=document.createElement('a');wa.className='whatsapp';wa.href='https://wa.me/'+waNumber+'?text='+encodeURIComponent('Bonjour '+(request.guest_name||'')+', merci pour votre demande pour '+(request.listing_title||'notre logement')+' du '+fmt(request.checkin)+' au '+fmt(request.checkout)+'. Je vous contacte pour vous communiquer notre tarif et les modalités du séjour.');wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='◉ Contacter sur WhatsApp';contacts.appendChild(wa);
+   const statusMessage=siteBookingStatusMessage(request,'pending');
+   const wa=document.createElement('a');wa.className='whatsapp';wa.href=statusMessage?.url||'#';wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='◉ Envoyer : demande en cours de traitement';contacts.appendChild(wa);
   }
   if(contacts.children.length)card.appendChild(contacts);
   const help=document.createElement('div');help.className='site-request-help';help.textContent='Vous pouvez contacter le voyageur pour lui communiquer votre tarif et convenir des modalités. Ajoutez ensuite la demande au planning après son accord.';card.appendChild(help);
@@ -2823,14 +2834,21 @@ async function openSiteBookingRequests(){
  await refreshSiteBookingRequests();
 }
 async function decideSiteBookingRequest(request,decision,button,otherButton){
- const message=decision==='accept'?'Le voyageur a-t-il accepté votre tarif et les conditions du séjour ? La demande sera ajoutée au planning avec le statut Option.':'Refuser cette demande de réservation ?';
+ const message=decision==='accept'?'Le voyageur a-t-il accepté votre tarif et les conditions du séjour ? La demande sera ajoutée au planning avec le statut Option.':'Refuser cette demande de réservation ? Un message de refus sera préparé dans WhatsApp ou dans votre messagerie e-mail.';
  if(!confirm(message))return;
+ // Ouvrir la fenêtre pendant le clic utilisateur pour éviter le blocage après la réponse serveur.
+ const refusalMessage=decision==='reject'?siteBookingStatusMessage(request,'rejected'):null;
+ const messageWindow=refusalMessage?window.open('about:blank','_blank'):null;
  button.disabled=true;if(otherButton)otherButton.disabled=true;
  try{
   await siteBookingRequestApi({action:'manager_decide',request_id:request.id,decision});
   if(decision==='accept'){await loadData();renderAll();}
+  if(decision==='reject'&&refusalMessage){
+   if(messageWindow){messageWindow.location.href=refusalMessage.url;messageWindow.opener=null;}
+   else alert('La demande a bien été refusée, mais le navigateur a bloqué l’ouverture du message. Autorisez les fenêtres surgissantes pour préparer le message au client.');
+  }
   await refreshSiteBookingRequests();
- }catch(error){alert('Impossible de traiter cette demande : '+error.message);button.disabled=false;if(otherButton)otherButton.disabled=false;}
+ }catch(error){if(messageWindow)messageWindow.close();alert('Impossible de traiter cette demande : '+error.message);button.disabled=false;if(otherButton)otherButton.disabled=false;}
 }
 async function shareOwnerPublicSite(){
   if(!ownerSiteSlug||!ownerSiteEnabled){
