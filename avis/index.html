@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173f36">
+<title>Votre avis | Évasion Soleil</title>
+<style>
+:root{color-scheme:light;--green:#173f36;--gold:#d5a64c;--ink:#24352f;--muted:#68756f;--line:#e4eae6}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(145deg,#f3f7f3,#fff 55%,#f8f2e7);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);display:grid;place-items:center;padding:22px}
+main{width:min(100%,520px);background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 55px #183d3012;padding:clamp(24px,6vw,42px)}
+.brand{text-align:center;color:var(--green);font-weight:800;letter-spacing:.08em;font-size:12px;text-transform:uppercase}
+h1{text-align:center;font-size:clamp(25px,6vw,32px);line-height:1.15;margin:15px 0 10px;color:var(--green)}
+.intro{text-align:center;color:var(--muted);line-height:1.6;margin:0 auto 26px;max-width:390px}
+label.field{display:block;font-weight:650;margin:18px 0 8px}
+.stars{display:flex;justify-content:center;gap:7px;margin:12px 0 8px}
+.stars button{border:0;background:#f4f6f3;border-radius:12px;width:54px;height:54px;font-size:31px;color:#cbd2cc;cursor:pointer;transition:.15s}
+.stars button.active{color:var(--gold);background:#fbf6e9;transform:translateY(-2px)}
+.rating-label{text-align:center;color:var(--muted);min-height:24px;font-size:14px}
+textarea{width:100%;min-height:118px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:13px;font:inherit;outline:none}
+textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px #173f3612}
+.submit{width:100%;margin-top:20px;border:0;border-radius:12px;background:var(--green);color:white;padding:15px;font:700 16px inherit;cursor:pointer}
+.submit:disabled{opacity:.55;cursor:wait}
+.status{margin-top:16px;text-align:center;line-height:1.55;color:var(--muted);font-size:14px}
+.success{color:var(--green);font-weight:650}.error{color:#a33b32}
+footer{text-align:center;color:#8a958e;font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+<div class="brand">Évasion Soleil</div>
+<h1>Votre avis compte pour nous 🌺</h1>
+<p class="intro">Merci d’avoir séjourné chez nous. Quelques secondes suffisent pour partager votre expérience et nous aider à nous améliorer.</p>
+<form id="reviewForm">
+<label class="field" style="text-align:center">Comment évaluez-vous votre séjour ?</label>
+<div class="stars" role="group" aria-label="Note de 1 à 5 étoiles">
+<button type="button" data-rating="1" aria-label="1 étoile">★</button>
+<button type="button" data-rating="2" aria-label="2 étoiles">★</button>
+<button type="button" data-rating="3" aria-label="3 étoiles">★</button>
+<button type="button" data-rating="4" aria-label="4 étoiles">★</button>
+<button type="button" data-rating="5" aria-label="5 étoiles">★</button>
+</div>
+<div class="rating-label" id="ratingLabel">Sélectionnez une note</div>
+<label class="field" for="comment">Un commentaire ? (facultatif)</label>
+<textarea id="comment" maxlength="1500" placeholder="Qu’avez-vous particulièrement apprécié ? Que pourrions-nous améliorer ?"></textarea>
+<button class="submit" id="submitBtn" type="submit">Envoyer mon avis</button>
+<div class="status" id="status" role="status" aria-live="polite"></div>
+</form>
+<footer>Merci pour votre confiance et à bientôt sous le soleil ! ☀️</footer>
+</main>
+<script>
+const SUPABASE_URL='https://pezxvjollptmwmadykfk.supabase.co';
+const SUPABASE_KEY='sb_publishable_18iXDJZ_uUphC2DeZA60wQ__cZTIiC_';
+const token=new URLSearchParams(location.search).get('token')||'';
+let rating=0;
+const labels=['','Pas satisfait','Peut mieux faire','Bien','Très bien','Excellent'];
+const buttons=[...document.querySelectorAll('[data-rating]')];
+const label=document.getElementById('ratingLabel');
+const statusEl=document.getElementById('status');
+const submitBtn=document.getElementById('submitBtn');
+buttons.forEach(button=>button.addEventListener('click',()=>{
+ rating=Number(button.dataset.rating);
+ buttons.forEach(b=>{const active=Number(b.dataset.rating)<=rating;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(Number(b.dataset.rating)===rating));});
+ label.textContent=rating+' / 5 — '+labels[rating];
+}));
+if(!/^[a-f0-9]{64}$/.test(token)){
+ document.getElementById('reviewForm').hidden=true;
+ statusEl.className='status error';
+ statusEl.textContent='Ce lien de notation est incomplet ou invalide. Contactez votre hôte pour obtenir un nouveau lien.';
+}
+document.getElementById('reviewForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(!rating){statusEl.className='status error';statusEl.textContent='Merci de sélectionner une note de 1 à 5 étoiles.';return;}
+ submitBtn.disabled=true;submitBtn.textContent='Envoi en cours…';statusEl.className='status';statusEl.textContent='';
+ try{
+  const response=await fetch(SUPABASE_URL+'/functions/v1/submit-guest-review',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({token,rating,comment:document.getElementById('comment').value})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||'Votre avis n’a pas pu être enregistré.');
+  document.getElementById('reviewForm').innerHTML='<div class="status success">⭐ Merci beaucoup pour votre avis ! Votre note a bien été enregistrée. Nous vous souhaitons une très belle continuation. 🌴</div>';
+ }catch(error){statusEl.className='status error';statusEl.textContent=error.message||'Une erreur est survenue.';submitBtn.disabled=false;submitBtn.textContent='Réessayer';}
+});
+</script>
+</body>
+</html>
