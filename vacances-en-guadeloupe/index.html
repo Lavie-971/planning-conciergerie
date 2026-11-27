@@ -656,7 +656,7 @@ function restoreOwnerSession(){
  })();
  return ownerRestorePromise.finally(()=>{ownerRestorePromise=null;});
 }
-let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false,bookingRules={min_notice_days:0,min_nights:1,max_nights:null};
+let bookingCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1),bookingCalendarLoading=false,bookingRules={min_notice_days:0,min_nights:1,max_nights:null,contract_end_date:null};
 async function api(path,method='GET',body=null){
  const headers={'apikey':SB_KEY,'Content-Type':'application/json'};
  if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
@@ -813,7 +813,7 @@ async function loadPublic(){
   if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
   // Mode public : site, photos signées et logements sont indépendants -> lancés ensemble (avant : en cascade).
   const earlyDetailId=new URLSearchParams(location.search).get('logement');
-  const earlyListingFields=earlyDetailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
+  const earlyListingFields=earlyDetailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,contract_end_date,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
   const earlyImages=preview?null:refreshSiteImageUrls(slug,false);
   const earlyListings=preview?null:api('public_listings_public?select='+earlyListingFields+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   if(earlyImages)earlyImages.catch(()=>{});
@@ -824,7 +824,7 @@ async function loadPublic(){
   if(preview)await refreshSiteImageUrls(slug,true);else await earlyImages;
   if(preview){const refreshedSite=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(slug));if(refreshedSite[0])Object.assign(site,refreshedSite[0]);}
   const detailId=new URLSearchParams(location.search).get('logement');
-  const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
+  const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,contract_end_date,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,contract_end_date,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,price_to,min_notice_days,min_nights,max_nights,photo_urls';
   let rows=!preview?await earlyListings:await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   if(preview){
    const activeApartments=await api('apartments?select=id,data&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
@@ -1179,8 +1179,9 @@ function firstFeasibleCheckin(){
  const bookings=bookingAvailabilityRanges.filter(r=>r.kind==='booking').slice().sort((a,b)=>a.start.localeCompare(b.start));
  for(let offset=0;offset<=365;offset++){
   const candidate=addDays(start,offset),checkin=isoLocalDate(candidate),checkout=isoLocalDate(addDays(candidate,minNights));
-  const clash=bookings.find(r=>checkin<r.end&&checkout>r.start);
-  if(!clash)return checkin;
+   if(bookingRules.contract_end_date&&(checkin>=bookingRules.contract_end_date||checkout>bookingRules.contract_end_date))continue;
+   const clash=bookings.find(r=>checkin<r.end&&checkout>r.start);
+   if(!clash)return checkin;
  }
  return null;
 }
@@ -1189,17 +1190,17 @@ function bookingCheckinValue(){return $('bookingCheckin').value;}
 function bookingEarliestCheckin(){const d=dateFromIso(isoLocalDate(new Date()));d.setDate(d.getDate()+Math.max(0,Number(bookingRules.min_notice_days)||0));return isoLocalDate(d);}
 function bookingNights(checkin,checkout){return Math.round((dateFromIso(checkout)-dateFromIso(checkin))/86400000);}
 function renderBookingCalendar(){
- const today=isoLocalDate(new Date()),month=bookingCalendarMonth,first=new Date(month.getFullYear(),month.getMonth(),1),last=new Date(month.getFullYear(),month.getMonth()+1,0);
+ const today=isoLocalDate(new Date()),month=bookingCalendarMonth,first=new Date(month.getFullYear(),month.getMonth(),1),last=new Date(month.getFullYear(),month.getMonth()+1,0),contractEnd=bookingRules.contract_end_date||'';
  $('calendarMonth').textContent=month.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
  $('calendarPrev').disabled=month.getFullYear()===new Date().getFullYear()&&month.getMonth()===new Date().getMonth();
- $('calendarNext').disabled=month>=new Date(new Date().getFullYear(),new Date().getMonth()+12,1);
+ $('calendarNext').disabled=month>=new Date(new Date().getFullYear(),new Date().getMonth()+12,1)||!!(contractEnd&&month>=new Date(dateFromIso(contractEnd).getFullYear(),dateFromIso(contractEnd).getMonth(),1));
  const offset=(first.getDay()+6)%7;let html='';
  for(let i=0;i<offset;i++)html+='<span class="calendar-empty"></span>';
  for(let day=1;day<=last.getDate();day++){
   const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),shortGap=shortGapRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range||!!shortGap,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
-  const past=value<today,tooSoon=value<bookingEarliestCheckin(),checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||past||tooSoon||(blocked&&!checkoutAllowed);
-  const state=past?'past':blocked?'booked':pending?'pending':'available';
+  const past=value<today,tooSoon=value<bookingEarliestCheckin(),checkoutAllowed=dayCanBeCheckout(value),afterContract=!!(contractEnd&&(value>contractEnd||(value===contractEnd&&!bookingCheckinValue()))),disabled=bookingCalendarLoading||past||tooSoon||afterContract||(blocked&&!checkoutAllowed);
+  const state=past||afterContract?'past':blocked?'booked':pending?'pending':'available';
   const cls=['calendar-day',state,isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
   let dayStyle=(past||tooSoon)?'background:#e5e7eb!important;background-color:#e5e7eb!important;background-image:none!important;color:#9ca3af!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;cursor:not-allowed!important;':blocked?'background:#f3caca!important;background-color:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':pending?'background:#ffe6b8!important;background-color:#ffe6b8!important;background-image:none!important;color:#82520d!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':'background:#dff0e4!important;background-color:#dff0e4!important;background-image:none!important;color:#205f3b!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;';
   // Les dates passées restent grisées et non sélectionnables, même si elles apparaissent dans une période réservée.
@@ -1214,11 +1215,13 @@ function selectBookingCalendarDate(value){
  const checkin=$('bookingCheckin'),checkout=$('bookingCheckout');
  if(!checkin.value||checkout.value||value<=checkin.value){
   if(value<bookingEarliestCheckin()){$('calendarHint').textContent='Réservation à effectuer au moins '+bookingRules.min_notice_days+' jour(s) avant l’arrivée.';return;}
-  if(dayIsBlocked(value))return;
+  if(bookingRules.contract_end_date&&value>=bookingRules.contract_end_date){$('calendarHint').textContent='Le contrat de gestion ne permet pas une arrivée à cette date.';return;}
+   if(dayIsBlocked(value))return;
   checkin.value=value;checkout.value='';
   $('calendarHint').textContent='Arrivée sélectionnée. Choisissez maintenant votre départ.';
  }else{
-  const nights=bookingNights(checkin.value,value);if(nights<bookingRules.min_nights){$('calendarHint').textContent='Séjour minimum : '+bookingRules.min_nights+' nuit(s).';return;}if(bookingRules.max_nights&&nights>bookingRules.max_nights){$('calendarHint').textContent='Séjour maximum : '+bookingRules.max_nights+' nuit(s).';return;}
+  if(bookingRules.contract_end_date&&value>bookingRules.contract_end_date){$('calendarHint').textContent='Le séjour doit se terminer au plus tard le '+bookingRules.contract_end_date+'.';return;}
+   const nights=bookingNights(checkin.value,value);if(nights<bookingRules.min_nights){$('calendarHint').textContent='Séjour minimum : '+bookingRules.min_nights+' nuit(s).';return;}if(bookingRules.max_nights&&nights>bookingRules.max_nights){$('calendarHint').textContent='Séjour maximum : '+bookingRules.max_nights+' nuit(s).';return;}
   const clash=bookingAvailabilityRanges.some(r=>r.kind==='booking'&&checkin.value<r.end&&value>r.start);
   if(clash){$('calendarHint').textContent='Cette période chevauche une indisponibilité. Choisissez un autre jour de départ.';return;}
   checkout.value=value;
@@ -1228,7 +1231,7 @@ function selectBookingCalendarDate(value){
 }
 async function openBooking(id,title){
  bookingRules={min_notice_days:0,min_nights:1,max_nights:null};
- try{const preview=new URLSearchParams(location.search).get('preview')==='1';const path=preview?'public_listings?select=min_notice_days,min_nights,max_nights&id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(currentUser.id):'public_listings_public?select=min_notice_days,min_nights,max_nights&id=eq.'+encodeURIComponent(id);const rows=await api(path);if(rows[0])bookingRules={min_notice_days:Number(rows[0].min_notice_days)||0,min_nights:Math.max(1,Number(rows[0].min_nights)||1),max_nights:rows[0].max_nights?Number(rows[0].max_nights):null};}catch(e){console.warn('Conditions de réservation indisponibles',e);}
+ try{const preview=new URLSearchParams(location.search).get('preview')==='1';const path=preview?'public_listings?select=min_notice_days,min_nights,max_nights,contract_end_date&id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(currentUser.id):'public_listings_public?select=min_notice_days,min_nights,max_nights,contract_end_date&id=eq.'+encodeURIComponent(id);const rows=await api(path);if(rows[0])bookingRules={min_notice_days:Number(rows[0].min_notice_days)||0,min_nights:Math.max(1,Number(rows[0].min_nights)||1),max_nights:rows[0].max_nights?Number(rows[0].max_nights):null,contract_end_date:rows[0].contract_end_date||null};}catch(e){console.warn('Conditions de réservation indisponibles',e);}
  const form=$('bookingForm');form.reset();form.querySelectorAll('input,textarea,button').forEach(el=>el.disabled=false);
  $('bookingListingId').value=id;
  $('bookingModalTitle').textContent='Demander une réservation — '+title;
@@ -1258,7 +1261,7 @@ async function refreshBookingAvailability(){
  bookingDatesAvailable=false;
  $('bookingSubmit').disabled=true;
  if(!checkin||!checkout||checkout<=checkin){$('bookingAvailability').textContent='Sélectionnez une arrivée et un départ valides.';return false;}
- const nights=bookingNights(checkin,checkout);if(checkin<bookingEarliestCheckin()){$('bookingAvailability').textContent='Ce logement doit être réservé au moins '+bookingRules.min_notice_days+' jour(s) avant l’arrivée.';return false;}if(nights<bookingRules.min_nights){$('bookingAvailability').textContent='Séjour minimum : '+bookingRules.min_nights+' nuit(s).';return false;}if(bookingRules.max_nights&&nights>bookingRules.max_nights){$('bookingAvailability').textContent='Séjour maximum : '+bookingRules.max_nights+' nuit(s).';return false;}
+ const nights=bookingNights(checkin,checkout);if(bookingRules.contract_end_date&&(checkin>=bookingRules.contract_end_date||checkout>bookingRules.contract_end_date)){$('bookingAvailability').textContent='Le séjour doit être entièrement compris avant la fin du contrat ('+bookingRules.contract_end_date+').';return false;}if(checkin<bookingEarliestCheckin()){$('bookingAvailability').textContent='Ce logement doit être réservé au moins '+bookingRules.min_notice_days+' jour(s) avant l’arrivée.';return false;}if(nights<bookingRules.min_nights){$('bookingAvailability').textContent='Séjour minimum : '+bookingRules.min_nights+' nuit(s).';return false;}if(bookingRules.max_nights&&nights>bookingRules.max_nights){$('bookingAvailability').textContent='Séjour maximum : '+bookingRules.max_nights+' nuit(s).';return false;}
  $('bookingAvailability').textContent='Vérification des disponibilités…';
  try{
   const result=await bookingService({action:'availability',listing_id:$('bookingListingId').value,from:checkin,to:checkout},new URLSearchParams(location.search).get('preview')==='1'?session?.access_token||'':'');
