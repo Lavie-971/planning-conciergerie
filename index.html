@@ -2724,9 +2724,9 @@ function siteBookingStatusMessage(request,status){
  const name=String(request.guest_name||'').trim(),logement=String(request.listing_title||'notre logement');
  const dates='du '+fmt(request.checkin)+' au '+fmt(request.checkout);
  const message=status==='rejected'
-  ?'Bonjour '+(name||'')+',\\n\\nMerci pour votre intérêt pour '+logement+' ('+dates+'). Après vérification, nous sommes malheureusement au regret de vous informer que nous ne pouvons pas donner suite à votre demande de réservation.\\n\\nMerci de votre compréhension et au plaisir de vous accueillir une prochaine fois.\\n\\nBien cordialement.'
-  :'Bonjour '+(name||'')+',\\n\\nNous avons bien reçu votre demande de réservation pour '+logement+' ('+dates+'). Votre demande est actuellement en cours de traitement. Nous vérifions les disponibilités et les modalités du séjour et revenons vers vous dès que possible.\\n\\nMerci pour votre patience.\\n\\nBien cordialement.';
- const rawPhone=String(request.guest_phone||'').trim(),digits=rawPhone.replace(/\\D/g,'');
+  ?'Bonjour '+(name||'')+',\n\nMerci pour votre intérêt pour '+logement+' ('+dates+'). Après vérification, nous sommes malheureusement au regret de vous informer que nous ne pouvons pas donner suite à votre demande de réservation.\n\nMerci de votre compréhension et au plaisir de vous accueillir une prochaine fois.\n\nBien cordialement.'
+  :'Bonjour '+(name||'')+',\n\nNous avons bien reçu votre demande de réservation pour '+logement+' ('+dates+'). Votre demande est actuellement en cours de traitement. Nous vérifions les disponibilités et les modalités du séjour et revenons vers vous dès que possible.\n\nMerci pour votre patience.\n\nBien cordialement.';
+ const rawPhone=String(request.guest_phone||'').trim(),digits=rawPhone.replace(/\D/g,'');
  if(digits){let waNumber=digits;if((digits.length===10&&digits.startsWith('0690'))||(digits.length===10&&digits.startsWith('0691')))waNumber='590'+digits.slice(1);else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);return {url:'https://wa.me/'+waNumber+'?text='+encodeURIComponent(message),channel:'WhatsApp'};}
  const email=String(request.guest_email||'').trim();
  if(email)return {url:'mailto:'+email+'?subject='+encodeURIComponent(status==='rejected'?'Réponse à votre demande de réservation':'Votre demande de réservation est en cours de traitement')+'&body='+encodeURIComponent(message),channel:'e-mail'};
