@@ -2727,9 +2727,9 @@ function siteBookingStatusMessage(request,status){
   ?'Bonjour '+(name||'')+',\n\nMerci pour votre intérêt pour '+logement+' ('+dates+'). Après vérification, nous sommes malheureusement au regret de vous informer que nous ne pouvons pas donner suite à votre demande de réservation.\n\nMerci de votre compréhension et au plaisir de vous accueillir une prochaine fois.\n\nBien cordialement.'
   :'Bonjour '+(name||'')+',\n\nNous avons bien reçu votre demande de réservation pour '+logement+' ('+dates+'). Votre demande est actuellement en cours de traitement. Nous vérifions les disponibilités et les modalités du séjour et revenons vers vous dès que possible.\n\nMerci pour votre patience.\n\nBien cordialement.';
  const rawPhone=String(request.guest_phone||'').trim(),digits=rawPhone.replace(/\D/g,'');
- if(digits){let waNumber=digits;if((digits.length===10&&digits.startsWith('0690'))||(digits.length===10&&digits.startsWith('0691')))waNumber='590'+digits.slice(1);else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);return {url:'https://wa.me/'+waNumber+'?text='+encodeURIComponent(message),channel:'WhatsApp'};}
+ if(digits){let waNumber=digits;if((digits.length===10&&digits.startsWith('0690'))||(digits.length===10&&digits.startsWith('0691')))waNumber='590'+digits.slice(1);else if(digits.length===10&&digits.startsWith('0'))waNumber='33'+digits.slice(1);return {url:'https://wa.me/'+waNumber+'?text='+encodeURIComponent(message),channel:'WhatsApp',message};}
  const email=String(request.guest_email||'').trim();
- if(email)return {url:'mailto:'+email+'?subject='+encodeURIComponent(status==='rejected'?'Réponse à votre demande de réservation':'Votre demande de réservation est en cours de traitement')+'&body='+encodeURIComponent(message),channel:'e-mail'};
+ if(email)return {url:'mailto:'+email+'?subject='+encodeURIComponent(status==='rejected'?'Réponse à votre demande de réservation':'Votre demande de réservation est en cours de traitement')+'&body='+encodeURIComponent(message),channel:'e-mail',message};
  return null;
 }
 function renderSiteBookingRequests(){
@@ -2747,7 +2747,7 @@ function renderSiteBookingRequests(){
   const email=String(request.guest_email||'').trim();
   if(email){
    const statusMessage=siteBookingStatusMessage(request,'pending');
-   const link=document.createElement('a');link.className='email';link.href=statusMessage?.url||('mailto:'+email);link.textContent='✉ Message : demande en traitement';contacts.appendChild(link);
+   const link=document.createElement('a');link.className='email';link.href='mailto:'+email+'?subject='+encodeURIComponent('Votre demande de réservation est en cours de traitement')+'&body='+encodeURIComponent(statusMessage?.message||'Votre demande de réservation est en cours de traitement.');link.textContent='✉ Message : demande en traitement';contacts.appendChild(link);
   }
   const rawPhone=String(request.guest_phone||'').trim();
   const digits=rawPhone.replace(/\D/g,'');
