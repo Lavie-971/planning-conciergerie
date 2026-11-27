@@ -1174,14 +1174,14 @@ function renderBookingCalendar(){
  for(let day=1;day<=last.getDate();day++){
   const date=new Date(month.getFullYear(),month.getMonth(),day),value=isoLocalDate(date),range=bookingRangeForDay(value),pending=pendingRangeForDay(value),blocked=!!range,checkin=bookingCheckinValue(),checkout=$('bookingCheckout').value;
   const isStart=value===checkin,isEnd=value===checkout,inRange=!!(checkin&&checkout&&value>checkin&&value<checkout);
-  const checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||value<today||(blocked&&!checkoutAllowed);
-  const state=blocked?'booked':pending?'pending':'available';
+  const past=value<today,checkoutAllowed=dayCanBeCheckout(value),disabled=bookingCalendarLoading||past||(blocked&&!checkoutAllowed);
+  const state=past?'past':blocked?'booked':pending?'pending':'available';
   const cls=['calendar-day',state,isStart||isEnd?'selected':'',inRange?'in-range':'',isStart?'range-start':'',isEnd?'range-end':''].filter(Boolean).join(' ');
-  let dayStyle=blocked?'background:#f3caca!important;background-color:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':pending?'background:#ffe6b8!important;background-color:#ffe6b8!important;background-image:none!important;color:#82520d!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':'background:#dff0e4!important;background-color:#dff0e4!important;background-image:none!important;color:#205f3b!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;';
-  // Mettre en évidence les dates choisies pour la demande, sans masquer l'état des disponibilités des autres jours.
-  if(isStart||isEnd)dayStyle+='background:#e6b85c!important;background-color:#e6b85c!important;color:#33250c!important;outline:3px solid #a87920!important;outline-offset:-3px;font-weight:900!important;';
-  else if(inRange)dayStyle+='background:#fff0bd!important;background-color:#fff0bd!important;color:#75551a!important;box-shadow:inset 0 0 0 2px #e6c979!important;';
-  html+='<button type="button" class="'+cls+'" style="'+dayStyle+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
+  let dayStyle=past?'background:#e5e7eb!important;background-color:#e5e7eb!important;background-image:none!important;color:#9ca3af!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;cursor:not-allowed!important;':blocked?'background:#f3caca!important;background-color:#f3caca!important;background-image:none!important;color:#8f2020!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':pending?'background:#ffe6b8!important;background-color:#ffe6b8!important;background-image:none!important;color:#82520d!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;':'background:#dff0e4!important;background-color:#dff0e4!important;background-image:none!important;color:#205f3b!important;text-decoration:none!important;-webkit-text-decoration:none!important;box-shadow:none!important;';
+  // Les dates passées restent grisées et non sélectionnables, même si elles apparaissent dans une période réservée.
+  if(!past&&(isStart||isEnd))dayStyle+='background:#e6b85c!important;background-color:#e6b85c!important;color:#33250c!important;outline:3px solid #a87920!important;outline-offset:-3px;font-weight:900!important;';
+  else if(!past&&inRange)dayStyle+='background:#fff0bd!important;background-color:#fff0bd!important;color:#75551a!important;box-shadow:inset 0 0 0 2px #e6c979!important;';
+  html+='<button type="button" class="'+cls+'" style="'+dayStyle+'" data-calendar-date="'+value+'" '+(disabled?'disabled':'')+' aria-label="'+value+(past?' date passée':blocked?' réservée':pending?' demande en attente, sélectionnable':' disponible')+'">'+day+'</button>';
  }
  $('bookingCalendarDays').innerHTML=html;
  $('bookingCalendarDays').querySelectorAll('[data-calendar-date]').forEach(btn=>btn.addEventListener('click',()=>selectBookingCalendarDate(btn.dataset.calendarDate)));
