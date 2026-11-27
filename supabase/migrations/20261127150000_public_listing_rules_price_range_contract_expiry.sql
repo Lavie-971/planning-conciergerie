@@ -53,7 +53,7 @@ where l.is_published = true
   and (
     nullif(a.data->>'contractEndDate','') is null
     or (
-      a.data->>'contractEndDate' ~ '^\\d{4}-\\d{2}-\\d{2}$'
+      a.data->>'contractEndDate' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
       and (a.data->>'contractEndDate')::date >= (now() at time zone 'America/Guadeloupe')::date
     )
   );
@@ -130,7 +130,7 @@ begin
   end if;
 
   if v_contract_end_raw is not null then
-    if v_contract_end_raw !~ '^\\d{4}-\\d{2}-\\d{2}$' then
+    if v_contract_end_raw !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
       raise exception 'La date de fin du contrat du logement est invalide';
     end if;
     v_contract_end := v_contract_end_raw::date;
