@@ -113,7 +113,9 @@
     sizeSel.value = opts.reduce((best, n) => Math.abs(n - px) < Math.abs(best - px) ? n : best, opts[0]) + 'px';
     const f = matchFont(cs.fontFamily); if (f) fontSel.value = f;
     const hx = toHex(cs.color); if (/^#[0-9a-f]{6}$/.test(hx)) col.value = hx;
-    ['bold', 'italic', 'underline', 'strikeThrough'].forEach(c => {
+    const al = cs.textAlign, alSel = bar.querySelector('[data-inline-align]');
+    if (alSel) alSel.value = al === 'center' ? 'Center' : (al === 'right' || al === 'end') ? 'Right' : 'Left';
+    ['bold', 'italic', 'underline'].forEach(c => {
       let on = false; try { on = document.queryCommandState(c); } catch (_) {}
       bar.querySelector('[data-inline-command="' + c + '"]')?.classList.toggle('on', !!on);
     });
@@ -206,49 +208,93 @@
     } catch (err) { status('Erreur : ' + (err.message || err)); }
   }
 
-  /* ---------- 5. Barre d'outils (toujours visible en mode édition) ---------- */
-  const ICON = w => '<svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">'
-    + { Left: '<path d="M1 2h14M1 5.5h9M1 9h14M1 12.5h9"/>', Center: '<path d="M1 2h14M4 5.5h8M1 9h14M4 12.5h8"/>', Right: '<path d="M1 2h14M6 5.5h9M1 9h14M6 12.5h9"/>' }[w] + '</svg>';
-  const BAR = '<strong>Édition du site</strong>'
-    + '<span class="grp"><em>Ajouter</em>'
-    + '<button type="button" data-add="text" title="Ajouter une zone de texte">＋ Texte</button>'
-    + '<button type="button" data-add="image" title="Ajouter une image">＋ Image</button>'
-    + '<button type="button" data-add="link" title="Ajouter un bouton-lien">＋ Lien</button>'
-    + '<button type="button" data-draw title="Dessiner la zone de votre choix sur la page">▭ Dessiner une zone</button></span>'
-    + '<span class="grp"><button type="button" data-inline-delete title="Supprimer le bloc sélectionné">Supprimer le bloc</button>'
-    + '<button type="button" data-inline-save class="save">Enregistrer</button>'
-    + '<button type="button" data-inline-exit title="Quitter l’édition">Quitter ✕</button></span>'
-    + '<span class="brk"></span>'
-    + '<span class="grp"><em>Texte</em>'
-    + '<button type="button" data-inline-command="bold" title="Gras"><b>G</b></button>'
+  /* ---------- 5. Interface simple : barre flottante près du bloc, menu « ＋ », pastille d'enregistrement ---------- */
+  const BAR = '<button type="button" data-inline-command="bold" title="Gras"><b>G</b></button>'
     + '<button type="button" data-inline-command="italic" title="Italique"><i>I</i></button>'
     + '<button type="button" data-inline-command="underline" title="Souligné"><u>S</u></button>'
-    + '<button type="button" data-inline-command="strikeThrough" title="Barré"><s>B</s></button></span>'
-    + '<label class="grp"><em>Taille</em><select data-inline-font-size title="Taille du texte">' + [12, 14, 16, 18, 20, 24, 28, 32, 40, 48].map(n => '<option value="' + n + 'px"' + (n === 16 ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>'
-    + '<label class="grp"><em>Police</em><select data-inline-font title="Police">' + FONTS.map(f => '<option>' + f + '</option>').join('') + '</select></label>'
-    + '<label class="grp"><em>Couleur</em><input type="color" data-inline-color title="Couleur du texte" value="#173f36"></label>'
-    + '<span class="grp"><em>Alignement</em>'
-    + '<button type="button" data-inline-align="Left" title="Aligner à gauche" aria-label="Aligner à gauche">' + ICON('Left') + '</button>'
-    + '<button type="button" data-inline-align="Center" title="Centrer" aria-label="Centrer">' + ICON('Center') + '</button>'
-    + '<button type="button" data-inline-align="Right" title="Aligner à droite" aria-label="Aligner à droite">' + ICON('Right') + '</button></span>'
-    + '<span class="grp"><button type="button" data-text-link title="Transformer le texte sélectionné en lien">🔗 Lien sur le texte</button>'
-    + '<button type="button" data-clear title="Effacer la mise en forme">Effacer la mise en forme</button></span>'
-    + '<span data-inline-status></span>';
+    + '<select data-inline-font-size title="Taille du texte">' + [12, 14, 16, 18, 20, 24, 28, 32, 40, 48].map(n => '<option value="' + n + 'px"' + (n === 16 ? ' selected' : '') + '>' + n + ' px</option>').join('') + '</select>'
+    + '<select data-inline-font title="Police">' + FONTS.map(f => '<option>' + f + '</option>').join('') + '</select>'
+    + '<label class="cit-color" title="Couleur du texte">Couleur <input type="color" data-inline-color value="#173f36"></label>'
+    + '<select data-inline-align title="Alignement du texte"><option value="Left">Aligné à gauche</option><option value="Center">Centré</option><option value="Right">Aligné à droite</option></select>'
+    + '<button type="button" data-text-link title="Transformer le texte sélectionné en lien">🔗 Lien</button>'
+    + '<span class="cit-sep"></span>'
+    + '<button type="button" data-inline-delete class="danger" title="Supprimer ce bloc">Supprimer</button>'
+    + '<button type="button" data-inline-save class="save">Enregistrer</button>'
+    + '<span data-inline-status hidden></span>';
+
+  const getBox = () => { const id = customInlineEditor.selectedId; return id ? document.querySelector('.custom-site-block-canvas[data-custom-canvas-id="' + CSS.escape(id) + '"]') : null; };
+  function positionBar(bar, box) {
+    const r = box.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight;
+    let top = r.top - bh - 38; if (top < 8) top = r.bottom + 12;
+    bar.style.top = clamp(top, 8, Math.max(8, innerHeight - bh - 8)) + 'px';
+    bar.style.left = clamp(r.left, 8, Math.max(8, innerWidth - bw - 8)) + 'px';
+  }
+  function refreshUI() {
+    const bar = document.getElementById('customInlineToolbar'); if (!bar) return;
+    const box = getBox();
+    bar.hidden = !box;
+    if (box) positionBar(bar, box);
+    const pill = document.getElementById('customSavePill');
+    if (pill) pill.hidden = !(customInlineEditor.dirty && !box);
+  }
+  let raf = 0;
+  const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(refreshUI); };
+  addEventListener('scroll', later, { passive: true });
+  addEventListener('resize', later);
+
+  function buildMenu() {
+    if (document.getElementById('customAddMenu')) return;
+    const m = document.createElement('div');
+    m.id = 'customAddMenu'; m.className = 'cit-menu'; m.hidden = true;
+    m.innerHTML = '<p>Ajouter à la page</p>'
+      + '<button type="button" data-add="text"><b>＋</b> Zone de texte</button>'
+      + '<button type="button" data-add="image"><b>🖼</b> Image</button>'
+      + '<button type="button" data-add="link"><b>🔗</b> Bouton-lien</button>'
+      + '<button type="button" data-draw><b>▭</b> Dessiner la zone de mon choix</button>'
+      + '<hr><button type="button" data-inline-exit>Quitter l’édition</button>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => {
+      e.stopPropagation();
+      const b = e.target.closest('button'); if (!b) return;
+      const d = b.dataset; m.hidden = true;
+      if (d.add) addBlock(d.add);
+      else if ('draw' in d) { const p = document.getElementById('customInsertPencil'); if (p) { p.dataset.pass = '1'; p.click(); delete p.dataset.pass; } }
+      else if ('inlineExit' in d) customInlineExit();
+    });
+  }
+  function buildPill() {
+    if (document.getElementById('customSavePill')) return;
+    const el = document.createElement('div');
+    el.id = 'customSavePill'; el.className = 'cit-pill'; el.hidden = true;
+    el.innerHTML = '<span>Modifications non enregistrées</span><button type="button">Enregistrer</button>';
+    el.addEventListener('click', e => { e.stopPropagation(); if (e.target.closest('button')) customInlineSave(); });
+    document.body.appendChild(el);
+  }
+  function buildToast(bar) {
+    if (document.getElementById('customToast')) return;
+    const t = document.createElement('div'); t.id = 'customToast'; t.className = 'cit-toast'; t.hidden = true;
+    document.body.appendChild(t);
+    const src = bar.querySelector('[data-inline-status]'); let timer;
+    new MutationObserver(() => {
+      const txt = src.textContent.trim();
+      if (!txt || /^Modifications non enregistrées/.test(txt)) return;
+      t.textContent = txt; t.hidden = false; clearTimeout(timer);
+      timer = setTimeout(() => { t.hidden = true; }, /^Erreur|invalide/i.test(txt) ? 6000 : 2800);
+    }).observe(src, { childList: true, characterData: true, subtree: true });
+  }
 
   window.customInlineToolbar = function () {
     let bar = document.getElementById('customInlineToolbar');
     if (bar) return bar;
     bar = document.createElement('div');
-    bar.id = 'customInlineToolbar'; bar.className = 'custom-inline-toolbar'; bar.innerHTML = BAR;
+    bar.id = 'customInlineToolbar'; bar.className = 'cit-bar'; bar.innerHTML = BAR; bar.hidden = true;
     document.body.appendChild(bar);
+    buildMenu(); buildPill(); buildToast(bar);
     bar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
     bar.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       const d = b.dataset;
-      if (d.add) { addBlock(d.add); return; }
-      if ('draw' in d) { document.getElementById('customInsertPencil')?.click(); return; }
-      if (d.inlineCommand) { fmt(() => { ex('styleWithCSS', false); ex(d.inlineCommand); }); return; }
-      if (d.inlineAlign) { fmt(() => { ex('styleWithCSS', true); ex('justify' + d.inlineAlign); }, true); return; }
+      if (d.inlineCommand) { fmt(() => { ex('styleWithCSS', false); ex(d.inlineCommand); }); syncBar(); return; }
       if ('textLink' in d) {
         let u = (prompt('Adresse du lien (https://…, mailto:, tel:)') || '').trim(); if (!u) return;
         if (/^www\./i.test(u)) u = 'https://' + u;
@@ -256,30 +302,57 @@
         fmt(() => { if (getSelection().isCollapsed) ex('insertHTML', '<a href="' + escA(u) + '">' + escT(u) + '</a>'); else ex('createLink', u); });
         return;
       }
-      if ('clear' in d) { fmt(() => ex('removeFormat'), true); return; }
       if ('inlineDelete' in d) { customInlineDeleteSelected(); return; }
-      if ('inlineSave' in d) { customInlineSave(); return; }
-      if ('inlineExit' in d) customInlineExit();
+      if ('inlineSave' in d) customInlineSave();
     });
     bar.addEventListener('change', e => {
-      if (e.target.matches('[data-inline-font-size]')) applySize(e.target.value);
-      else if (e.target.matches('[data-inline-font]')) { const v = e.target.value; fmt(() => { ex('styleWithCSS', true); ex('fontName', v); }, true); }
-      else if (e.target.matches('[data-inline-color]')) { const v = e.target.value; fmt(() => { ex('styleWithCSS', true); ex('foreColor', v); }, true); }
+      const v = e.target.value;
+      if (e.target.matches('[data-inline-font-size]')) applySize(v);
+      else if (e.target.matches('[data-inline-font]')) fmt(() => { ex('styleWithCSS', true); ex('fontName', v); }, true);
+      else if (e.target.matches('[data-inline-color]')) fmt(() => { ex('styleWithCSS', true); ex('foreColor', v); }, true);
+      else if (e.target.matches('[data-inline-align]')) fmt(() => { ex('styleWithCSS', true); ex('justify' + v); }, true);
     });
     return bar;
   };
+
   window.customInlineUpdateSelectionUI = function () {
-    const bar = document.getElementById('customInlineToolbar'); if (bar) bar.hidden = false;
     document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box => {
       const id = box.dataset.customCanvasId || box.dataset.customBlockId;
       box.classList.toggle('custom-block-selected', !!customInlineEditor.selectedId && id === customInlineEditor.selectedId);
     });
+    const a = document.activeElement;
+    if (!customInlineEditor.selectedId && a && a.closest && a.closest('[data-custom-text]')) a.blur();
+    refreshUI();
   };
-  // Le crayon « ＋ » ouvre d'abord l'éditeur (barre d'outils), puis dessine un rectangle comme avant.
+  const baseDirty = window.customInlineMarkDirty;
+  window.customInlineMarkDirty = function () { const r = baseDirty.apply(this, arguments); refreshUI(); return r; };
+
+  // Le « ＋ » en bas à gauche : entre en édition, puis ouvre / ferme le menu d'ajout.
   document.addEventListener('click', e => {
-    if (!e.target.closest || !e.target.closest('#customInsertPencil') || document.body.classList.contains('custom-inline-editing')) return;
-    e.stopImmediatePropagation(); e.preventDefault(); openCustomBlocksManager();
+    const p = e.target.closest && e.target.closest('#customInsertPencil');
+    if (!p || p.dataset.pass) return;
+    const editing = document.body.classList.contains('custom-inline-editing');
+    if (editing && customCanvasSelecting) return; // un clic de plus annule le dessin en cours
+    e.stopImmediatePropagation(); e.preventDefault();
+    if (!editing) openCustomBlocksManager();
+    const m = document.getElementById('customAddMenu');
+    if (m) m.hidden = editing ? !m.hidden : false;
   }, true);
+  document.addEventListener('click', e => {
+    const m = document.getElementById('customAddMenu');
+    if (m && !m.hidden && !m.contains(e.target)) m.hidden = true;
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !document.body.classList.contains('custom-inline-editing') || customCanvasSelecting) return;
+    const m = document.getElementById('customAddMenu'); if (m) m.hidden = true;
+    customInlineEditor.selectedId = null; customInlineUpdateSelectionUI();
+  });
+  const baseExit = window.customInlineExit;
+  window.customInlineExit = function () {
+    const r = baseExit.apply(this, arguments);
+    if (!document.body.classList.contains('custom-inline-editing')) ['customAddMenu', 'customSavePill', 'customToast'].forEach(id => document.getElementById(id)?.remove());
+    return r;
+  };
 
   /* ---------- 6. Poignées : déplacer partout (✥) et supprimer (✕) ---------- */
   function dropBlock(b, fr) {
@@ -348,21 +421,38 @@
   };
 
   const css = document.createElement('style');
-  css.textContent = '.custom-drag-handle,.custom-delete-handle{position:absolute;top:-28px;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}'
-    + '.custom-drag-handle{left:-1px;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 0}'
-    + '.custom-delete-handle{right:-1px;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 0 0}'
-    + 'body.custom-inline-editing .custom-site-block-canvas:hover>.custom-drag-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-delete-handle,'
-    + 'body.custom-inline-editing .custom-block-selected>.custom-drag-handle,body.custom-inline-editing .custom-block-selected>.custom-delete-handle{display:flex}'
-    + '.custom-site-block-canvas.handles-in>.custom-drag-handle,.custom-site-block-canvas.handles-in>.custom-delete-handle{top:0}'
-    + '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}'
-    + '#publicApp .custom-site-block.custom-site-block-canvas{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important;outline:none!important}'
-    + 'body.custom-inline-editing #publicApp .custom-site-block-canvas:hover{outline:1px dashed #d5a64c!important}'
-    + 'body.custom-inline-editing #publicApp .custom-site-block-canvas.custom-block-selected{outline:2px solid #d5a64c!important;background:#fffefa66!important}'
-    + 'body:not(.custom-inline-editing) .custom-block-editable-text:before{content:none!important}'
-    + '.custom-inline-toolbar .grp{display:flex;align-items:center;gap:4px;padding:0 6px;border-left:1px solid #ffffff33}'
-    + '.custom-inline-toolbar .grp em{font-style:normal;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#cfe3d9;margin-right:2px}'
-    + '.custom-inline-toolbar .brk{flex-basis:100%;height:0}'
-    + '.custom-inline-toolbar button.on{background:#d7b36d;font-weight:700}'
-    + '.custom-inline-toolbar button svg{display:block}';
+  css.textContent = [
+    '.custom-drag-handle,.custom-delete-handle{position:absolute;top:-30px;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}',
+    '.custom-drag-handle{left:0;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 8px}',
+    '.custom-delete-handle{right:0;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 8px 0}',
+    'body.custom-inline-editing .custom-site-block-canvas:hover>.custom-drag-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-delete-handle,body.custom-inline-editing .custom-block-selected>.custom-drag-handle,body.custom-inline-editing .custom-block-selected>.custom-delete-handle{display:flex}',
+    '.custom-site-block-canvas.handles-in>.custom-drag-handle,.custom-site-block-canvas.handles-in>.custom-delete-handle{top:0}',
+    '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}',
+    /* aucun cadre autour des blocs ; seul le survol / la sélection en montre un, comme les autres éléments modifiables */
+    '#publicApp .custom-site-block.custom-site-block-canvas{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important;outline:none!important}',
+    'body.private-preview-editing #publicApp .custom-site-block-canvas:hover,body.private-preview-editing #publicApp [data-custom-block-id]:hover,body.custom-inline-editing #publicApp .custom-site-block-canvas:hover{outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px}',
+    'body.custom-inline-editing #publicApp .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing #publicApp [data-custom-block-id].custom-block-selected{outline:3px solid #2878b8!important;outline-offset:6px!important;border-radius:5px;background:transparent!important}',
+    'body:not(.custom-inline-editing) .custom-block-editable-text:before{content:none!important}',
+    /* barre flottante */
+    '.cit-bar{position:fixed;z-index:30000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100vw - 16px);padding:8px 10px;background:#fff;color:#173f36;border:1px solid #dbe4dc;border-radius:12px;box-shadow:0 10px 30px #173f3633;font:13px Arial,sans-serif}',
+    '.cit-bar[hidden],.cit-menu[hidden],.cit-pill[hidden],.cit-toast[hidden]{display:none!important}',
+    '.cit-bar button,.cit-bar select,.cit-bar label{font:inherit;color:#173f36}',
+    '.cit-bar button{min-width:34px;height:34px;padding:0 10px;border:1px solid #dbe4dc;border-radius:8px;background:#f4f7f3;cursor:pointer}',
+    '.cit-bar button:hover{background:#e6efe6}.cit-bar button.on{background:#ecd9a8;border-color:#c49b55}',
+    '.cit-bar button.save{background:#1e5a49;border-color:#1e5a49;color:#fff;font-weight:700}.cit-bar button.danger{color:#a33}',
+    '.cit-bar select{height:34px;border:1px solid #dbe4dc;border-radius:8px;background:#fff;padding:0 6px;cursor:pointer}',
+    '.cit-bar .cit-color{display:flex;align-items:center;gap:6px;height:34px;padding:0 8px;border:1px solid #dbe4dc;border-radius:8px;background:#f4f7f3;cursor:pointer}',
+    '.cit-bar .cit-color input{width:24px;height:24px;padding:0;border:0;background:none;cursor:pointer}',
+    '.cit-bar .cit-sep{flex:1;min-width:4px}',
+    /* menu « ＋ » */
+    '.cit-menu{position:fixed;left:18px;bottom:82px;z-index:30000;display:flex;flex-direction:column;gap:2px;min-width:250px;padding:10px;background:#fff;border:1px solid #dbe4dc;border-radius:14px;box-shadow:0 12px 34px #173f3633;font:14px Arial,sans-serif}',
+    '.cit-menu p{margin:2px 8px 6px;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#6b8076}',
+    '.cit-menu button{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#173f36;font:inherit;text-align:left;cursor:pointer}',
+    '.cit-menu button b{width:20px;text-align:center}.cit-menu button:hover{background:#eef4ee}.cit-menu hr{border:0;border-top:1px solid #e5ece5;margin:4px 0}',
+    /* pastille d'enregistrement + message */
+    '.cit-pill{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:30000;display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;background:#173f36;color:#fff;border-radius:999px;box-shadow:0 8px 26px #0004;font:13px Arial,sans-serif;white-space:nowrap}',
+    '.cit-pill button{height:32px;padding:0 14px;border:0;border-radius:999px;background:#d7b36d;color:#173f36;font:700 13px Arial,sans-serif;cursor:pointer}',
+    '.cit-toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);z-index:30001;max-width:calc(100vw - 24px);padding:9px 16px;background:#173f36;color:#fff;border-radius:999px;font:13px Arial,sans-serif;box-shadow:0 8px 24px #0004}'
+  ].join('\n');
   document.head.appendChild(css);
 })();
