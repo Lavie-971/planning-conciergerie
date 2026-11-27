@@ -1705,7 +1705,7 @@ $('bookingForm').addEventListener('submit',async e=>{
    message:$('bookingMessage').value,website:$('bookingWebsite').value
   });
   if(!result||result.ok!==true)throw new Error(result?.error||'La demande n’a pas été enregistrée. Merci de réessayer.');
-  $('bookingResult').textContent='Votre demande a bien été transmise. Elle reste en attente de validation par le gérant.';
+  $('bookingResult').textContent='Votre demande a bien été reçue et elle est actuellement en cours de traitement. Le propriétaire vérifie les disponibilités et les modalités du séjour. Il reviendra vers vous dès que possible.';
   $('bookingForm').querySelectorAll('input,textarea,button').forEach(el=>{if(el.id!=='closeBookingModal')el.disabled=true;});
  }catch(err){$('bookingResult').textContent=err.message;$('bookingSubmit').disabled=false;}
 });
