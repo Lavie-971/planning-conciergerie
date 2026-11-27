@@ -1118,6 +1118,7 @@ async function renderManager(profile){
   (rows.length?rows.map(x=>'<label class="checkline property-choice"><input type="checkbox" data-publish-toggle="'+esc(x.id)+'" '+(x.is_published?'checked':'')+'> <span><strong>'+esc(x.title||'Logement sans nom')+'</strong><small>'+esc(x.location||'Commune à préciser')+' · '+esc(x.property_type||'Type non précisé')+'</small></span><em class="status">'+(x.is_published?'Visible sur le site':'Non affiché')+'</em></label>').join(''):'<p>Aucun logement disponible dans votre compte Planning Conciergerie.</p>')+
   '</div></div>'+
   '<section class="admin-card" id="customBlocksManager"><h3>Rubriques supplémentaires du site</h3><p>Ajoutez des zones avec titre, texte, image et lien. Vous pourrez les déplacer, les modifier ou les supprimer.</p><div data-custom-block-list></div><div class="admin-actions"><button class="btn" type="button" data-custom-block-add>＋ Ajouter une rubrique</button><button class="btn" type="button" data-custom-block-save>Enregistrer les rubriques</button><span class="status" data-custom-block-status aria-live="polite"></span></div></section>'+
+  '';
   decorateManagerWorkspace(profile);
   setupImageEditors();
   setupCustomBlocksManager();
