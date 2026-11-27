@@ -73,7 +73,8 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #publicApp .empty h3{font:500 25px "Playfair Display",serif;color:var(--forest);margin:12px 0 7px}
 #publicApp .empty p{color:var(--muted);font-size:13px;max-width:460px;margin:auto;line-height:1.7}
 #publicApp .custom-site-blocks:empty{display:none}
-#publicApp .custom-site-blocks{padding:42px 0}
+#publicApp .custom-site-blocks-editor-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 auto 22px;padding:12px 15px;border:1px dashed #b9c9b9;border-radius:10px;background:#f7faf6;color:#486052;font:12px Arial,sans-serif}.custom-site-blocks-editor-bar button{border:1px solid #c9d8c8;border-radius:7px;background:#fff;color:#24543d;padding:9px 12px;font:700 12px Arial,sans-serif;cursor:pointer}.custom-site-blocks-editor-bar button:hover{background:#edf5ed}
+.custom-site-blocks{padding:42px 0}
 #publicApp .custom-site-block{width:min(1120px,calc(100% - 48px));margin:0 auto 28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;align-items:center;background:#fff;border:1px solid #eceae3;box-shadow:0 5px 22px rgba(30,60,45,.045);padding:26px}
 #publicApp .custom-site-block:nth-child(even) .custom-site-block-image{order:2}
 #publicApp .custom-site-block-image{width:100%;max-height:430px;object-fit:cover;border-radius:4px;display:block}
@@ -944,7 +945,7 @@ function suggestListingText(item){
  ];
 }
 function enablePrivatePreviewEditing(site,rows){
- activePreviewSite=site;
+ activePreviewSite=site;currentSite=site;
  const banner=$('previewBanner');if(banner)banner.remove();
  const oldButton=$('previewSiteEditorButton');if(oldButton)oldButton.remove();
  enablePreviewPhotoEditing(site);
@@ -1049,7 +1050,9 @@ function safeCustomBlockUrl(raw){
 function renderCustomSiteBlocks(site){
  const host=$('customSiteBlocks');if(!host)return;
  const blocks=Array.isArray(site?.site_texts?.custom_blocks)?site.site_texts.custom_blocks:[];
- host.innerHTML=blocks.map(block=>{
+ const preview=new URLSearchParams(location.search).get('preview')==='1';
+ const toolbar=preview?'<div class="custom-site-blocks-editor-bar"><span>Personnalisez cette partie de votre site</span><button type="button" data-open-custom-block-editor>＋ Ajouter / modifier les rubriques</button></div>':'';
+ const rendered=blocks.map(block=>{
   const title=String(block.title||'').trim(),body=String(block.text||'').trim(),image=siteImageUrl(block.image_url||''),href=safeCustomBlockUrl(block.link_url||'');
   if(!title&&!body&&!image&&!href)return '';
   const imageHtml=image?'<img class="custom-site-block-image" src="'+esc(image)+'" alt="'+esc(title||'Illustration')+'" loading="lazy">':'';
@@ -1058,6 +1061,12 @@ function renderCustomSiteBlocks(site){
   const layoutClass=!image?'custom-site-block-text-only':(!copy?'custom-site-block-image-only':'');
   return '<article class="custom-site-block '+layoutClass+'">'+imageHtml+copy+'</article>';
  }).join('');
+ host.innerHTML=toolbar+rendered;
+ host.querySelector('[data-open-custom-block-editor]')?.addEventListener('click',openCustomBlocksPreviewEditor);
+}
+function openCustomBlocksPreviewEditor(){
+ previewModal('<h2>Rubriques supplémentaires du site</h2><p>Ajoutez des zones de contenu directement depuis votre aperçu privé. Chaque rubrique peut contenir un titre, du texte, une image et un lien. Vous pouvez les réorganiser et les supprimer.</p><section class="admin-card" id="customBlocksManager"><div data-custom-block-list></div><div class="admin-actions"><button class="btn" type="button" data-custom-block-add>＋ Ajouter une rubrique</button><button class="btn" type="button" data-custom-block-save>Enregistrer les rubriques</button><span class="status" data-custom-block-status aria-live="polite"></span></div></section>');
+ setupCustomBlocksManager();
 }
 function setupCustomBlocksManager(){
  const host=$('customBlocksManager');if(!host||host.dataset.ready==='1')return;host.dataset.ready='1';
@@ -1092,7 +1101,7 @@ function setupCustomBlocksManager(){
    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
    const saved=await api('public_owner_sites?select=site_texts&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(currentSite.site_slug));
    if(!saved[0]||JSON.stringify(saved[0].site_texts?.custom_blocks||[])!==JSON.stringify(cleaned))throw new Error('L’enregistrement n’a pas pu être confirmé.');
-   currentSite.site_texts=saved[0].site_texts;blocks=cleaned;render();status.textContent='Rubriques enregistrées ✓';
+   currentSite.site_texts=saved[0].site_texts;if(activePreviewSite)activePreviewSite.site_texts=saved[0].site_texts;blocks=cleaned;render();renderCustomSiteBlocks(currentSite);status.textContent='Rubriques enregistrées ✓';
   }catch(err){status.textContent='Erreur : '+err.message;}
  });
 }
@@ -1132,11 +1141,9 @@ async function renderManager(profile){
   '<div class="admin-card"><h3>Choisir les logements à afficher</h3><p>Cochez uniquement les logements de votre Planning Conciergerie que vous souhaitez présenter aux voyageurs. Vous pouvez modifier cette sélection à tout moment.</p><div class="property-selection">'+
   (rows.length?rows.map(x=>'<label class="checkline property-choice"><input type="checkbox" data-publish-toggle="'+esc(x.id)+'" '+(x.is_published?'checked':'')+'> <span><strong>'+esc(x.title||'Logement sans nom')+'</strong><small>'+esc(x.location||'Commune à préciser')+' · '+esc(x.property_type||'Type non précisé')+'</small></span><em class="status">'+(x.is_published?'Visible sur le site':'Non affiché')+'</em></label>').join(''):'<p>Aucun logement disponible dans votre compte Planning Conciergerie.</p>')+
   '</div></div>'+
-  '<section class="admin-card" id="customBlocksManager"><h3>Rubriques supplémentaires du site</h3><p>Ajoutez des zones avec titre, texte, image et lien. Vous pourrez les déplacer, les modifier ou les supprimer.</p><div data-custom-block-list></div><div class="admin-actions"><button class="btn" type="button" data-custom-block-add>＋ Ajouter une rubrique</button><button class="btn" type="button" data-custom-block-save>Enregistrer les rubriques</button><span class="status" data-custom-block-status aria-live="polite"></span></div></section>'+
-  '';
+    '';
   decorateManagerWorkspace(profile);
   setupImageEditors();
-  setupCustomBlocksManager();
   $('logoutBtn').addEventListener('click',()=>{session=null;currentUser=null;currentSite=null;currentProfile=null;localStorage.removeItem(PLANNING_SESSION_KEY);renderLogin()});
   $('previewSiteBtn').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!session?.access_token||!currentUser?.id){renderLogin();return;}const button=$('previewSiteBtn');button.disabled=true;try{const sites=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id));if(!sites.length)throw new Error('Aucun site propriétaire trouvé.');currentSite=sites[0];const u=new URL(location.href);u.hash='';u.searchParams.delete('espace');u.searchParams.set('site',currentSite.site_slug||'vacances-en-guadeloupe');u.searchParams.set('preview','1');history.pushState({view:'private-preview'},'',u.pathname+u.search);document.documentElement.classList.remove('owner-entry');document.documentElement.classList.remove('owner-workspace-ready');$('adminApp').style.display='none';$('publicApp').style.display='block';await loadPublic();}catch(err){button.disabled=false;const note=document.createElement('p');note.className='admin-note';note.textContent='Impossible d’ouvrir l’aperçu : '+err.message;button.insertAdjacentElement('afterend',note);}});
   $('siteForm').addEventListener('submit',saveSite);
