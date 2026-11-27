@@ -246,6 +246,14 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #adminApp .image-preview{position:relative;width:104px;height:82px;border-radius:9px;overflow:hidden;background:#edf1ec;border:1px solid #e0e8df}
 #adminApp .image-preview img{width:100%;height:100%;object-fit:cover}
 #adminApp .image-preview button{position:absolute;right:5px;top:5px;border:0;border-radius:50%;width:23px;height:23px;background:#fff;color:#8e2e2e;font-size:17px;line-height:1;cursor:pointer;box-shadow:0 1px 5px #0002}
+#adminApp .image-preview{width:142px;height:auto;min-height:145px;display:flex;flex-direction:column;overflow:visible;padding:0 0 7px}
+#adminApp .image-preview img{height:92px;border-radius:8px 8px 0 0}
+#adminApp .image-preview .photo-tools{display:flex;flex-wrap:wrap;gap:4px;padding:5px;justify-content:center}
+#adminApp .image-preview .photo-tools button{position:static;width:auto;height:auto;border-radius:6px;padding:5px 7px;font-size:10px;line-height:1.2;box-shadow:none;background:#edf4ee;color:#28543e}
+#adminApp .image-preview .photo-tools button[data-remove-image]{background:#f8eaea;color:#8e2e2e}
+#adminApp .image-preview .photo-cover{font-size:10px;font-weight:700;color:#245b49;text-align:center;padding:3px}
+#adminApp .image-preview .photo-tools button:disabled{opacity:.45;cursor:wait}
+
 
 @media(max-width:600px){
  #adminApp .manager-workspace{width:calc(100% - 24px)}
@@ -929,6 +937,17 @@ function imagePickerMarkup(name,label,value,multiple){
   '<div class="image-dropzone" tabindex="0" data-image-dropzone><strong>＋ '+(multiple?'Ajouter plusieurs photos':'Ajouter une photo')+'</strong><span>'+(multiple?'Sélectionnez plusieurs fichiers en une fois, collez plusieurs images avec Ctrl + V ou glissez-déposez vos photos.':'Collez une image avec Ctrl + V, glissez-déposez-la ou choisissez un fichier.')+'</span><button type="button" class="image-choose" data-image-choose>'+(multiple?'Choisir des photos':'Choisir une photo')+'</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" '+(multiple?'multiple':'')+' hidden data-image-files></div>'+
   '<div class="image-preview-list" data-image-preview-list></div><small>'+(multiple?'Vous pouvez ajouter les photos en plusieurs fois.':'')+' Formats JPG, PNG, WEBP ou GIF · 8 Mo maximum par image.</small></div></div>';
 }
+async function gentlyEnhanceSiteImage(ref){
+ const url=siteImageUrl(ref);if(!url)throw new Error('Photo non accessible.');
+ const img=new Image();img.crossOrigin='anonymous';
+ await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Impossible de lire cette photo.'));img.src=url;});
+ const scale=Math.min(1,2400/Math.max(img.naturalWidth,img.naturalHeight)),canvas=document.createElement('canvas');
+ canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+ const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Retouche non disponible.');
+ ctx.filter='brightness(1.045) contrast(1.035) saturate(1.045)';ctx.drawImage(img,0,0,canvas.width,canvas.height);ctx.filter='none';
+ const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.93));if(!blob)throw new Error('Export impossible.');
+ return new File([blob],'photo-amelioree.jpg',{type:'image/jpeg'});
+}
 async function uploadSiteImage(file){
  if(!file||!file.type?.startsWith('image/'))throw new Error('Choisissez un fichier image.');
  if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))throw new Error('Format accepté : JPG, PNG, WEBP ou GIF.');
@@ -948,7 +967,12 @@ function setupImageEditors(){
   if(editor.dataset.ready==='1')return;editor.dataset.ready='1';
   const field=editor.querySelector('[name]'),zone=editor.querySelector('[data-image-dropzone]'),picker=editor.querySelector('[data-image-files]'),choose=editor.querySelector('[data-image-choose]'),previews=editor.querySelector('[data-image-preview-list]');
   const values=()=>editor.dataset.multiple==='true'?field.value.split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
-  const render=()=>{previews.innerHTML=values().map(url=>'<div class="image-preview"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><button type="button" title="Retirer cette image" aria-label="Retirer cette image" data-remove-image="'+esc(url)+'">×</button></div>').join('');previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{const next=values().filter(x=>x!==btn.dataset.removeImage);field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');render();}));};
+  const setValues=next=>{field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');field.dispatchEvent(new Event('input',{bubbles:true}));};
+  const render=()=>{const list=values();previews.innerHTML=list.map((url,i)=>'<div class="image-preview"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><div class="photo-cover">'+(i===0?'★ Photo principale':'Photo '+(i+1))+'</div><div class="photo-tools"><button type="button" data-move-photo="-1" data-photo-index="'+i+'" '+(i===0?'disabled':'')+'>←</button><button type="button" data-move-photo="1" data-photo-index="'+i+'" '+(i===list.length-1?'disabled':'')+'>→</button><button type="button" data-enhance-photo="'+i+'">☀ Embellir</button><button type="button" data-remove-image="'+esc(url)+'">Retirer</button></div></div>').join('');
+   previews.querySelectorAll('[data-move-photo]').forEach(btn=>btn.addEventListener('click',()=>{const next=values(),i=Number(btn.dataset.photoIndex),j=i+Number(btn.dataset.movePhoto);if(j<0||j>=next.length)return;[next[i],next[j]]=[next[j],next[i]];setValues(next);render();}));
+   previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{setValues(values().filter(x=>x!==btn.dataset.removeImage));render();}));
+   previews.querySelectorAll('[data-enhance-photo]').forEach(btn=>btn.addEventListener('click',async()=>{const i=Number(btn.dataset.enhancePhoto),next=values();btn.disabled=true;btn.textContent='Traitement…';try{const file=await gentlyEnhanceSiteImage(next[i]),replacement=await uploadSiteImage(file);next[i]=replacement;setValues(next);render();}catch(err){btn.disabled=false;btn.textContent='Réessayer';zone.querySelector('span').textContent='Amélioration impossible : '+err.message;}}));
+  };
   const addFiles=async files=>{const list=[...files].filter(f=>f.type?.startsWith('image/'));if(!list.length)return;zone.classList.add('uploading');zone.querySelector('span').textContent='Envoi des photos…';choose.disabled=true;
    try{const urls=[];for(const file of list)urls.push(await uploadSiteImage(file));const next=editor.dataset.multiple==='true'?[...values(),...urls]:[urls[0]];field.value=editor.dataset.multiple==='true'?next.join('\n'):next[0];render();zone.querySelector('span').textContent='Photo ajoutée. Vous pouvez en ajouter d’autres.';}
    catch(err){zone.querySelector('span').textContent=err.message;}
