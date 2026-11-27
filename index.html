@@ -2065,24 +2065,26 @@ async function sbAfterLogin(){
     if(accessScreen) accessScreen.remove();
     accountRole=profile.role;
     ownerSiteSlug=null;ownerSiteEnabled=false;ownerSiteReviewStatus=null;ownerSiteReviewNote='';
+    // Lecture du site propriétaire lancée tout de suite, sans bloquer le chargement des données (voir Promise.all plus bas).
+    let ownerSitePromise=Promise.resolve();
     if(profile.role==='user'||profile.role==='admin'){
-      try{
-        const ownerSites=await sbRest('GET','public_owner_sites?select=site_slug,site_enabled,site_review_status,site_review_note&user_id=eq.'+encodeURIComponent(userId)+'&limit=1');
-        if(ownerSites&&ownerSites[0]){
-          ownerSiteSlug=String(ownerSites[0].site_slug||'');
-          ownerSiteEnabled=ownerSites[0].site_enabled===true;ownerSiteReviewStatus=ownerSites[0].site_review_status||null;ownerSiteReviewNote=ownerSites[0].site_review_note||'';
-        }
-      }catch(siteError){console.warn('Chargement du site propriétaire indisponible',siteError);}
+      ownerSitePromise=sbRest('GET','public_owner_sites?select=site_slug,site_enabled,site_review_status,site_review_note&user_id=eq.'+encodeURIComponent(userId)+'&limit=1')
+        .then(ownerSites=>{
+          if(ownerSites&&ownerSites[0]){
+            ownerSiteSlug=String(ownerSites[0].site_slug||'');
+            ownerSiteEnabled=ownerSites[0].site_enabled===true;ownerSiteReviewStatus=ownerSites[0].site_review_status||null;ownerSiteReviewNote=ownerSites[0].site_review_note||'';
+          }
+        })
+        .catch(siteError=>{console.warn('Chargement du site propriétaire indisponible',siteError);});
     }
     if(profile.role==='admin') addAdminUsersButton();
     else { const adminButton=document.getElementById('adminUsersFloatingButton'); if(adminButton) adminButton.remove(); }
     updateOwnerSiteActions();
-    setAccountGateStage('Chargement des logements et réservations…');
-    await loadData();
-    setAccountGateStage('Chargement des préférences de l’agenda…');
-    await loadAgendaColors();
-    setAccountGateStage('Synchronisation de l’agenda…');
-    await syncAgendaPending();
+    setAccountGateStage('Chargement des logements, réservations et de l’agenda…');
+    // Ces chargements sont indépendants les uns des autres (l'agenda ne lit ni les logements ni les
+    // réservations) : ils partent ensemble. Avant : 4 étapes réseau l'une après l'autre.
+    await Promise.all([ownerSitePromise,loadData(),loadAgendaColors(),syncAgendaPending()]);
+    updateOwnerSiteActions();
     setAccountGateStage('Finalisation de l’affichage…');
     renderAll();
     setAppAccessVisible(true);
@@ -2512,6 +2514,23 @@ function disableSync(){
 
 /* ---------------- actualisation automatique ---------------- */
 let autoRefreshTimer = null;
+// Actualisation automatique : toutes les AUTO_REFRESH_MS, UNE requête minuscule (rpc/sync_signature)
+// compare l'empreinte des réservations + logements. Les tables ne sont retéléchargées que si elle
+// a changé (ou au plus tard toutes les FULL_RELOAD_MAX_AGE_MS par sécurité).
+// Avant : 2 téléchargements complets (réservations + logements) toutes les 30 s, même sans changement.
+const AUTO_REFRESH_MS = 60000;
+const FULL_RELOAD_MAX_AGE_MS = 10 * 60 * 1000;
+let _lastRemoteSignature = null;
+let _lastFullLoadAt = 0;
+let _lastVisibilityRefreshAt = 0;
+async function sbRemoteSignature(){
+  try{
+    const sig = await sbRest('POST','rpc/sync_signature',{});
+    return (typeof sig === 'string' && sig) ? sig : null;
+  }catch(e){
+    return null; // sonde indisponible : on retombe sur le rechargement complet
+  }
+}
 let _lastCalendarUserScrollAt = 0;
 let _userHasScrolledPlanning = false;
 function noteCalendarUserScroll(){
@@ -2576,7 +2595,10 @@ async function silentRefresh(){
     // Ne jamais reconstruire le planning pendant que l'utilisateur le parcourt.
     // Le rafraîchissement reprend après 30 secondes sans défilement.
     if(_userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
-    await loadData();
+    const signature = await sbRemoteSignature();
+    if(signature && signature === _lastRemoteSignature && Date.now() - _lastFullLoadAt < FULL_RELOAD_MAX_AGE_MS) return;
+    const loaded = await loadData();
+    if(loaded !== false && signature){ _lastRemoteSignature = signature; _lastFullLoadAt = Date.now(); }
     // Après le premier défilement manuel, les données peuvent se synchroniser en arrière-plan,
     // mais le planning visible ne doit plus être reconstruit pendant cette session.
     if(document.visibilityState==='hidden' || _userHasScrolledPlanning || Date.now() - _lastCalendarUserScrollAt < 30000) return;
@@ -2588,17 +2610,22 @@ async function silentRefresh(){
 function startAutoRefresh(){
   stopAutoRefresh();
   if(!syncUrl || !sbHasSession() || !activeUserId) return;
-  autoRefreshTimer = setInterval(silentRefresh, 30000);
+  _lastRemoteSignature = null;
+  autoRefreshTimer = setInterval(silentRefresh, AUTO_REFRESH_MS);
   document.addEventListener('visibilitychange', onVisibilityRefresh);
   window.addEventListener('focus', onVisibilityRefresh);
 }
 function stopAutoRefresh(){
   if(autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  _lastRemoteSignature = null;
   document.removeEventListener('visibilitychange', onVisibilityRefresh);
   window.removeEventListener('focus', onVisibilityRefresh);
 }
 function onVisibilityRefresh(){
   if(document.visibilityState === undefined || document.visibilityState === 'visible'){
+    const now = Date.now();
+    if(now - _lastVisibilityRefreshAt < 10000) return; // « focus » et « visibilitychange » arrivent presque ensemble
+    _lastVisibilityRefreshAt = now;
     silentRefresh();
   }
 }
@@ -2758,16 +2785,24 @@ function startSiteBookingRequestNotifications(){
  stopSiteBookingRequestNotifications();
  if(!accountApproved||!activeUserId||!ownerSiteSlug||(accountRole!=='user'&&accountRole!=='admin'))return;
  let polling=false;
+ let pollCount=0;
  const poll=async()=>{
   if(polling||document.visibilityState==='hidden')return;
   polling=true;
-  try{await refreshOwnerSiteReviewState();if(ownerSiteCreationAccepted())await refreshSiteBookingRequests();}
+  try{
+   // Une fois le site validé et publié, son statut change très rarement : il n'est relu que
+   // toutes les 5 vérifications (avant : une lecture de public_owner_sites à chaque minute).
+   const settled=ownerSiteReviewStatus==='approved'&&ownerSiteEnabled===true;
+   if(!settled||pollCount%5===0)await refreshOwnerSiteReviewState();
+   pollCount++;
+   if(ownerSiteCreationAccepted())await refreshSiteBookingRequests();
+  }
   catch(error){console.warn('Actualisation du statut du site impossible',error);}
   finally{polling=false;}
  };
  poll();
- // Vérification moins fréquente pour limiter les lectures réseau, sans désactiver les notifications.
- siteBookingRequestPollTimer=setInterval(poll,60000);
+ // Vérification toutes les 2 minutes (onglet visible uniquement) pour limiter les lectures réseau, sans désactiver les notifications.
+ siteBookingRequestPollTimer=setInterval(poll,120000);
 }
 function stopSiteBookingRequestNotifications(){
  if(siteBookingRequestPollTimer){clearInterval(siteBookingRequestPollTimer);siteBookingRequestPollTimer=null;}
@@ -4054,6 +4089,40 @@ function answerVoiceQuestion(phrase){
   return null;
 }
 
+/* Contexte envoyé à l'IA : les séjours récents / à venir (et ceux dont le client est cité), triés du plus proche
+   d'aujourd'hui au plus lointain. Avant : TOUTES les réservations et tous les événements, alors que le
+   serveur n'en gardait que les 60 premiers (les plus anciens). Résultat : requête plus légère, réponses plus rapides
+   et plus pertinentes. */
+function voiceDistanceFromToday(dateText){
+  const t = new Date(String(dateText||'').slice(0,10) + 'T12:00:00').getTime();
+  return isNaN(t) ? 1e15 : Math.abs(t - Date.now());
+}
+function voiceContextBookings(phrase){
+  const d = new Date(); d.setDate(d.getDate() - 45);
+  const pad = n => String(n).padStart(2,'0');
+  const cutoff = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  const low = String(phrase||'').toLowerCase();
+  const named = [], recent = [];
+  (bookings||[]).forEach(b=>{
+    if(!b) return;
+    const client = String(b.client||'').trim().toLowerCase();
+    const cited = client.length >= 3 && low.includes(client);
+    const end = String(b.checkout || b.checkin || '');
+    if(cited) named.push(b);
+    else if(end >= cutoff) recent.push(b);
+  });
+  recent.sort((a,b)=>voiceDistanceFromToday(a.checkin||a.checkout) - voiceDistanceFromToday(b.checkin||b.checkout));
+  return named.concat(recent).slice(0,100);
+}
+function voiceContextAgenda(){
+  const d = new Date(); d.setDate(d.getDate() - 7);
+  const cutoff = d.toISOString().slice(0,10);
+  return (agendaEvents||[])
+    .filter(e=>e && String(e.end_at || e.start_at || '').slice(0,10) >= cutoff)
+    .sort((a,b)=>voiceDistanceFromToday(a.start_at) - voiceDistanceFromToday(b.start_at))
+    .slice(0,60);
+}
+
 async function interpretVoiceCommandWithAI(phrase){
   const localAnswer = answerVoiceQuestion(phrase);
   if(localAnswer){ voiceNotify(localAnswer); return; }
@@ -4078,6 +4147,7 @@ async function interpretVoiceCommandWithAI(phrase){
           'apikey': SB_KEY,
           'Authorization': 'Bearer ' + token
         },
+        signal: AbortSignal.timeout(35000),
         body: JSON.stringify({
           phrase,
           today,
@@ -4093,7 +4163,7 @@ async function interpretVoiceCommandWithAI(phrase){
           })),
           statuses: STATUSES.map(s=>({key:s.key,label:s.label})),
           sources: SOURCES.map(s=>({key:s.key,label:s.label})),
-          bookings: bookings.map(b=>({
+          bookings: voiceContextBookings(phrase).map(b=>({
             id:b.id,
             apartmentId:b.apartmentId,
             client:b.client,
@@ -4117,7 +4187,7 @@ async function interpretVoiceCommandWithAI(phrase){
             notes:b.notes,
             services:Array.isArray(b.services)?b.services.map(s=>({label:s.label,price:s.price})):[],
           })),
-          agenda: agendaEvents.map(e=>({
+          agenda: voiceContextAgenda().map(e=>({
             id:e.id,
             title:e.title,
             description:e.description,
@@ -4518,7 +4588,9 @@ if(result.source && SOURCES.some(s=>s.key===result.source)){
     );
 
   }catch(error){
-    voiceNotify('Erreur : ' + error.message);
+    voiceNotify(error && (error.name === 'TimeoutError' || error.name === 'AbortError')
+      ? 'L’assistant met trop de temps à répondre. Réessaie dans un instant.'
+      : 'Erreur : ' + error.message);
   }
 }
 
