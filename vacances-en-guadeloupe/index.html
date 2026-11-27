@@ -1145,6 +1145,7 @@ function sanitizeCustomTextHtml(value){
   if(!allowed.has(n.tagName))return clean(n);
   const style=n.getAttribute('style')||'',safeStyle=[];
   for(const [prop,rx] of [['color',/^#[0-9a-f]{3,8}$/i],['font-size',/^(?:[8-9]|[1-7][0-9]|8[0-0])px$/],['font-family',/^(Arial|Georgia|Verdana|Tahoma|Times New Roman|Courier New)$/i],['text-align',/^(left|center|right|justify)$/]]){const m=style.match(new RegExp('(?:^|;)\\s*'+prop+'\\s*:\\s*([^;]+)','i'));if(m&&rx.test(m[1].trim()))safeStyle.push(prop+':'+m[1].trim());}
+  if(n.tagName==='BR')return '<br>';
   return '<'+n.tagName.toLowerCase()+(safeStyle.length?' style="'+safeStyle.join(';')+'"':'')+'>'+clean(n)+'</'+n.tagName.toLowerCase()+'>';
  }).join('');
  return clean(doc.body);
