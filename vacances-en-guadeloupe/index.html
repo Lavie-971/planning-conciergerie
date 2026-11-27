@@ -1088,12 +1088,20 @@ function installCustomExistingBlockEditor(){
  document.body.dataset.customExistingBlockEditorReady='1';
  document.addEventListener('click',e=>{
   if(new URLSearchParams(location.search).get('preview')!=='1'||document.body.classList.contains('custom-inline-editing'))return;
-  const legacy=e.target.closest('[data-custom-block-id]:not(.custom-site-block-canvas)');
-  if(!legacy)return;
-  const id=legacy.dataset.customBlockId;if(!id)return;
-  const rect=legacy.getBoundingClientRect();
+  const target=e.target instanceof Element?e.target:null;if(!target)return;
+  const canvas=target.closest('.custom-site-block-canvas');
+  const legacy=canvas?null:target.closest('[data-custom-block-id]:not(.custom-site-block-canvas)');
+  const blockElement=canvas||legacy;if(!blockElement)return;
+  const id=canvas?canvas.dataset.customCanvasId:legacy.dataset.customBlockId;if(!id)return;
+  const rect=blockElement.getBoundingClientRect();
   e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
   openCustomBlocksManager();
+  if(canvas){
+   customInlineEditor.selectedId=id;
+   customInlineRender();
+   customInlineFocusText(id);
+   return;
+  }
   // Convertir directement le bloc du modèle : le rendu vient de remplacer l'ancien élément DOM.
   customInlineConvertLegacyBlockToCanvas(id,null,rect);
  },true);
