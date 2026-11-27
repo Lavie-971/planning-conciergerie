@@ -7142,9 +7142,11 @@ function prepareBookingWhatsApp(choiceOverride){
     return;
   }
   const message = templates[choice].filter(line=>line!==null&&line!==undefined).join('\n');
-  const whatsappParams=new URLSearchParams();
-  whatsappParams.set('text',String(message).normalize('NFC'));
-  const url = 'https://wa.me/'+phone+'?'+whatsappParams.toString();
+  // Sur PC, ouvrir directement WhatsApp Web dans le navigateur évite la redirection wa.me
+  // vers l'application Windows, dont le décodage des emojis peut être incorrect.
+  // encodeURIComponent encode le texte en UTF-8 (y compris les emojis) dans l'URL.
+  const encodedMessage=encodeURIComponent(String(message).normalize('NFC'));
+  const url = 'https://web.whatsapp.com/send?phone='+phone+'&text='+encodedMessage;
   // Prépare le message dans WhatsApp sans considérer son ouverture comme un envoi.
   _pendingWhatsAppSend={bookingId:b.id,choice};
   _returnToMainAfterWhatsApp=true;
