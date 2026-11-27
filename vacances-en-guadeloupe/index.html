@@ -8,6 +8,7 @@
 <title>Vacances en Guadeloupe — Séjours & locations de vacances</title>
 <meta name="description" content="Découvrez nos locations saisonnières en Guadeloupe : des séjours authentiques entre plages, nature et douceur des Caraïbes.">
 <script>try{if(/^#admin(?:\/|$)/i.test(location.hash||'')||new URLSearchParams(location.search).get('espace')==='proprietaire')document.documentElement.classList.add('owner-entry')}catch(e){}</script>
+<link rel="preconnect" href="https://pezxvjollptmwmadykfk.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -809,14 +810,21 @@ async function loadPublic(){
   const params=new URLSearchParams(location.search),slug=currentSlug(),preview=params.get('preview')==='1';
   $('publicApp').classList.remove('detail-mode');$('listingDetailContent').innerHTML='';document.title='Vacances en Guadeloupe';
   if(preview&&(!session?.access_token||!currentUser?.id)){ $('listingCards').innerHTML='<div class="empty"><h3>Aperçu privé</h3><p>Connectez-vous puis ouvrez l’aperçu depuis votre espace propriétaire.</p><a class="details" href="#admin">Retour à la connexion</a></div>';return; }
+  // Mode public : site, photos signées et logements sont indépendants -> lancés ensemble (avant : en cascade).
+  const earlyDetailId=new URLSearchParams(location.search).get('logement');
+  const earlyListingFields=earlyDetailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
+  const earlyImages=preview?null:refreshSiteImageUrls(slug,false);
+  const earlyListings=preview?null:api('public_listings_public?select='+earlyListingFields+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  if(earlyImages)earlyImages.catch(()=>{});
+  if(earlyListings)earlyListings.catch(()=>{});
   const sites=await api((preview?'public_owner_sites':'public_owner_sites_public')+'?select=site_slug,site_name,tagline,description,site_texts,hero_photo_url,contact_email,contact_phone,whatsapp'+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug));
   if(!sites.length){$('listingCards').innerHTML='<div class="empty"><div class="symbol">🌴</div><h3>Ce site n’est pas disponible</h3><p>Le propriétaire n’a pas activé son site personnel ou le lien a changé.</p></div>';$('listingCount').textContent='';return}
   const site=sites[0];if(preview&&site.site_slug!==currentSite?.site_slug)throw new Error('Aperçu non autorisé pour ce site.');
-  await refreshSiteImageUrls(slug,preview);
+  if(preview)await refreshSiteImageUrls(slug,true);else await earlyImages;
   if(preview){const refreshedSite=await api('public_owner_sites?select=*&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(slug));if(refreshedSite[0])Object.assign(site,refreshedSite[0]);}
   const detailId=new URLSearchParams(location.search).get('logement');
   const listingFields=preview?'id,apartment_id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':detailId?'id,title,summary,description,location,property_type,max_guests,bedroom_count,bathroom_count,price_from,currency,photo_urls,amenities':'id,title,summary,location,max_guests,bedroom_count,price_from,photo_urls';
-  let rows=await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
+  let rows=!preview?await earlyListings:await api((preview?'public_listings':'public_listings_public')+'?select='+listingFields+(preview?'&user_id=eq.'+encodeURIComponent(currentUser.id):'')+'&site_slug=eq.'+encodeURIComponent(slug)+'&order=display_order.asc');
   if(preview){
    const activeApartments=await api('apartments?select=id&user_id=eq.'+encodeURIComponent(currentUser.id)+'&deleted=eq.false');
    const activeApartmentIds=new Set(activeApartments.map(a=>String(a.id)));
@@ -893,7 +901,7 @@ function openPreviewListingEditor(item){
  const modal=previewModal('<h2>Modifier '+esc(item.title)+'</h2><p>Personnalisez la fiche de ce logement. Vos changements seront enregistrés et visibles immédiatement dans l’aperçu privé.</p><form id="previewListingEditForm" data-id="'+esc(item.id)+'"><div class="formgrid">'+
   '<div class="field full form-section-heading"><h4>01 · Informations du logement</h4><p>Les informations essentielles affichées aux voyageurs.</p></div>'+field('Nom du logement','title',item.title)+field('Commune / secteur','location',item.location)+field('Type de logement','property_type',item.property_type)+field('Voyageurs maximum','max_guests',item.max_guests,'number')+field('Nombre de chambres','bedroom_count',item.bedroom_count,'number')+field('Nombre de salles de bain','bathroom_count',item.bathroom_count,'number')+field('Prix à partir de (€ / nuit)','price_from',item.price_from,'number')+
   '<div class="field full form-section-heading"><h4>02 · Textes de présentation</h4><p>Présentez votre hébergement avec des textes accueillants et précis.</p></div><div class="field full"><label>Phrase de présentation</label><input name="summary" value="'+esc(item.summary||'')+'" placeholder="Une phrase courte qui donne envie de découvrir le logement"><div class="suggestion-list"><strong>Choisir une suggestion</strong>'+suggestListingSummary(item).map((v,i)=>'<button type="button" data-use-summary="'+i+'">Proposition '+(i+1)+'</button>').join('')+'</div></div><div class="field full description-editor-field"><label>Description détaillée</label><textarea name="description" placeholder="Décrivez les espaces, l’ambiance et les points forts du logement…">'+esc(item.description||'')+'</textarea><div class="suggestion-list"><strong>Suggestions adaptées à ce logement</strong>'+suggestions.map((v,i)=>'<button type="button" data-use-suggestion="'+i+'">Utiliser la proposition '+(i+1)+'</button>').join('')+'</div></div>'+
-  '<div class="field full form-section-heading"><h4>03 · Photos du logement</h4><p>Ajoutez plusieurs photos pour mettre en valeur les pièces et les espaces extérieurs.</p></div>'+imagePickerMarkup('photo_urls','Galerie de photos',(item.photo_urls||[]).join('\\n'),true)+
+  '<div class="field full form-section-heading"><h4>03 · Photos du logement</h4><p>Ajoutez plusieurs photos pour mettre en valeur les pièces et les espaces extérieurs.</p></div>'+imagePickerMarkup('photo_urls','Galerie de photos',(item.photo_urls||[]).join('\n'),true)+
   '<div class="field full form-section-heading"><h4>04 · Équipements et services</h4><p>Cochez les prestations réellement disponibles dans le logement.</p></div><div class="field full"><label>Équipements disponibles</label>'+buildAmenityChoices(item.amenities||[])+'<label>Autres équipements ou services</label><input name="custom_amenities" value="'+esc((item.amenities||[]).filter(a=>!PREVIEW_AMENITIES.includes(a)).join(', '))+'" placeholder="Ex. Plancha, douche extérieure, coffre-fort"></div></div><div class="admin-actions"><button class="btn" type="submit">Enregistrer les modifications</button><span class="status" id="previewListingEditStatus" aria-live="polite"></span></div></form>');
  setupImageEditors();
  modal.querySelectorAll('[data-use-suggestion]').forEach(btn=>btn.addEventListener('click',()=>{modal.querySelector('[name="description"]').value=suggestions[Number(btn.dataset.useSuggestion)];}));
@@ -901,7 +909,7 @@ function openPreviewListingEditor(item){
  modal.querySelector('#previewListingEditForm').addEventListener('submit',async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form),st=$('previewListingEditStatus'),value=k=>String(data.get(k)||'').trim();
   const amenities=[...modal.querySelectorAll('[data-preview-amenity]:checked')].map(x=>x.value).concat(value('custom_amenities').split(',').map(x=>x.trim()).filter(Boolean));
-  const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split('\n').map(x=>x.trim()).filter(Boolean),amenities,updated_at:new Date().toISOString()};
+  const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean),amenities,updated_at:new Date().toISOString()};
   st.textContent='Enregistrement…';try{await api('public_listings?id=eq.'+encodeURIComponent(item.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);modal.hidden=true;await loadPublic();}catch(err){st.textContent='Erreur : '+err.message;}
  });
 }
@@ -936,7 +944,7 @@ function setupImageEditors(){
  document.querySelectorAll('[data-image-editor]').forEach(editor=>{
   if(editor.dataset.ready==='1')return;editor.dataset.ready='1';
   const field=editor.querySelector('[name]'),zone=editor.querySelector('[data-image-dropzone]'),picker=editor.querySelector('[data-image-files]'),choose=editor.querySelector('[data-image-choose]'),previews=editor.querySelector('[data-image-preview-list]');
-  const values=()=>editor.dataset.multiple==='true'?field.value.split('\n').map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
+  const values=()=>editor.dataset.multiple==='true'?field.value.split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
   const render=()=>{previews.innerHTML=values().map(url=>'<div class="image-preview"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><button type="button" title="Retirer cette image" aria-label="Retirer cette image" data-remove-image="'+esc(url)+'">×</button></div>').join('');previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',()=>{const next=values().filter(x=>x!==btn.dataset.removeImage);field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');render();}));};
   const addFiles=async files=>{const list=[...files].filter(f=>f.type?.startsWith('image/'));if(!list.length)return;zone.classList.add('uploading');zone.querySelector('span').textContent='Envoi des photos…';choose.disabled=true;
    try{const urls=[];for(const file of list)urls.push(await uploadSiteImage(file));const next=editor.dataset.multiple==='true'?[...values(),...urls]:[urls[0]];field.value=editor.dataset.multiple==='true'?next.join('\n'):next[0];render();zone.querySelector('span').textContent='Photo ajoutée. Vous pouvez en ajouter d’autres.';}
@@ -1063,7 +1071,7 @@ async function saveSite(e){
 }
 async function saveListing(e){
  e.preventDefault();const form=e.currentTarget,st=form.querySelector('.status'),data=new FormData(form),value=n=>String(data.get(n)||'').trim();
- const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split('\n').map(x=>x.trim()).filter(Boolean),amenities:[...form.querySelectorAll('[data-preview-amenity]:checked')].map(x=>x.value).concat(value('custom_amenities').split(',').map(x=>x.trim()).filter(Boolean)),updated_at:new Date().toISOString()};
+ const payload={title:value('title'),location:value('location'),property_type:value('property_type'),max_guests:value('max_guests')?Number(value('max_guests')):null,bedroom_count:value('bedroom_count')?Number(value('bedroom_count')):null,bathroom_count:value('bathroom_count')?Number(value('bathroom_count')):null,price_from:value('price_from')?Number(value('price_from')):null,summary:value('summary'),description:value('description'),photo_urls:value('photo_urls').split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean),amenities:[...form.querySelectorAll('[data-preview-amenity]:checked')].map(x=>x.value).concat(value('custom_amenities').split(',').map(x=>x.trim()).filter(Boolean)),updated_at:new Date().toISOString()};
  st.textContent='Enregistrement…';
  try{await api('public_listings?id=eq.'+encodeURIComponent(form.dataset.id)+'&user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',payload);st.textContent='Enregistré ✓';}
  catch(err){st.textContent=err.message}
