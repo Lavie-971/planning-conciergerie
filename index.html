@@ -4824,8 +4824,8 @@ function goToPrevPeriod(){
     currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;}
   }
   renderCalendar(); renderSummary();
-  // Sur téléphone, le mois précédent doit s'ouvrir sur ses derniers jours.
-  resetCalendarScrollToStart('end');
+  // Sur tout appareil tactile, afficher la fin du mois précédent.
+  if(isTouchCalendarDevice()) resetCalendarScrollToStart('end');
 }
 function goToNextPeriod(){
   if(viewMode==='week'){
@@ -4836,8 +4836,13 @@ function goToNextPeriod(){
     currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;}
   }
   renderCalendar(); renderSummary();
-  // Le mois suivant s'ouvre toujours sur son premier jour.
-  resetCalendarScrollToStart('start');
+  // Sur tout appareil tactile, afficher le début du mois suivant.
+  if(isTouchCalendarDevice()) resetCalendarScrollToStart('start');
+}
+function isTouchCalendarDevice(){
+  return ('ontouchstart' in window)
+    || (navigator.maxTouchPoints > 0)
+    || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 }
 function resetCalendarScrollToStart(edge='start'){
   const scrollEl = document.getElementById('calendarScroll');
