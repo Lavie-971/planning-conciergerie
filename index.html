@@ -8061,7 +8061,7 @@ async function openGuestReviewsManager(){
   }catch(error){area.textContent='Impossible de charger les avis : '+(error.message||error);}
 }
 
-function openWhatsAppSettings(){
+async function openWhatsAppSettings(){
   let modal=document.getElementById('whatsappSettingsModal');
   if(!modal){
     modal=document.createElement('div');modal.id='whatsappSettingsModal';
