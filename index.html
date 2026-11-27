@@ -2100,6 +2100,7 @@ async function sbAfterLogin(){
     startAutoRefresh();
     startSiteBookingRequestNotifications();
     schedulePendingSync();
+    checkWhatsAppSchedules();
   }catch(e){
     console.error('Vérification du profil utilisateur',e);
     if(e && e.auth){ hideAccountGate(); showLockScreen(); return; }
@@ -2115,6 +2116,7 @@ async function sbAfterLogin(){
       renderAll();
       setAppAccessVisible(true);
       hideAccountGate();
+      checkWhatsAppSchedules();
       return;
     }
     setSyncStatus('error'); renderAll();
@@ -7583,7 +7585,7 @@ function finalizeSaveBooking(data){
     savedBooking=Object.assign({id:generateId()},data,{history:[]});
     bookings.push(savedBooking);
   }
-  if(!savedBooking.whatsappWorkflow) ensureBookingWhatsAppWorkflow(savedBooking);
+  ensureBookingWhatsAppWorkflow(savedBooking);
   if(savedBooking.whatsappWorkflow && savedBooking.whatsappWorkflow.steps){
     const steps=savedBooking.whatsappWorkflow.steps;
     if(steps.welcome && !steps.welcome.sentAt) steps.welcome.dueDate=addDaysISO(data.checkin,-3);
@@ -7593,7 +7595,7 @@ function finalizeSaveBooking(data){
   saveBookings();
   if(syncUrl){ queueBookingUpsert(savedBooking); setSyncStatus('syncing'); }
   closeBookingModal();
-  requestAnimationFrame(()=>renderAll());
+  requestAnimationFrame(()=>{renderAll();checkWhatsAppSchedules();});
 }
 
 function deleteBooking(){
