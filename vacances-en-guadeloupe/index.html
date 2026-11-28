@@ -869,100 +869,42 @@ let individualTextEdit=null;
 function individualTextToolbar(){
  let bar=$('individualTextToolbar');if(bar)return bar;
  bar=document.createElement('div');bar.id='individualTextToolbar';bar.className='cit-bar';bar.hidden=true;
- bar.innerHTML='<button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>S</u></button><select data-it-size title="Taille du texte">'+[12,14,16,18,20,24,28,32,40,48].map(n=>'<option value="'+n+'px"'+(n===16?' selected':'')+'>'+n+' px</option>').join('')+'</select><select data-it-font title="Police"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Tahoma">Tahoma</option><option value="Times New Roman">Times New Roman</option><option value="Courier New">Courier New</option></select><label class="cit-color" title="Couleur du texte">Couleur <input type="color" data-it-color value="#173f36"></label><select data-it-align title="Alignement du texte"><option value="left">Aligné à gauche</option><option value="center">Centré</option><option value="right">Aligné à droite</option></select><input type="url" data-it-href placeholder="Adresse du lien" aria-label="Adresse du lien" style="max-width:180px;width:180px;padding:7px;border:1px solid #dbe4dc;border-radius:8px"><button type="button" data-it-add-symbol title="Ajouter un symbole">＋ Symbole</button><span class="cit-sep"></span><button type="button" data-it-delete class="danger" title="Supprimer ce texte">Supprimer</button><button type="button" data-it-cancel title="Annuler">Annuler</button><button type="button" data-it-save class="save">Enregistrer</button><span data-it-status hidden></span>';
+ bar.innerHTML='<button type="button" data-inline-command="bold" title="Gras"><b>G</b></button><button type="button" data-inline-command="italic" title="Italique"><i>I</i></button><button type="button" data-inline-command="underline" title="Souligné"><u>S</u></button><select data-inline-font-size title="Taille du texte">'+[12,14,16,18,20,24,28,32,40,48].map(n=>'<option value="'+n+'px"'+(n===16?' selected':'')+'>'+n+' px</option>').join('')+'</select><select data-inline-font title="Police">'+['Arial','Georgia','Verdana','Tahoma','Times New Roman','Courier New'].map(f=>'<option value="'+f+'">'+f+'</option>').join('')+'</select><label class="cit-color" title="Couleur du texte">Couleur <input type="color" data-inline-color value="#173f36"></label><select data-inline-align title="Alignement du texte"><option value="Left">Aligné à gauche</option><option value="Center">Centré</option><option value="Right">Aligné à droite</option></select><button type="button" data-text-link title="Transformer le texte sélectionné en lien">🔗 Lien</button><span class="cit-sep"></span><button type="button" data-inline-delete class="danger" title="Supprimer ce bloc">Supprimer</button><button type="button" data-inline-save class="save">Enregistrer</button><span data-inline-status hidden></span><input type="hidden" data-it-href>';
  document.body.appendChild(bar);
- bar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
  let savedRange=null;
- const captureRange=()=>{const s=window.getSelection();if(s&&s.rangeCount&&individualTextEdit?.element.contains(s.anchorNode))savedRange=s.getRangeAt(0).cloneRange();};
- const restoreRange=()=>{const el=individualTextEdit?.element;if(!el)return null;el.focus();const s=window.getSelection();s.removeAllRanges();if(savedRange&&el.contains(savedRange.commonAncestorContainer))s.addRange(savedRange);else{const r=document.createRange();r.selectNodeContents(el);s.addRange(r);}return s.rangeCount?s.getRangeAt(0):null;};
- const applyStyle=(property,value)=>{const range=restoreRange();if(!range)return;const span=document.createElement('span');span.style[property]=value;try{if(range.collapsed){span.appendChild(document.createTextNode('\u200b'));range.insertNode(span);const next=document.createRange();next.setStart(span.firstChild,1);next.collapse(true);const s=window.getSelection();s.removeAllRanges();s.addRange(next);savedRange=next.cloneRange();}else{span.appendChild(range.extractContents());range.insertNode(span);const s=window.getSelection();s.removeAllRanges();const next=document.createRange();next.selectNodeContents(span);s.addRange(next);savedRange=next.cloneRange();}}catch(err){console.warn('Formatage impossible',err);}};
- bar.addEventListener('pointerdown',e=>{if(e.target.closest('select,input'))captureRange();},true);
+ const capture=()=>{const s=getSelection();if(s&&s.rangeCount&&individualTextEdit?.element.contains(s.anchorNode))savedRange=s.getRangeAt(0).cloneRange();};
+ const restore=()=>{const el=individualTextEdit?.element;if(!el)return null;el.focus();const s=getSelection();s.removeAllRanges();if(savedRange&&el.contains(savedRange.commonAncestorContainer))s.addRange(savedRange);else{const r=document.createRange();r.selectNodeContents(el);s.addRange(r);}return s.rangeCount?s.getRangeAt(0):null;};
+ const apply=(prop,val)=>{const range=restore();if(!range)return;const span=document.createElement('span');span.style[prop]=val;try{if(range.collapsed){span.textContent='\u200b';range.insertNode(span);const nr=document.createRange();nr.setStart(span.firstChild,1);nr.collapse(true);const s=getSelection();s.removeAllRanges();s.addRange(nr);savedRange=nr.cloneRange();}else{span.appendChild(range.extractContents());range.insertNode(span);const s=getSelection();s.removeAllRanges();const nr=document.createRange();nr.selectNodeContents(span);s.addRange(nr);savedRange=nr.cloneRange();}}catch(err){console.warn(err);}};
+ bar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
+ bar.addEventListener('pointerdown',e=>{if(e.target.closest('select,input'))capture();},true);
  bar.addEventListener('click',e=>{
-  const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){restoreRange();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);captureRange();return;}
-  const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){const el=individualTextEdit?.element;if(el){el.focus();el.style.textAlign=align;}return;}
-  if(e.target.closest('[data-it-save]'))individualTextEdit?.finish(true);
-  if(e.target.closest('[data-it-cancel]'))individualTextEdit?.finish(false);
-  if(e.target.closest('[data-it-delete]'))individualTextEdit?.remove();
-  if(e.target.closest('[data-it-add-symbol]'))addDestinationSymbol();
-  if(e.target.closest('[data-it-change-photo]')){const picker=$('previewPhotoPicker');if(picker){picker.dataset.target=bar.dataset.photoTarget||'';picker.click();}}
+  const cmd=e.target.closest('[data-inline-command]')?.dataset.inlineCommand;
+  if(cmd){restore();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);capture();return;}
+  if(e.target.closest('[data-text-link]')){
+   let u=(prompt('Adresse du lien (https://…, mailto:, tel:)')||'').trim();if(!u)return;
+   if(/^www\./i.test(u))u='https://'+u;
+   if(!/^(https?:\/\/|mailto:|tel:|#)/i.test(u)){alert('Adresse de lien invalide.');return;}
+   bar.querySelector('[data-it-href]').value=u;restore();document.execCommand('createLink',false,u);capture();return;
+  }
+  if(e.target.closest('[data-inline-save]'))individualTextEdit?.finish(true);
+  if(e.target.closest('[data-inline-delete]'))individualTextEdit?.remove();
  });
- bar.addEventListener('change',e=>{if(!individualTextEdit)return;if(e.target.matches('[data-it-size]'))applyStyle('fontSize',e.target.value);if(e.target.matches('[data-it-font]'))applyStyle('fontFamily',e.target.value);if(e.target.matches('[data-it-color]'))applyStyle('color',e.target.value);});
+ bar.addEventListener('change',e=>{
+  if(!individualTextEdit)return;
+  if(e.target.matches('[data-inline-font-size]'))apply('fontSize',e.target.value);
+  if(e.target.matches('[data-inline-font]'))apply('fontFamily',e.target.value);
+  if(e.target.matches('[data-inline-color]'))apply('color',e.target.value);
+  if(e.target.matches('[data-inline-align]'))individualTextEdit.element.style.textAlign=e.target.value.toLowerCase();
+ });
  return bar;
 }
-async function addDestinationSymbol(){
- const site=activePreviewSite;if(!site||!currentUser?.id)return;
- const perks=$('destinationPerks');if(!perks)return;
- const existing=Object.keys(site.site_texts||{}).filter(k=>k.startsWith('destination_symbol_extra_')).map(k=>Number(k.slice('destination_symbol_extra_'.length))).filter(n=>Number.isInteger(n)&&n>0);
- const nextId=(existing.length?Math.max(...existing):0)+1,key='destination_symbol_extra_'+nextId;
- const texts={...(site.site_texts||{}),[key]:'✦',[key+'_hidden']:false};
- const button=document.querySelector('[data-it-add-symbol]');if(button)button.disabled=true;
- try{
-  await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
-  site.site_texts=texts;
-  const item=document.createElement('div');item.className='perk';
-  const symbol=document.createElement('i');symbol.dataset.siteSymbolKey=key;symbol.dataset.siteSymbolLabel='Nouveau symbole destination';symbol.title='Cliquer pour modifier ce symbole';symbol.textContent='✦';
-  item.appendChild(symbol);perks.appendChild(item);
-  showPreviewPhotoNotice('Symbole ajouté. Cliquez dessus pour le modifier.');
- }catch(err){alert('Impossible d’ajouter le symbole : '+err.message);}
- finally{if(button)button.disabled=false;}
-}
-function openIndividualTextEditor(key,label,element){
- const site=activePreviewSite;if(!site||element.isContentEditable||individualTextEdit)return;
- const hidden=!!site.site_texts?.[key+'_hidden'];
- const originalHtml=hidden?'':element.innerHTML,originalText=hidden?'':element.textContent.trim();
- const originalHref=element.matches('a')?element.getAttribute('href')||'':'';
- const module=element.closest('.hero,.intro,.listings,.experience,.contact,footer,header')||element;
- module.classList.add('preview-module-highlight');
- if(hidden)element.innerHTML='';
- element.contentEditable='true';element.setAttribute('role','textbox');element.setAttribute('aria-label','Modifier '+label);
- element.classList.add('preview-text-edit-active');
- element.style.outline='3px solid #2878b8';element.style.outlineOffset='5px';element.style.background='#fff8e9';element.style.color='#173f36';
- const bar=individualTextToolbar();
- const addSymbolControl=bar.querySelector('[data-it-add-symbol]'),hrefControl=bar.querySelector('[data-it-href]');
- if(addSymbolControl)addSymbolControl.hidden=!(String(key).startsWith('perk')||String(key).startsWith('destination_symbol'));
- if(hrefControl){hrefControl.hidden=!element.matches('a');hrefControl.value=originalHref;}
- bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
- const close=()=>{individualTextEdit=null;bar.hidden=true;bar.style.display='none';bar.style.visibility='hidden';bar.style.opacity='0';element.contentEditable='false';element.removeAttribute('role');element.classList.remove('preview-text-edit-active');element.style.outline='';element.style.outlineOffset='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
- const finish=async save=>{
-  if(!individualTextEdit||individualTextEdit.element!==element)return;
-  if(!save){close();element.innerHTML=hidden?'':originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);return;}
-  const html=sanitizeCustomTextHtml(element.innerHTML),next=element.textContent.trim();
-  if(!next){close();element.innerHTML=hidden?'':originalHtml;return;}
-  if(next===originalText&&html===sanitizeCustomTextHtml(originalHtml)&&!hidden){close();element.innerHTML=originalHtml;return;}
-  // Fermer immédiatement la barre et le contour ; l’enregistrement continue ensuite.
-  close();
-  element.style.opacity='.55';
-  try{
-   const texts={...(site.site_texts||{}),[key]:next,[key+'_html']:html,[key+'_hidden']:false};
-   if(element.matches('a')){const nextHref=bar.querySelector('[data-it-href]')?.value.trim()||'';if(nextHref&&!/^(https?:\/\/|mailto:|tel:|#)/i.test(nextHref))throw new Error('Adresse de lien invalide. Utilisez https://, mailto:, tel: ou #section.');if(nextHref)texts[key+'_url']=nextHref;else delete texts[key+'_url'];element.setAttribute('href',nextHref||originalHref);}
-   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
-   site.site_texts=texts;element.innerHTML=html;if(element.matches('a'))element.setAttribute('href',texts[key+'_url']||originalHref);element.title='Texte enregistré — cliquer pour modifier';
-  }catch(err){element.innerHTML=originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);alert('Impossible d’enregistrer ce texte : '+err.message);}
-  finally{element.style.opacity='';}
- };
- const remove=async()=>{
-  if(!individualTextEdit||individualTextEdit.element!==element)return;
-  if(!confirm('Supprimer définitivement ce texte de la page ?'))return;
-  element.style.opacity='.55';
-  try{
-   const texts={...(site.site_texts||{}),[key+'_hidden']:true};delete texts[key];delete texts[key+'_html'];
-   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
-   site.site_texts=texts;close();element.textContent='';element.removeAttribute('title');element.style.opacity='';
-  }catch(err){element.innerHTML=originalHtml;close();element.style.opacity='';alert('Impossible de supprimer ce texte : '+err.message);}
- };
- individualTextEdit={element,finish,remove};
- element.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(false);}else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();finish(true);}});
- element.focus();const range=document.createRange();range.selectNodeContents(element);range.collapse(false);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
-}
-function showPreviewPhotoNotice(message){
- let note=$('previewPhotoNotice');if(!note){note=document.createElement('div');note.id='previewPhotoNotice';note.style.cssText='position:fixed;top:18px;right:18px;z-index:32000;max-width:min(340px,calc(100vw - 36px));padding:11px 15px;border-radius:9px;background:#173f36;color:#fff;font:600 12px/1.45 Arial,sans-serif;box-shadow:0 5px 20px #0003';document.body.appendChild(note);}note.textContent=message;note.hidden=false;clearTimeout(note._hideTimer);note._hideTimer=setTimeout(()=>{note.hidden=true;},3200);
-}
+
 function showOriginalPhotoToolbar(photo){
  const bar=individualTextToolbar();bar.dataset.photoTarget=photo.dataset.previewPhoto||'';
  bar.querySelectorAll('[data-it-command],[data-it-size],[data-it-font],[data-it-color],[data-it-align],[data-it-href],[data-it-add-symbol],[data-it-delete],[data-it-cancel],[data-it-save]').forEach(el=>el.hidden=true);
  let change=bar.querySelector('[data-it-change-photo]');
  if(!change){change=document.createElement('button');change.type='button';change.dataset.itChangePhoto='1';change.textContent='🖼 Changer la photo';bar.insertBefore(change,bar.querySelector('.cit-sep'));}
- change.hidden=false;bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
+ change.hidden=false;bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';bar.style.top='0px';bar.style.left='50%';bar.style.transform='translateX(-50%)';bar.style.top='0px';bar.style.left='50%';bar.style.transform='translateX(-50%)';
 }
 function enablePreviewPhotoEditing(site){
  if(new URLSearchParams(location.search).get('preview')!=='1')return;
