@@ -445,8 +445,8 @@ body.custom-canvas-selecting,body.custom-canvas-selecting *{touch-action:none!im
 .custom-insert-pencil{position:fixed;left:18px;bottom:18px;z-index:15001;width:52px;height:52px;border:0;border-radius:50%;background:#173f36;color:#fff;font-size:25px;box-shadow:0 5px 20px #0004;cursor:pointer}.custom-insert-pencil:hover{background:#285f50;transform:translateY(-2px)}.custom-insert-wizard{display:grid;gap:16px}.custom-insert-wizard .field{display:grid;gap:8px}.custom-insert-wizard .field span{font-size:12px;font-weight:800;color:#405d4e}.custom-insert-wizard select{width:100%;padding:12px;border:1px solid #dce5dc;border-radius:9px;background:#fff;color:#233b30;font:14px Arial,sans-serif}.custom-site-blocks-placement{display:grid;gap:22px;padding:36px 0}.custom-site-blocks-placement:empty{display:none}
 .preview-return-owner{position:fixed;right:18px;bottom:18px;z-index:15000;border:0;border-radius:9px;background:#173f36;color:#fff;padding:12px 17px;font-weight:700;font-size:13px;box-shadow:0 5px 20px #0003;cursor:pointer}
 .preview-return-owner:hover{background:#285f50}
-body.private-preview-editing .preview-module-hover{position:relative!important;outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px!important;z-index:2}
-body.private-preview-editing .preview-module-selected{position:relative!important;outline:3px solid #2878b8!important;outline-offset:6px!important;border-radius:5px!important;z-index:3}
+body.private-preview-editing .preview-module-hover{outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px!important;z-index:2}
+body.private-preview-editing .preview-module-selected{outline:3px solid #2878b8!important;outline-offset:6px!important;border-radius:5px!important;z-index:3}
 body.private-preview-editing .preview-module-selected.preview-module-hover{outline:3px solid #2878b8!important;outline-offset:6px!important}
 @media (hover:none), (pointer:coarse){
  body.private-preview-editing [data-site-edit-key],body.private-preview-editing [data-site-symbol-key],body.private-preview-editing [data-preview-photo]{
@@ -470,7 +470,7 @@ body.private-preview-editing .experience-img.preview-module-selected{outline:3px
  #listingDetail .preview-edit-trigger{position:relative;display:inline-flex;width:auto;max-width:100%;margin:0 0 14px;padding:7px 12px!important;vertical-align:top}
 #publicApp .listing-photo .preview-edit-trigger{position:absolute!important;top:12px!important;right:12px!important;left:auto!important;bottom:auto!important;z-index:12!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:max-content!important;min-width:0!important;max-width:calc(100% - 24px)!important;height:auto!important;min-height:0!important;margin:0!important;padding:7px 10px!important;font:700 11px/1.2 Arial,sans-serif!important;letter-spacing:0!important;white-space:nowrap!important;transform:none!important;box-shadow:0 2px 8px #0002!important}
 #publicApp #listingDetail .preview-edit-trigger{display:inline-flex!important;flex:0 0 auto!important;width:max-content!important;min-width:0!important;height:auto!important;min-height:0!important;padding:7px 11px!important;font:700 12px/1.2 Arial,sans-serif!important;white-space:nowrap!important}
-body.private-preview-editing .preview-module-highlight{position:relative!important;outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px!important;z-index:2}
+body.private-preview-editing .preview-module-highlight{outline:2px solid #c49b55!important;outline-offset:5px!important;border-radius:5px!important;z-index:2}
 body.private-preview-editing .preview-text-edit-active{outline:3px solid #2878b8!important;outline-offset:5px!important;background:#fff8e9!important;box-shadow:0 0 0 3px #ffffff,0 0 0 6px rgba(40,120,184,.35)!important;border-radius:4px!important;position:relative!important;z-index:25!important}
 body.private-preview-editing [data-site-edit-key]:hover{background:transparent!important}
 body.private-preview-editing .hero.preview-module-highlight,body.private-preview-editing .experience.preview-module-highlight{outline-offset:-5px!important}
@@ -872,14 +872,31 @@ function individualTextToolbar(){
  bar.innerHTML='<strong>Modifier le texte / symbole</strong><button type="button" data-it-add-symbol title="Ajouter un symbole dans la partie destination">＋ Ajouter un symbole</button><input type="url" data-it-href placeholder="Adresse du lien (https://… ou #section)" aria-label="Adresse du lien" style="min-width:210px;max-width:38vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
  document.body.appendChild(bar);
  bar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
+ let savedRange=null;
+ const captureRange=()=>{
+  const selection=window.getSelection();
+  if(selection&&selection.rangeCount&&individualTextEdit?.element.contains(selection.anchorNode))savedRange=selection.getRangeAt(0).cloneRange();
+ };
+ const restoreRange=()=>{
+  const el=individualTextEdit?.element;if(!el)return null;
+  el.focus();const selection=window.getSelection();selection.removeAllRanges();
+  if(savedRange&&el.contains(savedRange.commonAncestorContainer))selection.addRange(savedRange);
+  else{const range=document.createRange();range.selectNodeContents(el);selection.addRange(range);}
+  return selection.rangeCount?selection.getRangeAt(0):null;
+ };
  const selectEditableText=()=>{
   const el=individualTextEdit?.element;if(!el)return;
-  el.focus();
-  const range=document.createRange();range.selectNodeContents(el);
-  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+  el.focus();const range=document.createRange();range.selectNodeContents(el);
+  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);savedRange=range.cloneRange();
  };
+ const applySelectedStyle=(property,value)=>{
+  const range=restoreRange();if(!range||range.collapsed)return;
+  const span=document.createElement('span');span.style[property]=value;
+  try{span.appendChild(range.extractContents());range.insertNode(span);const selection=window.getSelection();selection.removeAllRanges();const next=document.createRange();next.selectNodeContents(span);selection.addRange(next);savedRange=next.cloneRange();}catch(err){console.warn('Formatage impossible',err);}
+ };
+ bar.addEventListener('pointerdown',e=>{if(e.target.closest('select,input'))captureRange();},true);
  bar.addEventListener('click',e=>{
-  const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);return;}
+  const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){restoreRange();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);captureRange();return;}
   const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){individualTextEdit?.element.focus();document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);return;}
   if(e.target.closest('[data-it-save]'))individualTextEdit?.finish(true);
   if(e.target.closest('[data-it-cancel]'))individualTextEdit?.finish(false);
@@ -888,9 +905,9 @@ function individualTextToolbar(){
  });
  bar.addEventListener('change',e=>{
   if(!individualTextEdit)return;
-  if(e.target.matches('[data-it-size]')){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand('fontSize',false,'7');individualTextEdit.element.querySelectorAll('font[size="7"]').forEach(n=>{n.removeAttribute('size');n.style.fontSize=e.target.value;});}
-  if(e.target.matches('[data-it-font]')){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,e.target.value);}
-  if(e.target.matches('[data-it-color]')){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,e.target.value);}
+  if(e.target.matches('[data-it-size]')){applySelectedStyle('fontSize',e.target.value);}
+  if(e.target.matches('[data-it-font]')){applySelectedStyle('fontFamily',e.target.value);}
+  if(e.target.matches('[data-it-color]')){applySelectedStyle('color',e.target.value);}
  });
  return bar;
 }
