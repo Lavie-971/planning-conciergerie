@@ -856,9 +856,9 @@ function openIndividualTextEditor(key,label,element){
  const close=()=>{individualTextEdit=null;bar.hidden=true;element.contentEditable='false';element.removeAttribute('role');element.style.outline='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
  const finish=async save=>{
   if(!individualTextEdit||individualTextEdit.element!==element)return;
-  if(!save){close();element.innerHTML=hidden?'Texte masqué — cliquer pour restaurer':originalHtml;return;}
+  if(!save){close();element.innerHTML=hidden?'':originalHtml;return;}
   const html=sanitizeCustomTextHtml(element.innerHTML),next=element.textContent.trim();
-  if(!next){close();element.innerHTML=hidden?'Texte masqué — cliquer pour restaurer':originalHtml;return;}
+  if(!next){close();element.innerHTML=hidden?'':originalHtml;return;}
   if(next===originalText&&html===sanitizeCustomTextHtml(originalHtml)&&!hidden){close();element.innerHTML=originalHtml;return;}
   element.style.opacity='.55';
   try{
@@ -870,12 +870,12 @@ function openIndividualTextEditor(key,label,element){
  };
  const remove=async()=>{
   if(!individualTextEdit||individualTextEdit.element!==element)return;
-  if(!confirm('Supprimer ce texte de la page ? Il pourra être restauré en cliquant sur son emplacement dans l’aperçu privé.'))return;
+  if(!confirm('Supprimer définitivement ce texte de la page ?'))return;
   element.style.opacity='.55';
   try{
    const texts={...(site.site_texts||{}),[key+'_hidden']:true};delete texts[key];delete texts[key+'_html'];
    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
-   site.site_texts=texts;close();element.textContent='Texte masqué — cliquer pour restaurer';element.title='Cliquer pour restaurer ce texte';element.style.opacity='';
+   site.site_texts=texts;close();element.textContent='';element.removeAttribute('title');element.style.opacity='';
   }catch(err){element.innerHTML=originalHtml;close();element.style.opacity='';alert('Impossible de supprimer ce texte : '+err.message);}
  };
  individualTextEdit={element,finish,remove};
@@ -926,10 +926,10 @@ function enablePreviewPhotoEditing(site){
 function setSiteIdentity(site){
  const t=site.site_texts||{};
  $('siteBrand').textContent=site.site_name;$('footerBrand').textContent=site.site_name;
- const put=(id,key,fallback)=>{const el=$(id);if(el){if(t[key+'_hidden']){el.style.display='';el.textContent=new URLSearchParams(location.search).get('preview')==='1'?'Texte masqué — cliquer pour restaurer':'';}else{el.style.display='';const html=t[key+'_html'];if(html)el.innerHTML=sanitizeCustomTextHtml(html);else el.textContent=t[key]||fallback;}}};
+ const put=(id,key,fallback)=>{const el=$(id);if(el){if(t[key+'_hidden']){el.style.display='';el.textContent='';}else{el.style.display='';const html=t[key+'_html'];if(html)el.innerHTML=sanitizeCustomTextHtml(html);else el.textContent=t[key]||fallback;}}};
  put('navListings','nav_listings','Nos logements');put('navDestination','nav_destination','La Guadeloupe');put('navContact','nav_contact','Nous contacter');put('heroCta','hero_cta','Découvrir nos logements →');put('heroSecondaryCta','hero_secondary_cta','Explorer la destination');put('perk1','perk1','Plages paradisiaques');put('perk2','perk2','Saveurs créoles');put('perk3','perk3','Nature préservée');put('perk4','perk4','Accueil chaleureux');
  put('heroEyebrow','hero_eyebrow','Votre parenthèse au soleil');
- if(t.hero_title_hidden){$('heroTitle').style.display='';$('heroTitle').textContent=new URLSearchParams(location.search).get('preview')==='1'?'Texte masqué — cliquer pour restaurer':'';}else{$('heroTitle').style.display='';if(t.hero_title_html)$('heroTitle').innerHTML=sanitizeCustomTextHtml(t.hero_title_html);else $('heroTitle').textContent=t.hero_title||site.site_name+' — '+(site.tagline||'comme chez vous');}
+ if(t.hero_title_hidden){$('heroTitle').style.display='';$('heroTitle').textContent='';}else{$('heroTitle').style.display='';if(t.hero_title_html)$('heroTitle').innerHTML=sanitizeCustomTextHtml(t.hero_title_html);else $('heroTitle').textContent=t.hero_title||site.site_name+' — '+(site.tagline||'comme chez vous');}
  put('heroText','hero_text',site.description||'Posez vos valises, respirez les alizés et découvrez la Guadeloupe à votre rythme.');
  put('introEyebrow','intro_eyebrow','Bienvenue chez vous');put('introTitle','intro_title','Des séjours qui ont le goût des vacances');
  put('introText','intro_text','Des hébergements sélectionnés avec soin pour profiter pleinement de la douceur de vivre guadeloupéenne. En couple, en famille ou entre amis, trouvez votre petit coin de paradis.');
