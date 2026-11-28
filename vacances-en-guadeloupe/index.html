@@ -1757,7 +1757,7 @@ function openCustomBlocksManager(initialBlock){
   const ar=anchor.getBoundingClientRect(),aw=Math.max(1,anchor.clientWidth);
   const title=String(block.title||'').trim(),body=String(block.text||'').trim();
   if(!block.text_html){
-   block.text_html=[title?'<h2>'+esc(title)+'</h2>':'',...body.split(/\\n\\s*\\n/).map(part=>part.trim()).filter(Boolean).map(part=>'<p>'+esc(part).replace(/\\n/g,'<br>')+'</p>')].join('')||'<p><br></p>';
+   block.text_html=[title?'<h2>'+esc(title)+'</h2>':'',...body.split(/\n\s*\n/).map(part=>part.trim()).filter(Boolean).map(part=>'<p>'+esc(part).replace(/\n/g,'<br>')+'</p>')].join('')||'<p><br></p>';
   }
   block.placement={mode:'canvas',target,
    x:Math.max(0,Math.min(90,(rect.left-(ar.left+anchor.clientLeft))/aw*100)),
