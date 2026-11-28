@@ -212,7 +212,7 @@
     + '<button type="button" data-inline-command="italic" title="Italique"><i>I</i></button>'
     + '<button type="button" data-inline-command="underline" title="Souligné"><u>S</u></button>'
     + '<select data-inline-font-size title="Taille du texte">' + [12, 14, 16, 18, 20, 24, 28, 32, 40, 48].map(n => '<option value="' + n + 'px"' + (n === 16 ? ' selected' : '') + '>' + n + ' px</option>').join('') + '</select>'
-    + '<select data-inline-font title="Police">' + FONTS.map(f => '<option>' + f + '</option>').join('') + '</select>'
+    + '<select data-inline-font title="Police">' + FONTS.map(f => '<option value="' + escA(f) + '" style="font-family:\'' + escA(f) + '\'">' + escT(f + ' écrit en ' + f) + '</option>').join('') + '</select>'
     + '<label class="cit-color" title="Couleur du texte">Couleur <input type="color" data-inline-color value="#173f36"></label>'
     + '<select data-inline-align title="Alignement du texte"><option value="Left">Aligné à gauche</option><option value="Center">Centré</option><option value="Right">Aligné à droite</option></select>'
     + '<button type="button" data-text-link title="Transformer le texte sélectionné en lien">🔗 Lien</button>'
