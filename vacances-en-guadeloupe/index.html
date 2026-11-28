@@ -872,9 +872,15 @@ function individualTextToolbar(){
  bar.innerHTML='<strong>Modifier le texte / symbole</strong><button type="button" data-it-add-symbol title="Ajouter un symbole dans la partie destination">＋ Ajouter un symbole</button><input type="url" data-it-href placeholder="Adresse du lien (https://… ou #section)" aria-label="Adresse du lien" style="min-width:210px;max-width:38vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
  document.body.appendChild(bar);
  bar.addEventListener('mousedown',e=>{if(e.target.closest('button,select,input'))e.preventDefault();});
+ const selectEditableText=()=>{
+  const el=individualTextEdit?.element;if(!el)return;
+  el.focus();
+  const range=document.createRange();range.selectNodeContents(el);
+  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+ };
  bar.addEventListener('click',e=>{
-  const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);return;}
-  const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);return;}
+  const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);return;}
+  const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){individualTextEdit?.element.focus();document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);return;}
   if(e.target.closest('[data-it-save]'))individualTextEdit?.finish(true);
   if(e.target.closest('[data-it-cancel]'))individualTextEdit?.finish(false);
   if(e.target.closest('[data-it-delete]'))individualTextEdit?.remove();
@@ -882,9 +888,9 @@ function individualTextToolbar(){
  });
  bar.addEventListener('change',e=>{
   if(!individualTextEdit)return;
-  if(e.target.matches('[data-it-size]')){document.execCommand('styleWithCSS',false,true);document.execCommand('fontSize',false,'7');individualTextEdit.element.querySelectorAll('font[size="7"]').forEach(n=>{n.removeAttribute('size');n.style.fontSize=e.target.value;});}
-  if(e.target.matches('[data-it-font]')){document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,e.target.value);}
-  if(e.target.matches('[data-it-color]')){document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,e.target.value);}
+  if(e.target.matches('[data-it-size]')){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand('fontSize',false,'7');individualTextEdit.element.querySelectorAll('font[size="7"]').forEach(n=>{n.removeAttribute('size');n.style.fontSize=e.target.value;});}
+  if(e.target.matches('[data-it-font]')){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,e.target.value);}
+  if(e.target.matches('[data-it-color]')){selectEditableText();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,e.target.value);}
  });
  return bar;
 }
