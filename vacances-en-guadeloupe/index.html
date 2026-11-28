@@ -643,8 +643,8 @@ body.custom-inline-editing #customInlineToolbar[hidden]{display:none!important;v
 .custom-inline-toolbar input[type=color]{width:30px;height:30px;padding:2px;border:0;background:#fff;border-radius:5px}
 .custom-inline-toolbar strong{padding:0 7px}.custom-inline-toolbar .save{background:#d7b36d;color:#173f36;font-weight:700}
 .custom-inline-toolbar [data-inline-status]{font-size:11px;min-width:100px}
-body.custom-inline-editing .custom-site-block-canvas{outline:none!important;cursor:move}
-body.custom-inline-editing .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing [data-custom-block-id].custom-block-selected,body.custom-inline-editing [data-custom-selected="true"]{outline:3px solid #d5a64c!important;outline-offset:3px!important;box-shadow:0 0 0 5px #d5a64c88!important;border-radius:4px!important;position:relative!important;z-index:20!important}
+body.custom-inline-editing .custom-site-block-canvas{outline:none!important;cursor:default}
+body.custom-inline-editing .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing [data-custom-block-id].custom-block-selected,body.custom-inline-editing [data-custom-selected="true"]{outline:3px solid #d5a64c!important;outline-offset:3px!important;box-shadow:0 0 0 5px #d5a64c88!important;border-radius:4px!important;z-index:20!important}
 .custom-resize-handle{display:none;position:absolute;right:0;bottom:0;width:18px;height:18px;background:#d5a64c;border:2px solid white;border-radius:4px;cursor:nwse-resize;z-index:20;touch-action:none}body.custom-inline-editing .custom-site-block-canvas.custom-block-selected>.custom-resize-handle{display:block}
 .custom-block-editable-text{min-height:32px;outline:none;cursor:text;position:relative}.custom-block-editable-text:empty:before,.custom-block-editable-text>p:only-child:has(>br:only-child):before{content:attr(data-placeholder);color:#718078;font-style:italic;pointer-events:none}
 @media(max-width:650px){.custom-inline-toolbar{top:5px;left:5px;right:5px;transform:none;justify-content:center;gap:3px;padding:7px}.custom-inline-toolbar button,.custom-inline-toolbar select{padding:6px;font-size:11px}.custom-inline-toolbar strong{display:none}.custom-inline-toolbar [data-inline-status]{width:100%;text-align:center}}
@@ -2129,6 +2129,6 @@ document.addEventListener('click',e=>{
 });
 let ownerBootPromise=null;function finishOwnerRestore(){if(ownerBootPromise)return ownerBootPromise;ownerBootPromise=restoreOwnerSession().then(()=>{ownerSessionReady=true;route();}).catch(e=>{ownerAccessMessage=String(e?.message||'Impossible de vérifier votre connexion Planning Conciergerie.');ownerSessionReady=true;route();});return ownerBootPromise;}function isOwnerEntry(){const params=new URLSearchParams(location.search);return /^#admin(?:\/|$)/i.test(location.hash||'')||params.get('espace')==='proprietaire';}function navigateSiteRoute(){if(isOwnerEntry()||new URLSearchParams(location.search).get('preview')==='1'){if(ownerSessionReady)route();else finishOwnerRestore();}else route();}window.addEventListener('hashchange',navigateSiteRoute);window.addEventListener('popstate',navigateSiteRoute);if(isOwnerEntry()||new URLSearchParams(location.search).get('preview')==='1'){finishOwnerRestore();}else{ownerSessionReady=true;route();}
 </script>
-<script src="editeur-blocs-fix.js?v=20261128-2"></script>
+<script src="editeur-blocs-fix.js?v=20261128-3"></script>
 
 </body></html>
