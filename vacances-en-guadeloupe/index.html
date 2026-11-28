@@ -888,6 +888,7 @@ function individualTextToolbar(){
   }
   if(e.target.closest('[data-inline-save]'))individualTextEdit?.finish(true);
   if(e.target.closest('[data-inline-delete]'))individualTextEdit?.remove();
+  if(e.target.closest('[data-it-change-photo]')){const picker=$('previewPhotoPicker');if(picker){picker.dataset.target=bar.dataset.photoTarget||'';picker.click();}}
  });
  bar.addEventListener('change',e=>{
   if(!individualTextEdit)return;
