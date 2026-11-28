@@ -2160,7 +2160,7 @@ async function openAdminUsersPanel(){
       const card=document.createElement('div'); card.style.cssText='border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;';
       const name=document.createElement('div');name.style.fontWeight='700';name.textContent=u.full_name||u.email||'Gérant';
       const email=document.createElement('div');email.style.cssText='font-size:12px;opacity:.75;margin-top:2px';email.textContent=u.email||'E-mail non renseigné';
-      const planning=document.createElement('div');planning.style.cssText='font-size:13px;margin-top:9px';planning.textContent='Planning : '+({pending:'En attente de validation',approved:'Actif',rejected:'Refusé'}[u.status]||u.status||'Statut inconnu');
+      const planning=document.createElement('div');planning.style.cssText='font-size:13px;margin-top:9px';planning.textContent='Planning : '+({pending:'En attente de validation',approved:'Actif',rejected:'Refusé',paused:'En pause'}[u.status]||u.status||'Statut inconnu');
       let siteStatus='Aucun site demandé';
       if(site){
         if(site.site_enabled) siteStatus='Site activé';
