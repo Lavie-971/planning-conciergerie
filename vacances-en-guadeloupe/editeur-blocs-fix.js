@@ -424,12 +424,17 @@
 
   const baseSave = window.customInlineSave;
   window.customInlineSave = async function () {
+    // Une sauvegarde déclenchée par le clic extérieur peut se terminer après
+    // qu'une autre case a déjà été sélectionnée. Ne jamais effacer cette
+    // nouvelle sélection à la fin de la requête.
+    const selectedAtStart = customInlineEditor.selectedId;
     const r = await baseSave.apply(this, arguments);
-    if (!customInlineEditor.dirty) {
-      customInlineEditor.selectedId = null; customInlineUpdateSelectionUI();
-      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-      getSelection().removeAllRanges();
+    // Le rendu de sauvegarde reconstruit les cases ; on restaure uniquement
+    // la sélection réellement active, sans forcer une désélection.
+    if (selectedAtStart != null && customInlineEditor.selectedId == null) {
+      customInlineEditor.selectedId = selectedAtStart;
     }
+    customInlineUpdateSelectionUI();
     return r;
   };
 
