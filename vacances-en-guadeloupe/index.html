@@ -290,7 +290,11 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #adminApp .image-preview .photo-tools button:disabled{opacity:.45;cursor:wait}
 #adminApp .image-preview[draggable="true"]{cursor:grab}
 #adminApp .image-preview.photo-dragging{opacity:.4;cursor:grabbing}
-#adminApp .image-preview.photo-drop-target{outline:3px dashed #c49b55;outline-offset:3px}
+#adminApp .image-preview.photo-drop-target{outline:3px dashed #c49b55;outline-offset:3px;background:#fff8e9;transform:scale(1.025);transition:transform .12s,background .12s}
+#adminApp .image-preview.photo-dragging{opacity:.22;transform:scale(.96)}
+.photo-drag-ghost{position:fixed;z-index:999999;pointer-events:none;width:112px;height:112px;object-fit:cover;border:3px solid #c49b55;border-radius:12px;box-shadow:0 12px 30px #0005;opacity:.96;transform:translate(-50%,-55%) rotate(3deg)}
+.photo-drop-target{position:relative}
+.photo-drop-target:after{content:'Déposer ici';display:block;text-align:center;font-size:12px;font-weight:700;color:#76551d;padding:5px 2px}
 #adminApp .image-preview .photo-tools button[data-move-photo]{background:#e5eee9;color:#214d3d;font-weight:700}
 #adminApp .image-preview.photo-drop-target{outline:3px dashed #c49b55;outline-offset:3px}
 
@@ -1119,10 +1123,11 @@ function setupImageEditors(){
    previews.querySelectorAll('[data-photo-card] img').forEach(img=>{
     img.style.touchAction='none';
     img.style.cursor='grab';
-    let holdTimer=null,dragPointer=null,dragStarted=false,sourceCard=null;
+    let holdTimer=null,dragPointer=null,dragStarted=false,sourceCard=null,dragGhost=null;
     const clearTouchDrag=()=>{
      if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
      previews.querySelectorAll('.photo-dragging,.photo-drop-target').forEach(el=>el.classList.remove('photo-dragging','photo-drop-target'));
+     if(dragGhost){dragGhost.remove();dragGhost=null;}
      dragPointer=null;dragStarted=false;sourceCard=null;
     };
     img.addEventListener('pointerdown',e=>{
@@ -1132,6 +1137,8 @@ function setupImageEditors(){
      holdTimer=setTimeout(()=>{
       if(!sourceCard)return;
       dragStarted=true;sourceCard.classList.add('photo-dragging');
+      dragGhost=img.cloneNode(true);dragGhost.className='photo-drag-ghost';document.body.appendChild(dragGhost);
+      const rect=img.getBoundingClientRect();dragGhost.style.left=(rect.left+rect.width/2)+'px';dragGhost.style.top=(rect.top+rect.height/2)+'px';
       try{img.setPointerCapture(e.pointerId);}catch(_){}
      },320);
     });
@@ -1140,6 +1147,7 @@ function setupImageEditors(){
      if(!dragStarted&&holdTimer){if(Math.abs(e.movementX)+Math.abs(e.movementY)>12){clearTimeout(holdTimer);holdTimer=null;}return;}
      if(!dragStarted)return;
      e.preventDefault();
+     if(dragGhost){dragGhost.style.left=e.clientX+'px';dragGhost.style.top=e.clientY+'px';}
      previews.querySelectorAll('.photo-drop-target').forEach(el=>el.classList.remove('photo-drop-target'));
      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-photo-card]');
      if(target&&target!==sourceCard)target.classList.add('photo-drop-target');
