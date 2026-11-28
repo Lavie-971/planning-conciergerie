@@ -431,6 +431,7 @@ body.private-preview-editing .hero{cursor:pointer;position:relative}
 body.private-preview-editing .hero:hover{filter:none}
 body.private-preview-editing .experience-img{cursor:pointer;position:relative}
 body.private-preview-editing .experience-img:hover::after{content:'✎ Changer la photo';position:absolute;z-index:10;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 15px;border-radius:7px;background:#173f36e8;color:#fff;font:600 13px Arial;white-space:nowrap;pointer-events:none}
+body.custom-canvas-selecting,body.custom-canvas-selecting *{touch-action:none!important;user-select:none!important;-webkit-user-select:none!important}body.custom-canvas-selecting{overscroll-behavior:contain}.custom-canvas-drawing{pointer-events:none;touch-action:none}
 .custom-insert-pencil{position:fixed;left:18px;bottom:18px;z-index:15001;width:52px;height:52px;border:0;border-radius:50%;background:#173f36;color:#fff;font-size:25px;box-shadow:0 5px 20px #0004;cursor:pointer}.custom-insert-pencil:hover{background:#285f50;transform:translateY(-2px)}.custom-insert-wizard{display:grid;gap:16px}.custom-insert-wizard .field{display:grid;gap:8px}.custom-insert-wizard .field span{font-size:12px;font-weight:800;color:#405d4e}.custom-insert-wizard select{width:100%;padding:12px;border:1px solid #dce5dc;border-radius:9px;background:#fff;color:#233b30;font:14px Arial,sans-serif}.custom-site-blocks-placement{display:grid;gap:22px;padding:36px 0}.custom-site-blocks-placement:empty{display:none}
 .preview-return-owner{position:fixed;right:18px;bottom:18px;z-index:15000;border:0;border-radius:9px;background:#173f36;color:#fff;padding:12px 17px;font-weight:700;font-size:13px;box-shadow:0 5px 20px #0003;cursor:pointer}
 .preview-return-owner:hover{background:#285f50}
@@ -1238,17 +1239,19 @@ function installCustomCanvasSelection(){
   const target=e.target instanceof Element?e.target:null;if(!target||target.closest('#customInsertPencil,.preview-modal,.preview-notice'))return;
   const found=customCanvasTarget(target);if(!found)return;
   e.preventDefault();
-  customCanvasStart={x:e.clientX,y:e.clientY,target:found.key};
+  customCanvasStart={x:e.clientX,y:e.clientY,target:found.key,pointerId:e.pointerId};try{if(e.target.setPointerCapture)e.target.setPointerCapture(e.pointerId);}catch(_){}
   customCanvasOverlay=document.createElement('div');customCanvasOverlay.className='custom-canvas-drawing';document.body.appendChild(customCanvasOverlay);
   Object.assign(customCanvasOverlay.style,{left:e.clientX+'px',top:e.clientY+'px',width:'1px',height:'1px'});
  },true);
  document.addEventListener('pointermove',e=>{
   if(!customCanvasStart||!customCanvasOverlay)return;
+  if(e.cancelable)e.preventDefault();
   const x=Math.min(customCanvasStart.x,e.clientX),y=Math.min(customCanvasStart.y,e.clientY),w=Math.abs(e.clientX-customCanvasStart.x),h=Math.abs(e.clientY-customCanvasStart.y);
   Object.assign(customCanvasOverlay.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
  },true);
  document.addEventListener('pointerup',e=>{
-  if(!customCanvasStart)return;
+  if(!customCanvasStart||e.pointerId!==customCanvasStart.pointerId)return;
+  if(e.cancelable)e.preventDefault();
   const start=customCanvasStart,w=Math.abs(e.clientX-start.x),h=Math.abs(e.clientY-start.y);stopDrawing();
   if(w<35||h<35){showPreviewPhotoNotice('Rectangle trop petit. Cliquez-glissez sur une zone de la page pour créer un bloc.');return;}
   const selectors={hero:'.hero',intro:'.intro',listings:'.listings',destination:'.experience',contact:'.contact',footer:'footer'};
