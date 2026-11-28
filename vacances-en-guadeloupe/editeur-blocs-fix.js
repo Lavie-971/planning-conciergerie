@@ -454,6 +454,12 @@
     const ar = box.parentElement && box.parentElement.getBoundingClientRect();
     if (ar && box.getBoundingClientRect().top - ar.top < 30) box.classList.add('handles-in');
   }
+  // Entrée explicite appelée après chaque reconstruction du rendu principal.
+  window.customInlineEnsureHandles = function () {
+    if (!document.body.classList.contains('custom-inline-editing')) return;
+    document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(addHandles);
+  };
+
   const baseAttach = window.customInlineAttachInteractions;
   window.customInlineAttachInteractions = function () {
     const r = baseAttach.apply(this, arguments);
