@@ -1613,7 +1613,7 @@ function customInlineInstallPersistentSelection(){
   customInlineUpdateSelectionUI();
   // Laisser les clics atteindre les poignées : leur propre gestionnaire
   // doit pouvoir déplacer ou supprimer le bloc.
-  if(target.closest('.custom-delete-handle,.custom-drag-handle'))return;
+  if(target.closest('.custom-delete-handle,.custom-drag-handle,.custom-resize-handle'))return;
   const text=target.closest('[data-custom-text]');
   if(text){
    // Dans la zone de texte, conserver le comportement natif du navigateur :
