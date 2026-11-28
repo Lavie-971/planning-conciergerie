@@ -899,12 +899,60 @@ function individualTextToolbar(){
  return bar;
 }
 
+function openIndividualTextEditor(key,label,element){
+ const site=activePreviewSite;if(!site||element.isContentEditable||individualTextEdit)return;
+ const hidden=!!site.site_texts?.[key+'_hidden'];
+ const originalHtml=hidden?'':element.innerHTML,originalText=hidden?'':element.textContent.trim();
+ const originalHref=element.matches('a')?element.getAttribute('href')||'':'';
+ const module=element.closest('.hero,.intro,.listings,.experience,.contact,footer,header')||element;
+ module.classList.add('preview-module-highlight');
+ if(hidden)element.innerHTML='';
+ element.contentEditable='true';element.setAttribute('role','textbox');element.setAttribute('aria-label','Modifier '+label);
+ element.classList.add('preview-text-edit-active');
+ element.style.outline='3px solid #2878b8';element.style.outlineOffset='5px';element.style.background='#fff8e9';element.style.color='#173f36';
+ const bar=individualTextToolbar();
+ const hrefControl=bar.querySelector('[data-it-href]');if(hrefControl)hrefControl.value=originalHref;
+ bar.querySelectorAll('[data-inline-command],[data-inline-font-size],[data-inline-font],[data-inline-color],[data-inline-align],[data-text-link],[data-inline-delete],[data-inline-save]').forEach(el=>el.hidden=false);const photoChange=bar.querySelector('[data-it-change-photo]');if(photoChange)photoChange.hidden=true;bar.dataset.photoTarget='';
+ bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';bar.style.top='0px';bar.style.left='50%';bar.style.transform='translateX(-50%)';
+ const close=()=>{individualTextEdit=null;bar.hidden=true;bar.style.display='none';bar.style.visibility='hidden';bar.style.opacity='0';element.contentEditable='false';element.removeAttribute('role');element.classList.remove('preview-text-edit-active');element.style.outline='';element.style.outlineOffset='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
+ const finish=async save=>{
+  if(!individualTextEdit||individualTextEdit.element!==element)return;
+  if(!save){close();element.innerHTML=hidden?'':originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);return;}
+  const html=sanitizeCustomTextHtml(element.innerHTML),next=element.textContent.trim();
+  if(!next){close();element.innerHTML=hidden?'':originalHtml;return;}
+  if(next===originalText&&html===sanitizeCustomTextHtml(originalHtml)&&!hidden){close();element.innerHTML=originalHtml;return;}
+  // Fermer immédiatement la barre et le contour ; l’enregistrement continue ensuite.
+  close();
+  element.style.opacity='.55';
+  try{
+   const texts={...(site.site_texts||{}),[key]:next,[key+'_html']:html,[key+'_hidden']:false};
+   if(element.matches('a')){const nextHref=bar.querySelector('[data-it-href]')?.value.trim()||'';if(nextHref&&!/^(https?:\/\/|mailto:|tel:|#)/i.test(nextHref))throw new Error('Adresse de lien invalide. Utilisez https://, mailto:, tel: ou #section.');if(nextHref)texts[key+'_url']=nextHref;else delete texts[key+'_url'];element.setAttribute('href',nextHref||originalHref);}
+   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
+   site.site_texts=texts;element.innerHTML=html;if(element.matches('a'))element.setAttribute('href',texts[key+'_url']||originalHref);element.title='Texte enregistré — cliquer pour modifier';
+  }catch(err){element.innerHTML=originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);alert('Impossible d’enregistrer ce texte : '+err.message);}
+  finally{element.style.opacity='';}
+ };
+ const remove=async()=>{
+  if(!individualTextEdit||individualTextEdit.element!==element)return;
+  if(!confirm('Supprimer définitivement ce texte de la page ?'))return;
+  element.style.opacity='.55';
+  try{
+   const texts={...(site.site_texts||{}),[key+'_hidden']:true};delete texts[key];delete texts[key+'_html'];
+   await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
+   site.site_texts=texts;close();element.textContent='';element.removeAttribute('title');element.style.opacity='';
+  }catch(err){element.innerHTML=originalHtml;close();element.style.opacity='';alert('Impossible de supprimer ce texte : '+err.message);}
+ };
+ individualTextEdit={element,finish,remove};
+ element.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(false);}else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();finish(true);}});
+ element.focus();const range=document.createRange();range.selectNodeContents(element);range.collapse(false);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+}
+
 function showOriginalPhotoToolbar(photo){
  const bar=individualTextToolbar();bar.dataset.photoTarget=photo.dataset.previewPhoto||'';
- bar.querySelectorAll('[data-it-command],[data-it-size],[data-it-font],[data-it-color],[data-it-align],[data-it-href],[data-it-add-symbol],[data-it-delete],[data-it-cancel],[data-it-save]').forEach(el=>el.hidden=true);
+ bar.querySelectorAll('[data-inline-command],[data-inline-font-size],[data-inline-font],[data-inline-color],[data-inline-align],[data-text-link],[data-inline-delete],[data-inline-save],[data-it-href]').forEach(el=>el.hidden=true);
  let change=bar.querySelector('[data-it-change-photo]');
  if(!change){change=document.createElement('button');change.type='button';change.dataset.itChangePhoto='1';change.textContent='🖼 Changer la photo';bar.insertBefore(change,bar.querySelector('.cit-sep'));}
- change.hidden=false;bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';bar.style.top='0px';bar.style.left='50%';bar.style.transform='translateX(-50%)';bar.style.top='0px';bar.style.left='50%';bar.style.transform='translateX(-50%)';
+ change.hidden=false;bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';bar.style.top='0px';bar.style.left='50%';bar.style.transform='translateX(-50%)';
 }
 function enablePreviewPhotoEditing(site){
  if(new URLSearchParams(location.search).get('preview')!=='1')return;
