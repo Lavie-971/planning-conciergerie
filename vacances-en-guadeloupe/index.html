@@ -934,7 +934,7 @@ function enableIndividualTextEditing(site){
   const outsideTarget=e=>e.target instanceof Element?e.target:(e.target?.parentElement||null);
   const closeIndividualOutside=e=>{
    const target=outsideTarget(e);if(!target)return;
-   if(target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog'))return;
+   if(target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,#originalElementHandles,.preview-edit-dialog'))return;
    const edit=individualTextEdit;
    if(edit&&!edit.element.contains(target)&&!edit.finishing){
     edit.finishing=true;
