@@ -1456,16 +1456,26 @@ function customInlineConvertLegacyBlockToCanvas(id,element,rectOverride=null){
 function customInlineInstallPersistentSelection(){
  if(document.body.dataset.customPersistentSelectionReady==='1')return;
  document.body.dataset.customPersistentSelectionReady='1';
- document.addEventListener('click',e=>{
+ const selectBox=(e,stop)=>{
   if(!document.body.classList.contains('custom-inline-editing'))return;
   const target=e.target instanceof Element?e.target:null;if(!target)return;
+  if(target.closest('#customInlineToolbar'))return;
   const box=target.closest('.custom-site-block-canvas,[data-custom-block-id]');if(!box)return;
   const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
-  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-  if(!box.classList.contains('custom-site-block-canvas')){customInlineConvertLegacyBlockToCanvas(id,box);return;}
-  customInlineEditor.selectedId=String(id);customInlineUpdateSelectionUI();
-  const text=target.closest('[data-custom-text]');if(text){text.contentEditable='true';text.focus();}
- },true);
+  if(!box.classList.contains('custom-site-block-canvas')){
+   if(stop){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();customInlineConvertLegacyBlockToCanvas(id,box);}
+   return;
+  }
+  customInlineEditor.selectedId=String(id);
+  customInlineUpdateSelectionUI();
+  if(stop){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  const text=target.closest('[data-custom-text]');
+  if(text&&e.type==='click'){text.contentEditable='true';text.focus();}
+ };
+ // Le pointerdown assure la sélection immédiatement, y compris sur écran tactile.
+ document.addEventListener('pointerdown',e=>selectBox(e,false),true);
+ // Le clic gère la conversion des anciennes cases et empêche les liens internes de quitter l’aperçu.
+ document.addEventListener('click',e=>selectBox(e,true),true);
 }
 function customInlineAttachInteractions(){
  customInlineInstallPersistentSelection();
