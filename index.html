@@ -2185,12 +2185,28 @@ async function openAdminUsersPanel(){
         choices.forEach(([label,value])=>{
           const b=document.createElement('button'); b.type='button'; b.className='btn'+(value==='approved'?' primary':''); b.textContent=label;
           b.onclick=async()=>{
-            const prompt=value==='paused'
-              ?'Mettre ce compte en pause ? Aucune donnée ne sera supprimée.'
-              :value==='approved' && u.status==='paused'
-                ?'Réactiver ce compte ? Ses données conservées redeviendront accessibles.'
-                :value==='rejected'?'Refuser cette demande d’accès ?':null;
-            if(prompt && !confirm(prompt)) return;
+            if(value==='paused'){
+              const expectedIdentifier=String(u.email||'').trim();
+              if(!expectedIdentifier){
+                alert('Impossible de suspendre ce compte : son adresse e-mail est absente.');
+                return;
+              }
+              const enteredIdentifier=window.prompt(
+                'CONFIRMATION DE SUSPENSION\\n\\nPour mettre en pause le compte de '+(u.full_name||'ce gérant')+', saisis exactement son identifiant de connexion (adresse e-mail) :\\n\\n'+expectedIdentifier
+              );
+              if(enteredIdentifier===null) return;
+              if(enteredIdentifier.trim().toLowerCase()!==expectedIdentifier.toLowerCase()){
+                alert('Identifiant incorrect. Le compte n’a pas été modifié.');
+                return;
+              }
+              if(!confirm('Dernière confirmation : mettre en pause le compte de '+expectedIdentifier+' ?\\n\\nAucune donnée ne sera supprimée.')){
+                return;
+              }
+            }else if(value==='approved' && u.status==='paused'){
+              if(!confirm('Réactiver le compte de '+(u.email||u.full_name||'ce gérant')+' ? Ses données conservées redeviendront accessibles.')) return;
+            }else if(value==='rejected'){
+              if(!confirm('Refuser cette demande d’accès ?')) return;
+            }
             b.disabled=true;b.textContent='…';
             try{
               await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});
