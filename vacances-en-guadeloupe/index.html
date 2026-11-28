@@ -883,6 +883,9 @@ function individualTextToolbar(){
   else el.textContent=value;
  });
 
+ bar.addEventListener('input',e=>{
+  if(e.target===individualTextEdit?.element){const field=bar.querySelector('[data-it-text]');if(field)field.value=individualTextEdit.element.textContent;}
+ });
  bar.addEventListener('click',e=>{
   const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);return;}
   const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);return;}
@@ -936,9 +939,7 @@ function openIndividualTextEditor(key,label,element){
  bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
  const placeToolbar=()=>{const rect=element.getBoundingClientRect(),height=bar.offsetHeight,width=bar.offsetWidth;let top=rect.bottom+10;if(top+height>window.innerHeight-10)top=Math.max(10,rect.top-height-10);let left=Math.min(Math.max(10,rect.left),window.innerWidth-width-10);bar.style.top=top+'px';bar.style.left=left+'px';bar.style.transform='none';};
  requestAnimationFrame(placeToolbar);window.addEventListener('resize',placeToolbar);window.addEventListener('scroll',placeToolbar,true);
- const syncToolbarText=()=>{const field=bar.querySelector('[data-it-text]');if(field)field.value=element.textContent;};
- element.addEventListener('input',syncToolbarText);
- const close=()=>{element.removeEventListener('input',syncToolbarText);window.removeEventListener('resize',placeToolbar);window.removeEventListener('scroll',placeToolbar,true);individualTextEdit=null;bar.hidden=true;bar.style.display='none';bar.style.visibility='hidden';bar.style.opacity='0';element.contentEditable='false';element.removeAttribute('role');element.classList.remove('preview-text-edit-active');element.style.outline='';element.style.outlineOffset='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
+ const close=()=>{window.removeEventListener('resize',placeToolbar);window.removeEventListener('scroll',placeToolbar,true);individualTextEdit=null;bar.hidden=true;bar.style.display='none';bar.style.visibility='hidden';bar.style.opacity='0';element.contentEditable='false';element.removeAttribute('role');element.classList.remove('preview-text-edit-active');element.style.outline='';element.style.outlineOffset='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
  const finish=async save=>{
   if(!individualTextEdit||individualTextEdit.element!==element)return;
   if(!save){close();element.innerHTML=hidden?'':originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);return;}
