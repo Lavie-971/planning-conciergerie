@@ -843,6 +843,26 @@ function enableIndividualTextEditing(site){
  }
  const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],contactLink:['contact_link','Contact — bouton et lien'],footerTagline:['footer_tagline','Pied de page']};
  document.body.classList.add('private-preview-editing');
+ // Fermer aussi l’éditeur des anciens textes/boutons lorsqu’on clique réellement hors de la zone.
+ if(document.body.dataset.individualEditorOutsideReady!=='1'){
+  document.body.dataset.individualEditorOutsideReady='1';
+  const outsideTarget=e=>e.target instanceof Element?e.target:(e.target?.parentElement||null);
+  const closeIndividualOutside=e=>{
+   const target=outsideTarget(e);if(!target)return;
+   if(target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog'))return;
+   const edit=individualTextEdit;
+   if(edit&&!edit.element.contains(target)&&!edit.finishing){
+    edit.finishing=true;
+    Promise.resolve(edit.finish(true)).finally(()=>{if(individualTextEdit===edit)edit.finishing=false;});
+   }
+   if(!edit){
+    document.querySelectorAll('.preview-module-selected').forEach(el=>el.classList.remove('preview-module-selected'));
+    document.querySelectorAll('.preview-module-hover').forEach(el=>el.classList.remove('preview-module-hover'));
+   }
+  };
+  window.addEventListener('pointerdown',closeIndividualOutside,true);
+  window.addEventListener('click',closeIndividualOutside,true);
+ }
  Object.entries(fields).forEach(([id,v])=>{const el=$(id);if(el){el.dataset.siteEditKey=v[0];el.dataset.siteEditLabel=v[1];el.title='Cliquer pour modifier ce texte';}});
 }
 let individualTextEdit=null;
@@ -886,13 +906,15 @@ function openIndividualTextEditor(key,label,element){
   const html=sanitizeCustomTextHtml(element.innerHTML),next=element.textContent.trim();
   if(!next){close();element.innerHTML=hidden?'':originalHtml;return;}
   if(next===originalText&&html===sanitizeCustomTextHtml(originalHtml)&&!hidden){close();element.innerHTML=originalHtml;return;}
+  // Fermer immédiatement la barre et le contour ; l’enregistrement continue ensuite.
+  close();
   element.style.opacity='.55';
   try{
    const texts={...(site.site_texts||{}),[key]:next,[key+'_html']:html,[key+'_hidden']:false};
    if(element.matches('a')){const nextHref=bar.querySelector('[data-it-href]')?.value.trim()||'';if(nextHref&&!/^(https?:\/\/|mailto:|tel:|#)/i.test(nextHref))throw new Error('Adresse de lien invalide. Utilisez https://, mailto:, tel: ou #section.');if(nextHref)texts[key+'_url']=nextHref;else delete texts[key+'_url'];element.setAttribute('href',nextHref||originalHref);}
    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
-   site.site_texts=texts;close();element.innerHTML=html;if(element.matches('a'))element.setAttribute('href',texts[key+'_url']||originalHref);element.title='Texte enregistré — cliquer pour modifier';
-  }catch(err){element.innerHTML=originalHtml;close();alert('Impossible d’enregistrer ce texte : '+err.message);}
+   site.site_texts=texts;element.innerHTML=html;if(element.matches('a'))element.setAttribute('href',texts[key+'_url']||originalHref);element.title='Texte enregistré — cliquer pour modifier';
+  }catch(err){element.innerHTML=originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);alert('Impossible d’enregistrer ce texte : '+err.message);}
   finally{element.style.opacity='';}
  };
  const remove=async()=>{
