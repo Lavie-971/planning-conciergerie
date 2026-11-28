@@ -2066,9 +2066,15 @@ async function sbAfterLogin(){
     if(profile.status!=='approved'){
       try{ window.localStorage.removeItem(approvedCacheKey(userId)); }catch(e){}
       const pending=profile.status==='pending';
-      showAccountAccessMessage(pending?'Demande en attente':'Accès refusé',pending
-        ?'Ton inscription a bien été reçue. Tu pourras utiliser l’application dès que l’administrateur aura validé ton compte.'
-        :'L’administrateur n’a pas autorisé l’accès à ce compte.');
+      const paused=profile.status==='paused';
+      showAccountAccessMessage(
+        paused?'Compte mis en pause':(pending?'Demande en attente':'Accès refusé'),
+        paused
+          ?'Ton compte est temporairement suspendu par l’administrateur. Tes logements, réservations et données sont conservés. Contacte l’administrateur pour demander sa réactivation.'
+          :pending
+            ?'Ton inscription a bien été reçue. Tu pourras utiliser l’application dès que l’administrateur aura validé ton compte.'
+            :'L’administrateur n’a pas autorisé l’accès à ce compte.'
+      );
       setSyncStatus('off'); renderAll(); return;
     }
     try{ window.localStorage.setItem(approvedCacheKey(userId),'1'); }catch(e){}
@@ -2167,14 +2173,51 @@ async function openAdminUsersPanel(){
       }
       const siteLine=document.createElement('div');siteLine.style.cssText='font-size:13px;margin-top:5px';siteLine.textContent='Site : '+siteStatus;
       card.append(name,email,planning,siteLine);
-      if(u.status==='pending'){
+      const statusLabels={pending:'En attente de validation',approved:'Actif',rejected:'Refusé',paused:'En pause'};
+      if(['pending','approved','paused','rejected'].includes(u.status)){
         const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
-        const heading=document.createElement('div');heading.style.cssText='width:100%;font-size:12px;font-weight:700;opacity:.75';heading.textContent='VALIDATION DU PLANNING';actions.append(heading);
-        [['Accepter','approved'],['Refuser','rejected']].forEach(([label,value])=>{
+        const heading=document.createElement('div');heading.style.cssText='width:100%;font-size:12px;font-weight:700;opacity:.75';heading.textContent=u.status==='pending'?'VALIDATION DU PLANNING':'GESTION DU COMPTE';actions.append(heading);
+        const choices=u.status==='pending'
+          ?[['Accepter','approved'],['Refuser','rejected']]
+          :u.status==='approved'
+            ?[['Mettre en pause','paused']]
+            :[['Réactiver le compte','approved']];
+        choices.forEach(([label,value])=>{
           const b=document.createElement('button'); b.type='button'; b.className='btn'+(value==='approved'?' primary':''); b.textContent=label;
-          b.onclick=async()=>{b.disabled=true;b.textContent='…';try{await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});u.status=value;planning.textContent='Planning : '+(value==='approved'?'Actif':'Refusé');actions.remove();}catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}};
+          b.onclick=async()=>{
+            const prompt=value==='paused'
+              ?'Mettre ce compte en pause ? Aucune donnée ne sera supprimée.'
+              :value==='approved' && u.status==='paused'
+                ?'Réactiver ce compte ? Ses données conservées redeviendront accessibles.'
+                :value==='rejected'?'Refuser définitivement cette demande d’accès ?':null;
+            if(prompt && !confirm(prompt)) return;
+            b.disabled=true;b.textContent='…';
+            try{
+              await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});
+              u.status=value;
+              planning.textContent='Planning : '+statusLabels[value];
+              actions.remove();
+              if(value==='paused'){
+                const note=document.createElement('div');note.style.cssText='font-size:12px;color:#9a5a20;margin-top:7px';note.textContent='Compte en pause — données conservées';
+                card.append(note);
+              }
+              const next=document.createElement('div');next.style.cssText='display:flex;gap:8px;margin-top:10px';
+              const nextBtn=document.createElement('button');nextBtn.type='button';nextBtn.className='btn primary';nextBtn.textContent=value==='paused'?'Réactiver le compte':'Mettre en pause';
+              nextBtn.onclick=async()=>{
+                const nextStatus=value==='paused'?'approved':'paused';
+                if(!confirm(nextStatus==='paused'?'Mettre ce compte en pause ? Aucune donnée ne sera supprimée.':'Réactiver ce compte ?'))return;
+                nextBtn.disabled=true;nextBtn.textContent='…';
+                try{
+                  await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:nextStatus},{'Prefer':'return=minimal'});
+                  u.status=nextStatus;planning.textContent='Planning : '+statusLabels[nextStatus];next.remove();
+                }catch(e){nextBtn.disabled=false;nextBtn.textContent=nextStatus==='paused'?'Mettre en pause':'Réactiver le compte';alert('Impossible de modifier le compte : '+e.message);}
+              };
+              next.append(nextBtn);card.append(next);
+            }catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}
+          };
           actions.append(b);
-        }); card.append(actions);
+        });
+        card.append(actions);
       }
       if(site && site.site_review_status==='pending' && site.site_review_note==='Demande de création depuis Planning Conciergerie'){
         const siteActions=document.createElement('div');siteActions.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap';
