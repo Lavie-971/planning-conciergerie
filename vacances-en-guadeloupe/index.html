@@ -292,8 +292,6 @@ html.owner-entry #adminApp{display:block!important}html.owner-entry:not(.owner-w
 #adminApp .image-preview.photo-dragging{opacity:.4;cursor:grabbing}
 #adminApp .image-preview.photo-drop-target{outline:3px dashed #c49b55;outline-offset:3px}
 #adminApp .image-preview .photo-tools button[data-move-photo]{background:#e5eee9;color:#214d3d;font-weight:700}
-#adminApp .image-preview .photo-drag-handle{position:absolute;top:8px;left:8px;z-index:3;width:36px;height:36px;border:0;border-radius:9px;background:rgba(255,255,255,.94);color:#214d3d;font-size:23px;font-weight:700;line-height:1;box-shadow:0 2px 8px #0002;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-#adminApp .image-preview .photo-drag-handle:active{background:#dcebe2;cursor:grabbing}
 #adminApp .image-preview.photo-drop-target{outline:3px dashed #c49b55;outline-offset:3px}
 
 
@@ -1106,8 +1104,7 @@ function setupImageEditors(){
   const field=editor.querySelector('[name]'),zone=editor.querySelector('[data-image-dropzone]'),picker=editor.querySelector('[data-image-files]'),choose=editor.querySelector('[data-image-choose]'),previews=editor.querySelector('[data-image-preview-list]');
   const values=()=>editor.dataset.multiple==='true'?field.value.split(/\\n|\r?\n/).map(x=>x.trim()).filter(Boolean):[field.value.trim()].filter(Boolean);
   const setValues=next=>{field.value=editor.dataset.multiple==='true'?next.join('\n'):(next[0]||'');field.dispatchEvent(new Event('input',{bubbles:true}));};
-  let photoPointerDrag=null;
-   const render=()=>{const list=values();previews.innerHTML=list.map((url,i)=>'<div class="image-preview" draggable="true" data-photo-card="'+i+'" title="Glissez cette photo pour changer sa place"><button type="button" class="photo-drag-handle" data-photo-drag-handle aria-label="Déplacer la photo" title="Maintenir puis glisser pour déplacer">⠿</button><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><button type="button" data-remove-image="'+esc(url)+'" aria-label="Supprimer cette photo" title="Supprimer">×</button><div class="photo-cover">'+(i===0?'★ Photo principale':'Photo '+(i+1))+'</div><div class="photo-tools"><button type="button" data-move-photo="-1" data-photo-index="'+i+'" '+(i===0?'disabled':'')+' aria-label="Monter la photo">↑ Monter</button><button type="button" data-move-photo="1" data-photo-index="'+i+'" '+(i===list.length-1?'disabled':'')+' aria-label="Descendre la photo">↓ Descendre</button><button type="button" data-enhance-photo="'+i+'">☀ Embellir</button></div></div>').join('');
+   const render=()=>{const list=values();previews.innerHTML=list.map((url,i)=>'<div class="image-preview" draggable="true" data-photo-card="'+i+'" title="Glissez cette photo pour changer sa place"><img src="'+esc(siteImageUrl(url))+'" alt="Aperçu de la photo"><button type="button" data-remove-image="'+esc(url)+'" aria-label="Supprimer cette photo" title="Supprimer">×</button><div class="photo-cover">'+(i===0?'★ Photo principale':'Photo '+(i+1))+'</div><div class="photo-tools"><button type="button" data-move-photo="-1" data-photo-index="'+i+'" '+(i===0?'disabled':'')+' aria-label="Monter la photo">↑ Monter</button><button type="button" data-move-photo="1" data-photo-index="'+i+'" '+(i===list.length-1?'disabled':'')+' aria-label="Descendre la photo">↓ Descendre</button><button type="button" data-enhance-photo="'+i+'">☀ Embellir</button></div></div>').join('');
     previews.querySelectorAll('[data-photo-card]').forEach(card=>{
      card.addEventListener('dragstart',e=>{card.classList.add('photo-dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',card.dataset.photoCard);});
      card.addEventListener('dragend',()=>{previews.querySelectorAll('.photo-dragging,.photo-drop-target').forEach(el=>el.classList.remove('photo-dragging','photo-drop-target'));});
@@ -1118,46 +1115,6 @@ function setupImageEditors(){
     previews.querySelectorAll('[data-move-photo]').forEach(btn=>btn.addEventListener('click',()=>{const next=values(),i=Number(btn.dataset.photoIndex),j=i+Number(btn.dataset.movePhoto);if(j<0||j>=next.length)return;[next[i],next[j]]=[next[j],next[i]];setValues(next);render();}));
    // Sur écran tactile, le glisser-déposer HTML natif ne fonctionne pas.
    // Une poignée dédiée utilise Pointer Events sans bloquer le défilement de la page.
-   previews.querySelectorAll('[data-photo-drag-handle]').forEach(handle=>{
-    handle.addEventListener('pointerdown',e=>{
-     if(e.pointerType==='mouse' && e.button!==0)return;
-     e.preventDefault();
-     photoPointerDrag={pointerId:e.pointerId,from:Number(handle.closest('[data-photo-card]').dataset.photoCard),startX:e.clientX,startY:e.clientY,moved:false};
-    });
-   });
-   const clearPhotoPointerDrag=()=>{
-    photoPointerDrag=null;
-    previews.querySelectorAll('.photo-drop-target').forEach(el=>el.classList.remove('photo-drop-target'));
-   };
-   const onPhotoPointerMove=e=>{
-    if(!photoPointerDrag || e.pointerId!==photoPointerDrag.pointerId)return;
-    const dx=e.clientX-photoPointerDrag.startX,dy=e.clientY-photoPointerDrag.startY;
-    if(!photoPointerDrag.moved && Math.hypot(dx,dy)<7)return;
-    photoPointerDrag.moved=true;
-    e.preventDefault();
-    previews.querySelectorAll('.photo-drop-target').forEach(el=>el.classList.remove('photo-drop-target'));
-    const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-photo-card]');
-    if(target && previews.contains(target))target.classList.add('photo-drop-target');
-   };
-   const onPhotoPointerUp=e=>{
-    if(!photoPointerDrag || e.pointerId!==photoPointerDrag.pointerId)return;
-    const drag=photoPointerDrag;
-    const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-photo-card]');
-    if(drag.moved && target && previews.contains(target)){
-     const next=values(),from=drag.from,to=Number(target.dataset.photoCard);
-     if(Number.isInteger(from)&&Number.isInteger(to)&&from>=0&&from<next.length&&to>=0&&to<next.length&&from!==to){
-      const [moved]=next.splice(from,1);next.splice(to,0,moved);setValues(next);
-     }
-    }
-    clearPhotoPointerDrag();
-    if(drag.moved)render();
-   };
-   if(editor.dataset.photoPointerHandlersReady!=='1'){
-    window.addEventListener('pointermove',onPhotoPointerMove,{passive:false});
-    window.addEventListener('pointerup',onPhotoPointerUp);
-    window.addEventListener('pointercancel',clearPhotoPointerDrag);
-    editor.dataset.photoPointerHandlersReady='1';
-   }
    previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const url=btn.dataset.removeImage,overlay=document.createElement('div');overlay.className='photo-delete-confirm-overlay';overlay.innerHTML='<div class="photo-delete-confirm-box" role="dialog" aria-modal="true" aria-labelledby="photoDeleteTitle"><h3 id="photoDeleteTitle">Supprimer cette photo ?</h3><p>Cette photo sera retirée de la sélection.</p><div class="photo-delete-confirm-actions"><button type="button" data-cancel-delete>Annuler</button><button type="button" data-confirm-delete>Supprimer</button></div></div>';const close=()=>overlay.remove();overlay.addEventListener('click',ev=>{if(ev.target===overlay)close();});overlay.querySelector('[data-cancel-delete]').addEventListener('click',close);overlay.querySelector('[data-confirm-delete]').addEventListener('click',()=>{setValues(values().filter(x=>x!==url));close();render();});document.body.appendChild(overlay);overlay.querySelector('[data-cancel-delete]').focus();}));
    previews.querySelectorAll('[data-enhance-photo]').forEach(btn=>btn.addEventListener('click',async()=>{const i=Number(btn.dataset.enhancePhoto),next=values();btn.disabled=true;btn.textContent='Traitement…';try{const file=await gentlyEnhanceSiteImage(next[i]),replacement=await uploadSiteImage(file);next[i]=replacement;setValues(next);render();}catch(err){btn.disabled=false;btn.textContent='Réessayer';zone.querySelector('span').textContent='Amélioration impossible : '+err.message;}}));
   };
