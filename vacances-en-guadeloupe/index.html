@@ -1603,6 +1603,8 @@ function customInlineInstallPersistentSelection(){
  const selectBox=(e,stop)=>{
   if(!document.body.classList.contains('custom-inline-editing'))return;
   const target=targetOf(e);if(!target||target.closest('#customInlineToolbar'))return;
+  // Les poignées des anciennes cases doivent recevoir leur pointer/click sans conversion préalable.
+  if(target.closest('.custom-delete-handle,.custom-drag-handle,.custom-resize-handle'))return;
   const box=target.closest('.custom-site-block-canvas,[data-custom-block-id]');if(!box)return;
   const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
   if(!box.classList.contains('custom-site-block-canvas')){
@@ -2157,6 +2159,6 @@ document.addEventListener('click',e=>{
 });
 let ownerBootPromise=null;function finishOwnerRestore(){if(ownerBootPromise)return ownerBootPromise;ownerBootPromise=restoreOwnerSession().then(()=>{ownerSessionReady=true;route();}).catch(e=>{ownerAccessMessage=String(e?.message||'Impossible de vérifier votre connexion Planning Conciergerie.');ownerSessionReady=true;route();});return ownerBootPromise;}function isOwnerEntry(){const params=new URLSearchParams(location.search);return /^#admin(?:\/|$)/i.test(location.hash||'')||params.get('espace')==='proprietaire';}function navigateSiteRoute(){if(isOwnerEntry()||new URLSearchParams(location.search).get('preview')==='1'){if(ownerSessionReady)route();else finishOwnerRestore();}else route();}window.addEventListener('hashchange',navigateSiteRoute);window.addEventListener('popstate',navigateSiteRoute);if(isOwnerEntry()||new URLSearchParams(location.search).get('preview')==='1'){finishOwnerRestore();}else{ownerSessionReady=true;route();}
 </script>
-<script src="editeur-blocs-fix.js?v=20261128-7"></script>
+<script src="editeur-blocs-fix.js?v=20261128-8"></script>
 
 </body></html>
