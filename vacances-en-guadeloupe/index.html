@@ -918,11 +918,15 @@ function setSiteIdentity(site){
  const presentationPhoto=t.presentation_photo_url;
  if(presentationPhoto){const el=document.querySelector('.experience-img'),photoUrl=siteImageUrl(presentationPhoto);if(el&&photoUrl)el.style.backgroundImage='url("'+photoUrl.replace(/["\\]/g,'')+'")';}
  if(new URLSearchParams(location.search).get('preview')==='1')enablePreviewPhotoEditing(site);
- const contact=site.whatsapp?('https://wa.me/'+site.whatsapp.replace(/\D/g,'')):site.contact_email?('mailto:'+site.contact_email):site.contact_phone?('tel:'+site.contact_phone.replace(/[^+0-9]/g,'')):'';
- $('contactLink').href=contact||'#contact';
- $('contactLink').hidden=!contact;
- $('contactLink').innerHTML=site.whatsapp?'Contacter sur WhatsApp <span>→</span>':site.contact_email?'Nous contacter par e-mail <span>→</span>':'Nous appeler <span>→</span>';
- $('contactDetails').textContent=[site.contact_phone,site.contact_email].filter(Boolean).join(' · ')||'Les coordonnées de contact ne sont pas encore renseignées.';
+ // Ne jamais afficher les coordonnées en clair : uniquement des boutons d’action.
+ $('contactLink').hidden=true;
+ const contactButtons=[];
+ const phoneDigits=String(site.contact_phone||'').replace(/[^+0-9]/g,'');
+ const whatsappDigits=String(site.whatsapp||'').replace(/\D/g,'');
+ if(whatsappDigits)contactButtons.push('<a class="btn" href="https://wa.me/'+whatsappDigits+'" target="_blank" rel="noopener noreferrer" style="display:inline-flex;margin:6px 8px 6px 0">WhatsApp <span>→</span></a>');
+ if(site.contact_email)contactButtons.push('<a class="btn" href="mailto:'+encodeURIComponent(String(site.contact_email).trim())+'" style="display:inline-flex;margin:6px 8px 6px 0">Envoyer un e-mail <span>→</span></a>');
+ if(phoneDigits)contactButtons.push('<a class="btn" href="tel:'+phoneDigits+'" style="display:inline-flex;margin:6px 8px 6px 0">Appeler <span>→</span></a>');
+ $('contactDetails').innerHTML=contactButtons.join('')||'Les moyens de contact ne sont pas encore renseignés.';
  if(new URLSearchParams(location.search).get('preview')==='1')enableIndividualTextEditing(site);
 }
 async function loadPublic(){
