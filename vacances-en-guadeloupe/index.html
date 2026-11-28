@@ -884,14 +884,23 @@ function addOriginalElementHandles(el){
  });
  const ar=el.parentElement?.getBoundingClientRect();if(ar&&el.getBoundingClientRect().top-ar.top<30){drag.classList.add('handles-in');del.classList.add('handles-in');}
 }
+function closeOriginalElementHandles(){
+ document.querySelectorAll('[data-site-edit-key],[data-preview-photo]').forEach(node=>{
+  node.classList.remove('custom-block-selected');
+  node.querySelectorAll(':scope > .custom-drag-handle,:scope > .custom-delete-handle,:scope > .custom-resize-handle').forEach(handle=>{
+   handle.style.display='';handle.style.visibility='';handle.style.opacity='';handle.style.pointerEvents='';
+  });
+ });
+}
 function showOriginalElementHandles(el){
- document.querySelectorAll('[data-site-edit-key],[data-preview-photo]').forEach(node=>node.querySelectorAll(':scope > .custom-drag-handle,:scope > .custom-delete-handle,:scope > .custom-resize-handle').forEach(x=>x.style.display='none'));
+ closeOriginalElementHandles();
+ if(!el)return;
  addOriginalElementHandles(el);
- el.querySelectorAll(':scope > .custom-drag-handle,:scope > .custom-delete-handle,:scope > .custom-resize-handle').forEach(x=>{x.style.display='flex';x.style.visibility='visible';x.style.opacity='1';x.style.pointerEvents='auto';});
+ el.classList.add('custom-block-selected');
 }
 
 const originalHandlesStyle=document.createElement('style');
-originalHandlesStyle.textContent='.custom-drag-handle,.custom-delete-handle,.custom-resize-handle{position:absolute;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none;box-sizing:border-box}.custom-drag-handle,.custom-delete-handle{top:0}.custom-drag-handle{left:0;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 8px}.custom-delete-handle{right:0;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 8px 0}.custom-resize-handle{right:0;bottom:0;background:#2878b8;color:#fff;cursor:nwse-resize;border-radius:7px 0 0 0}body.private-preview-editing [data-site-edit-key],body.private-preview-editing [data-preview-photo]{position:relative}';
+originalHandlesStyle.textContent='.custom-drag-handle,.custom-delete-handle,.custom-resize-handle{position:absolute;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}.custom-drag-handle,.custom-delete-handle{top:0}.custom-drag-handle{left:0;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 8px}.custom-delete-handle{right:0;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 8px 0}.custom-resize-handle{right:0;bottom:0;background:#2878b8;color:#fff;cursor:nwse-resize;border-radius:7px 0 0 0}body.private-preview-editing [data-site-edit-key],body.private-preview-editing [data-preview-photo]{position:relative}body.private-preview-editing [data-site-edit-key].custom-block-selected>.custom-drag-handle,body.private-preview-editing [data-site-edit-key].custom-block-selected>.custom-delete-handle,body.private-preview-editing [data-site-edit-key].custom-block-selected>.custom-resize-handle,body.private-preview-editing [data-preview-photo].custom-block-selected>.custom-drag-handle,body.private-preview-editing [data-preview-photo].custom-block-selected>.custom-delete-handle,body.private-preview-editing [data-preview-photo].custom-block-selected>.custom-resize-handle{display:flex}';
 document.head.appendChild(originalHandlesStyle);
 
 function enableIndividualTextEditing(site){
@@ -901,7 +910,7 @@ function enableIndividualTextEditing(site){
   const moduleFor=target=>{const editable=target.closest('[data-site-edit-key],[data-site-symbol-key],[data-preview-photo]');if(!editable)return null;if(editable.hasAttribute('data-preview-photo'))return editable.dataset.previewPhoto==='hero'?editable:editable.closest('.experience')||editable;return editable;};
   document.addEventListener('pointerover',e=>{const next=moduleFor(e.target);if(!next||next===hoveredModule||next.contains(e.relatedTarget))return;hoveredModule?.classList.remove('preview-module-hover');hoveredModule=next;if(hoveredModule!==selectedModule)hoveredModule.classList.add('preview-module-hover');});
   document.addEventListener('pointerout',e=>{if(!hoveredModule||hoveredModule.contains(e.relatedTarget))return;if(hoveredModule!==selectedModule)hoveredModule.classList.remove('preview-module-hover');hoveredModule=null;});
-  document.addEventListener('click',e=>{if(e.target.closest('#originalElementHandles'))return;if(e.target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog'))return;const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');const editable=e.target.closest('[data-site-edit-key],[data-preview-photo]');if(editable)showOriginalElementHandles(editable);}else{closeOriginalElementHandles();}},{capture:true});
+  document.addEventListener('click',e=>{if(e.target.closest('#originalElementHandles'))return;if(e.target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog'))return;const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');const editable=e.target.closest('[data-site-edit-key],[data-preview-photo]');if(editable)showOriginalElementHandles(editable);else closeOriginalElementHandles();}else{closeOriginalElementHandles();}},{capture:true});
  }
  const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],contactLink:['contact_link','Contact — bouton et lien'],footerTagline:['footer_tagline','Pied de page']};
  document.body.classList.add('private-preview-editing');
@@ -920,6 +929,7 @@ function enableIndividualTextEditing(site){
    if(!edit){
     document.querySelectorAll('.preview-module-selected').forEach(el=>el.classList.remove('preview-module-selected'));
     document.querySelectorAll('.preview-module-hover').forEach(el=>el.classList.remove('preview-module-hover'));
+    closeOriginalElementHandles();
    }
   };
   window.addEventListener('pointerdown',closeIndividualOutside,true);
