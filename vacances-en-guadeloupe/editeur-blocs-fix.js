@@ -446,7 +446,7 @@
       box.appendChild(del);
     }
     if (!box.querySelector('.custom-resize-handle')) {
-      const resize = document.createElement('span'); resize.className = 'custom-resize-handle'; resize.contentEditable = 'false'; resize.title = 'Redimensionner le bloc'; resize.setAttribute('aria-label', 'Redimensionner le bloc'); resize.textContent = '↘';
+      const resize = document.createElement('span'); resize.className = 'custom-resize-handle'; resize.contentEditable = 'false'; resize.title = 'Redimensionner le bloc'; resize.setAttribute('aria-label', 'Redimensionner le bloc'); resize.textContent = '';
       resize.addEventListener('pointerdown', e => startResize(box, e));
       resize.addEventListener('click', e => e.stopPropagation());
       box.appendChild(resize);
@@ -518,6 +518,7 @@
     '.custom-drag-handle{left:0;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 8px}',
     '.custom-delete-handle{right:0;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 8px 0}',
     '.custom-resize-handle{right:0;bottom:0;background:#2878b8;color:#fff;cursor:nwse-resize;border-radius:7px 0 0 0}',
+    '.custom-resize-handle::after{content:"↘";display:block;color:#fff;font:700 18px/1 Arial,sans-serif;line-height:1;pointer-events:none}',
     'body.custom-inline-editing .custom-site-block-canvas:hover>.custom-drag-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-delete-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-resize-handle,body.custom-inline-editing [data-custom-block-id]:hover>.custom-drag-handle,body.custom-inline-editing [data-custom-block-id]:hover>.custom-delete-handle,body.custom-inline-editing [data-custom-block-id]:hover>.custom-resize-handle,body.custom-inline-editing .custom-block-selected>.custom-drag-handle,body.custom-inline-editing .custom-block-selected>.custom-delete-handle,body.custom-inline-editing .custom-block-selected>.custom-resize-handle{display:flex}',
     '.custom-site-block-canvas.handles-in>.custom-drag-handle,.custom-site-block-canvas.handles-in>.custom-delete-handle{top:0}',
     '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}',
