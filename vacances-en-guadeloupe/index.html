@@ -1571,6 +1571,9 @@ function customInlineInstallPersistentSelection(){
  };
  let saving=false;
  const clearSelection=e=>{
+  // Pendant le dessin d'un nouveau bloc, ne pas lancer la désélection ni une sauvegarde
+  // de l'ancien bloc : leur réponse asynchrone pourrait effacer la nouvelle sélection.
+  if(customCanvasSelecting||document.body.classList.contains('custom-canvas-selecting'))return;
   if(e.type==='click'&&document.body.dataset.customSkipSelectionClear==='1'){
    delete document.body.dataset.customSkipSelectionClear;
    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
@@ -1591,7 +1594,8 @@ function customInlineInstallPersistentSelection(){
    }).finally(()=>{
     saving=false;
     document.body.dataset.customSelectionSaving='0';
-    customInlineEditor.selectedId=null;
+    // Ne jamais effacer une sélection créée entre-temps (ex. le bloc que l'on vient
+    // de dessiner pendant que la sauvegarde précédente se terminait).
     customInlineUpdateSelectionUI();
    });
   }
