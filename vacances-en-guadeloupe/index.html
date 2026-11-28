@@ -632,7 +632,7 @@ body.custom-inline-editing #customInlineToolbar{display:flex!important;visibilit
 .custom-inline-toolbar strong{padding:0 7px}.custom-inline-toolbar .save{background:#d7b36d;color:#173f36;font-weight:700}
 .custom-inline-toolbar [data-inline-status]{font-size:11px;min-width:100px}
 body.custom-inline-editing .custom-site-block-canvas{outline:1px dashed #d5a64c;cursor:move}
-body.custom-inline-editing .custom-site-block-canvas.custom-block-selected{outline:2px solid #d5a64c;box-shadow:0 0 0 3px #d5a64c55} body.custom-inline-editing [data-custom-block-id].custom-block-selected{outline:2px solid #d5a64c!important;outline-offset:2px;box-shadow:0 0 0 3px #d5a64c55!important;border-radius:4px}
+body.custom-inline-editing .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing [data-custom-block-id].custom-block-selected{outline:3px solid #d5a64c!important;outline-offset:3px;box-shadow:0 0 0 5px #d5a64c66!important;border-radius:4px;position:relative;z-index:2}
 .custom-resize-handle{display:none;position:absolute;right:0;bottom:0;width:18px;height:18px;background:#d5a64c;border:2px solid white;border-radius:4px;cursor:nwse-resize;z-index:20;touch-action:none}body.custom-inline-editing .custom-site-block-canvas.custom-block-selected>.custom-resize-handle{display:block}
 .custom-block-editable-text{min-height:32px;outline:none;cursor:text;position:relative}.custom-block-editable-text:empty:before,.custom-block-editable-text>p:only-child:has(>br:only-child):before{content:attr(data-placeholder);color:#718078;font-style:italic;pointer-events:none}
 @media(max-width:650px){.custom-inline-toolbar{top:5px;left:5px;right:5px;transform:none;justify-content:center;gap:3px;padding:7px}.custom-inline-toolbar button,.custom-inline-toolbar select{padding:6px;font-size:11px}.custom-inline-toolbar strong{display:none}.custom-inline-toolbar [data-inline-status]{width:100%;text-align:center}}
@@ -1415,17 +1415,8 @@ function customInlineConvertLegacyBlockToCanvas(id,element,rectOverride=null){
  const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Bloc converti en éditeur complet — Enregistrez pour conserver les modifications.';
 }
 function customInlineAttachInteractions(){
- if(document.body.dataset.customInlineDeselectReady!=='1'){
-  document.body.dataset.customInlineDeselectReady='1';
-  document.addEventListener('click',e=>{
-   if(!document.body.classList.contains('custom-inline-editing'))return;
-   const target=e.target instanceof Element?e.target:null;if(!target)return;
-   if(target.closest('.custom-site-block-canvas,[data-custom-block-id],#customInlineToolbar'))return;
-   if(!customInlineEditor.selectedId)return;
-   customInlineEditor.selectedId=null;
-   customInlineUpdateSelectionUI();
-  });
- }
+ // La sélection reste active et encadrée même après un clic ailleurs dans la page.
+ // Elle ne change que lorsqu'une autre case est sélectionnée ou que l'éditeur est fermé.
  document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box=>{
   if(box.dataset.inlineReady==='1')return;box.dataset.inlineReady='1';
   box.addEventListener('click',e=>{
