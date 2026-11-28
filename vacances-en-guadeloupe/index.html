@@ -637,7 +637,7 @@ body.custom-canvas-selecting #publicApp{cursor:crosshair!important;}
 /* Édition directe des rectangles sur la page privée */
 .custom-inline-toolbar[hidden]{display:none!important}
 body.custom-inline-editing #customInlineToolbar:not([hidden]){display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
-body.custom-inline-editing #customInlineToolbar{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+body.custom-inline-editing #customInlineToolbar[hidden]{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 .custom-inline-toolbar{position:fixed;z-index:30000;top:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:calc(100vw - 20px);padding:9px 12px;background:#173f36;color:#fff;border-radius:12px;box-shadow:0 8px 30px #0004;font:13px Arial,sans-serif}
 .custom-inline-toolbar button,.custom-inline-toolbar select{border:1px solid #ffffff55;border-radius:6px;padding:7px 9px;background:#fff;color:#173f36;cursor:pointer;font:inherit}
 .custom-inline-toolbar input[type=color]{width:30px;height:30px;padding:2px;border:0;background:#fff;border-radius:5px}
