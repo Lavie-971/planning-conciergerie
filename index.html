@@ -2189,30 +2189,13 @@ async function openAdminUsersPanel(){
               ?'Mettre ce compte en pause ? Aucune donnée ne sera supprimée.'
               :value==='approved' && u.status==='paused'
                 ?'Réactiver ce compte ? Ses données conservées redeviendront accessibles.'
-                :value==='rejected'?'Refuser définitivement cette demande d’accès ?':null;
+                :value==='rejected'?'Refuser cette demande d’accès ?':null;
             if(prompt && !confirm(prompt)) return;
             b.disabled=true;b.textContent='…';
             try{
               await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:value},{'Prefer':'return=minimal'});
-              u.status=value;
-              planning.textContent='Planning : '+statusLabels[value];
-              actions.remove();
-              if(value==='paused'){
-                const note=document.createElement('div');note.style.cssText='font-size:12px;color:#9a5a20;margin-top:7px';note.textContent='Compte en pause — données conservées';
-                card.append(note);
-              }
-              const next=document.createElement('div');next.style.cssText='display:flex;gap:8px;margin-top:10px';
-              const nextBtn=document.createElement('button');nextBtn.type='button';nextBtn.className='btn primary';nextBtn.textContent=value==='paused'?'Réactiver le compte':'Mettre en pause';
-              nextBtn.onclick=async()=>{
-                const nextStatus=value==='paused'?'approved':'paused';
-                if(!confirm(nextStatus==='paused'?'Mettre ce compte en pause ? Aucune donnée ne sera supprimée.':'Réactiver ce compte ?'))return;
-                nextBtn.disabled=true;nextBtn.textContent='…';
-                try{
-                  await sbRest('POST','rpc/admin_set_user_status',{target_user_id:u.user_id,new_status:nextStatus},{'Prefer':'return=minimal'});
-                  u.status=nextStatus;planning.textContent='Planning : '+statusLabels[nextStatus];next.remove();
-                }catch(e){nextBtn.disabled=false;nextBtn.textContent=nextStatus==='paused'?'Mettre en pause':'Réactiver le compte';alert('Impossible de modifier le compte : '+e.message);}
-              };
-              next.append(nextBtn);card.append(next);
+              panel.remove();
+              await openAdminUsersPanel();
             }catch(e){b.disabled=false;b.textContent=label;alert('Impossible de modifier le compte : '+e.message);}
           };
           actions.append(b);
