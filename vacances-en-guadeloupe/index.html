@@ -853,7 +853,7 @@ function openIndividualTextEditor(key,label,element){
  element.contentEditable='true';element.setAttribute('role','textbox');element.setAttribute('aria-label','Modifier '+label);
  element.style.outline='2px solid #c49b55';element.style.background='#fff8e9';element.style.color='#173f36';
  const bar=individualTextToolbar();bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
- const close=()=>{individualTextEdit=null;bar.hidden=true;element.contentEditable='false';element.removeAttribute('role');element.style.outline='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
+ const close=()=>{individualTextEdit=null;bar.hidden=true;bar.style.display='none';bar.style.visibility='hidden';bar.style.opacity='0';element.contentEditable='false';element.removeAttribute('role');element.style.outline='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
  const finish=async save=>{
   if(!individualTextEdit||individualTextEdit.element!==element)return;
   if(!save){close();element.innerHTML=hidden?'':originalHtml;return;}
