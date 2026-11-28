@@ -192,7 +192,6 @@
   }
   async function addBlock(kind) {
     try {
-      if (kind === 'text') { pushBlock(newBlock(40, 160), true); return; }
       if (kind === 'image') {
         const file = await pickImage(); if (!file) return;
         status('Envoi de l’image…');
@@ -254,7 +253,6 @@
     const m = document.createElement('div');
     m.id = 'customAddMenu'; m.className = 'cit-menu'; m.hidden = true;
     m.innerHTML = '<p>Ajouter à la page</p>'
-      + '<button type="button" data-add="text"><b>＋</b> Zone de texte</button>'
       + '<button type="button" data-add="image"><b>🖼</b> Image</button>'
       + '<button type="button" data-add="link"><b>🔗</b> Bouton-lien</button>'
       + '<button type="button" data-draw><b>▭</b> Dessiner la zone de mon choix</button>'
