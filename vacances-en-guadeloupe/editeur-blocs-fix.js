@@ -467,12 +467,26 @@
   window.customInlineUpdateSelectionUI = function () {
     const selected = customInlineEditor && customInlineEditor.selectedId != null
       ? String(customInlineEditor.selectedId) : '';
-    document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box => {
-      addHandles(box);
+    const boxes = document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]');
+    boxes.forEach(box => addHandles(box));
+    const result = baseUpdateSelection.apply(this, arguments);
+    boxes.forEach(box => {
       const id = String(box.dataset.customCanvasId || box.dataset.customBlockId || '');
-      box.classList.toggle('custom-block-selected', !!selected && id === selected);
+      const show = !!selected && id === selected;
+      box.classList.toggle('custom-block-selected', show);
+      // Forcer l'affichage des trois poignées sur la case active :
+      // ne pas dépendre d'un :hover (qui ne fonctionne pas de façon fiable au tactile).
+      ['.custom-drag-handle','.custom-delete-handle','.custom-resize-handle'].forEach(selector => {
+        const handle = box.querySelector(selector);
+        if (handle) {
+          handle.style.display = show ? 'flex' : '';
+          handle.style.visibility = show ? 'visible' : '';
+          handle.style.opacity = show ? '1' : '';
+          handle.style.pointerEvents = show ? 'auto' : '';
+        }
+      });
     });
-    return baseUpdateSelection.apply(this, arguments);
+    return result;
   };
 
   const baseSave = window.customInlineSave;
