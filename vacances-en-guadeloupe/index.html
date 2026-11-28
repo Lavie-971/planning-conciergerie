@@ -1601,9 +1601,15 @@ function customInlineInstallPersistentSelection(){
   }
   customInlineEditor.selectedId=String(id);
   customInlineUpdateSelectionUI();
-  if(stop){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
   const text=target.closest('[data-custom-text]');
-  if(text&&e.type==='click'){text.contentEditable='true';text.focus();}
+  if(text){
+   // Dans la zone de texte, conserver le comportement natif du navigateur :
+   // preventDefault() sur pointer/click empêchait le curseur et la saisie.
+   text.contentEditable='true';
+   if(e.type==='pointerdown')return;
+   if(e.type==='click')return;
+  }
+  if(stop){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
  };
  window.addEventListener('pointerdown',e=>{clearSelection(e);selectBox(e,false);},true);
  window.addEventListener('click',e=>{clearSelection(e);selectBox(e,true);},true);
