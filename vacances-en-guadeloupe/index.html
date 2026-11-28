@@ -1487,35 +1487,36 @@ function customInlineConvertLegacyBlockToCanvas(id,element,rectOverride=null){
 function customInlineInstallPersistentSelection(){
  if(document.body.dataset.customPersistentSelectionReady==='1')return;
  document.body.dataset.customPersistentSelectionReady='1';
- const eventElement=e=>{
-  const target=e.target;
-  if(target instanceof Element)return target;
-  return target?.parentElement||null;
- };
+ const targetOf=e=>e.target instanceof Element?e.target:(e.target?.parentElement||null);
  const isOutside=e=>{
-  const target=eventElement(e);
+  const target=targetOf(e);
   return !!target&&!target.closest('#customInlineToolbar')&&!target.closest('.custom-site-block-canvas,[data-custom-block-id]');
  };
  let saving=false;
  const clearSelection=e=>{
-  if(!document.body.classList.contains('custom-inline-editing')||!isOutside(e)||customInlineEditor.selectedId==null||saving)return;
-  saving=true;
-  const finish=ok=>{
-   saving=false;
-   document.body.dataset.customSelectionSaving='0';
-   if(ok){
+  if(!document.body.classList.contains('custom-inline-editing')||!isOutside(e)||customInlineEditor.selectedId==null)return;
+  // Retirer d'abord la sélection visuelle. L'enregistrement ne doit jamais bloquer
+  // la fermeture de la barre si la requête réseau est lente ou échoue.
+  const hadChanges=!!customInlineEditor.dirty;
+  customInlineEditor.selectedId=null;
+  customInlineUpdateSelectionUI();
+  if(hadChanges&&!saving){
+   saving=true;
+   document.body.dataset.customSelectionSaving='1';
+   Promise.resolve(customInlineSave()).catch(err=>{
+    const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');
+    if(status)status.textContent='Enregistrement impossible : '+(err?.message||'réessayez');
+   }).finally(()=>{
+    saving=false;
+    document.body.dataset.customSelectionSaving='0';
     customInlineEditor.selectedId=null;
     customInlineUpdateSelectionUI();
-   }
-  };
-  document.body.dataset.customSelectionSaving='1';
-  if(customInlineEditor.dirty)Promise.resolve(customInlineSave()).then(finish).catch(()=>finish(false));
-  else finish(true);
+   });
+  }
  };
  const selectBox=(e,stop)=>{
   if(!document.body.classList.contains('custom-inline-editing'))return;
-  const target=eventElement(e);if(!target)return;
-  if(target.closest('#customInlineToolbar'))return;
+  const target=targetOf(e);if(!target||target.closest('#customInlineToolbar'))return;
   const box=target.closest('.custom-site-block-canvas,[data-custom-block-id]');if(!box)return;
   const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
   if(!box.classList.contains('custom-site-block-canvas')){
@@ -1528,8 +1529,6 @@ function customInlineInstallPersistentSelection(){
   const text=target.closest('[data-custom-text]');
   if(text&&e.type==='click'){text.contentEditable='true';text.focus();}
  };
- // Window capture passe avant les gestionnaires de clic installés sur document.
- // Ainsi, aucun autre gestionnaire de l'aperçu ne peut empêcher la désélection.
  window.addEventListener('pointerdown',e=>{clearSelection(e);selectBox(e,false);},true);
  window.addEventListener('click',e=>{clearSelection(e);selectBox(e,true);},true);
 }
