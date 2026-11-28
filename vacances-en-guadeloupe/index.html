@@ -1487,27 +1487,34 @@ function customInlineConvertLegacyBlockToCanvas(id,element,rectOverride=null){
 function customInlineInstallPersistentSelection(){
  if(document.body.dataset.customPersistentSelectionReady==='1')return;
  document.body.dataset.customPersistentSelectionReady='1';
- const outsideTarget=e=>{
-  const target=e.target instanceof Element?e.target:null;
-  return target&&!target.closest('#customInlineToolbar')&&!target.closest('.custom-site-block-canvas,[data-custom-block-id]');
+ const eventElement=e=>{
+  const target=e.target;
+  if(target instanceof Element)return target;
+  return target?.parentElement||null;
  };
+ const isOutside=e=>{
+  const target=eventElement(e);
+  return !!target&&!target.closest('#customInlineToolbar')&&!target.closest('.custom-site-block-canvas,[data-custom-block-id]');
+ };
+ let saving=false;
  const clearSelection=e=>{
-  if(!document.body.classList.contains('custom-inline-editing')||!outsideTarget(e)||customInlineEditor.selectedId==null)return;
-  if(document.body.dataset.customSelectionSaving==='1')return;
-  document.body.dataset.customSelectionSaving='1';
+  if(!document.body.classList.contains('custom-inline-editing')||!isOutside(e)||customInlineEditor.selectedId==null||saving)return;
+  saving=true;
   const finish=ok=>{
+   saving=false;
    document.body.dataset.customSelectionSaving='0';
    if(ok){
     customInlineEditor.selectedId=null;
     customInlineUpdateSelectionUI();
    }
   };
+  document.body.dataset.customSelectionSaving='1';
   if(customInlineEditor.dirty)Promise.resolve(customInlineSave()).then(finish).catch(()=>finish(false));
   else finish(true);
  };
  const selectBox=(e,stop)=>{
   if(!document.body.classList.contains('custom-inline-editing'))return;
-  const target=e.target instanceof Element?e.target:null;if(!target)return;
+  const target=eventElement(e);if(!target)return;
   if(target.closest('#customInlineToolbar'))return;
   const box=target.closest('.custom-site-block-canvas,[data-custom-block-id]');if(!box)return;
   const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
@@ -1521,9 +1528,10 @@ function customInlineInstallPersistentSelection(){
   const text=target.closest('[data-custom-text]');
   if(text&&e.type==='click'){text.contentEditable='true';text.focus();}
  };
- // Le clic en dehors est traité dès l'appui, sans dépendre de la génération du clic.
- document.addEventListener('pointerdown',e=>{clearSelection(e);selectBox(e,false);},true);
- document.addEventListener('click',e=>{clearSelection(e);selectBox(e,true);},true);
+ // Window capture passe avant les gestionnaires de clic installés sur document.
+ // Ainsi, aucun autre gestionnaire de l'aperçu ne peut empêcher la désélection.
+ window.addEventListener('pointerdown',e=>{clearSelection(e);selectBox(e,false);},true);
+ window.addEventListener('click',e=>{clearSelection(e);selectBox(e,true);},true);
 }
 function customInlineAttachInteractions(){
  customInlineInstallPersistentSelection();
