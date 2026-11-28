@@ -2626,9 +2626,22 @@ function closeDrawer(){
 }
 let _silentRefreshInProgress = false;
 async function silentRefresh(){
-  if(!accountApproved || !syncUrl || !sbHasSession() || !activeUserId || anyModalOpen() || _initialSyncInProgress || document.visibilityState==='hidden' || _silentRefreshInProgress) return;
+  if(!accountApproved || !syncUrl || !sbHasSession() || !activeUserId || _silentRefreshInProgress) return;
   _silentRefreshInProgress = true;
   try{
+    // Recontrôler régulièrement le statut du compte : une suspension doit aussi
+    // fermer une session déjà ouverte, pas seulement empêcher une nouvelle connexion.
+    try{
+      const currentProfile=await sbRest('GET','user_profiles?select=status&user_id=eq.'+encodeURIComponent(activeUserId));
+      if(!currentProfile || !currentProfile[0] || currentProfile[0].status!=='approved'){
+        await sbAfterLogin();
+        return;
+      }
+    }catch(statusError){
+      console.warn('Vérification du statut du compte reportée.',statusError);
+      return;
+    }
+    if(anyModalOpen() || _initialSyncInProgress || document.visibilityState==='hidden') return;
     // Ne pas écraser les données si une sauvegarde est en cours ou vient de se terminer
     if(_savingInProgress) return;
     if(Date.now() - _lastSaveTimestamp < 20000) return; // délai de sécurité après une sauvegarde pour éviter d'écraser une modification récente
