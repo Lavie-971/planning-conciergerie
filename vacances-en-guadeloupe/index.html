@@ -839,7 +839,7 @@ function enableIndividualTextEditing(site){
   const moduleFor=target=>{const editable=target.closest('[data-site-edit-key],[data-site-symbol-key],[data-preview-photo]');if(!editable)return null;if(editable.hasAttribute('data-preview-photo'))return editable.dataset.previewPhoto==='hero'?editable:editable.closest('.experience')||editable;return editable;};
   document.addEventListener('pointerover',e=>{const next=moduleFor(e.target);if(!next||next===hoveredModule||next.contains(e.relatedTarget))return;hoveredModule?.classList.remove('preview-module-hover');hoveredModule=next;if(hoveredModule!==selectedModule)hoveredModule.classList.add('preview-module-hover');});
   document.addEventListener('pointerout',e=>{if(!hoveredModule||hoveredModule.contains(e.relatedTarget))return;if(hoveredModule!==selectedModule)hoveredModule.classList.remove('preview-module-hover');hoveredModule=null;});
-  document.addEventListener('click',e=>{if(e.target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog'))return;const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');showLegacyElementTools(selectedModule);}else hideLegacyElementTools();},{capture:true});
+  document.addEventListener('click',e=>{if(e.target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog'))return;const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');}else{}},{capture:true});
  }
  const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],contactLink:['contact_link','Contact — bouton et lien'],footerTagline:['footer_tagline','Pied de page']};
  document.body.classList.add('private-preview-editing');
@@ -869,46 +869,23 @@ let individualTextEdit=null;
 function individualTextToolbar(){
  let bar=$('individualTextToolbar');if(bar)return bar;
  bar=document.createElement('div');bar.id='individualTextToolbar';bar.className='custom-inline-toolbar individual-text-toolbar';
- bar.innerHTML='<strong>Modifier le texte / symbole</strong><button type="button" data-it-add-symbol title="Ajouter un symbole dans la partie destination">＋ Ajouter un symbole</button><input type="url" data-it-href placeholder="Adresse du lien (https://… ou #section)" aria-label="Adresse du lien" style="min-width:210px;max-width:38vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option value="Arial" style="font-family:Arial,sans-serif">Arial</option><option value="Georgia" style="font-family:Georgia,serif">Georgia</option><option value="Verdana" style="font-family:Verdana,sans-serif">Verdana</option><option value="Tahoma" style="font-family:Tahoma,sans-serif">Tahoma</option><option value="Times New Roman" style="font-family:&quot;Times New Roman&quot;,serif">Times New Roman</option><option value="Courier New" style="font-family:&quot;Courier New&quot;,monospace">Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
+ bar.innerHTML='<strong>Édition du site</strong><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille du texte"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option><option value="48px">48</option></select><select data-it-font title="Police"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Tahoma">Tahoma</option><option value="Times New Roman">Times New Roman</option><option value="Courier New">Courier New</option></select><input type="color" data-it-color title="Couleur du texte" value="#173f36"><button type="button" data-it-align="left" title="Aligner à gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Aligner à droite">≡</button><input type="url" data-it-href placeholder="Adresse du lien" aria-label="Adresse du lien" style="min-width:190px;max-width:30vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-add-symbol title="Ajouter un symbole">＋ Symbole</button><button type="button" data-it-delete title="Supprimer le texte">Supprimer</button><button type="button" data-it-cancel title="Annuler">✕</button><button type="button" data-it-save class="save">Enregistrer</button>';
  document.body.appendChild(bar);
  bar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
  let savedRange=null;
- const captureRange=()=>{
-  const selection=window.getSelection();
-  if(selection&&selection.rangeCount&&individualTextEdit?.element.contains(selection.anchorNode))savedRange=selection.getRangeAt(0).cloneRange();
- };
- const restoreRange=()=>{
-  const el=individualTextEdit?.element;if(!el)return null;
-  el.focus();const selection=window.getSelection();selection.removeAllRanges();
-  if(savedRange&&el.contains(savedRange.commonAncestorContainer))selection.addRange(savedRange);
-  else{const range=document.createRange();range.selectNodeContents(el);selection.addRange(range);}
-  return selection.rangeCount?selection.getRangeAt(0):null;
- };
- const selectEditableText=()=>{
-  const el=individualTextEdit?.element;if(!el)return;
-  el.focus();const range=document.createRange();range.selectNodeContents(el);
-  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);savedRange=range.cloneRange();
- };
- const applySelectedStyle=(property,value)=>{
-  const range=restoreRange();if(!range||range.collapsed)return;
-  const span=document.createElement('span');span.style[property]=value;
-  try{span.appendChild(range.extractContents());range.insertNode(span);const selection=window.getSelection();selection.removeAllRanges();const next=document.createRange();next.selectNodeContents(span);selection.addRange(next);savedRange=next.cloneRange();}catch(err){console.warn('Formatage impossible',err);}
- };
+ const captureRange=()=>{const s=window.getSelection();if(s&&s.rangeCount&&individualTextEdit?.element.contains(s.anchorNode))savedRange=s.getRangeAt(0).cloneRange();};
+ const restoreRange=()=>{const el=individualTextEdit?.element;if(!el)return null;el.focus();const s=window.getSelection();s.removeAllRanges();if(savedRange&&el.contains(savedRange.commonAncestorContainer))s.addRange(savedRange);else{const r=document.createRange();r.selectNodeContents(el);s.addRange(r);}return s.rangeCount?s.getRangeAt(0):null;};
+ const applyStyle=(property,value)=>{const range=restoreRange();if(!range)return;if(range.collapsed){const span=document.createElement('span');span.style[property]=value;span.appendChild(document.createTextNode('\u200b'));range.insertNode(span);const next=document.createRange();next.setStart(span.firstChild,1);next.collapse(true);const s=window.getSelection();s.removeAllRanges();s.addRange(next);savedRange=next.cloneRange();return;}const span=document.createElement('span');span.style[property]=value;try{span.appendChild(range.extractContents());range.insertNode(span);const s=window.getSelection();s.removeAllRanges();const next=document.createRange();next.selectNodeContents(span);s.addRange(next);savedRange=next.cloneRange();}catch(err){console.warn('Formatage impossible',err);}};
  bar.addEventListener('pointerdown',e=>{if(e.target.closest('select,input'))captureRange();},true);
  bar.addEventListener('click',e=>{
   const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){restoreRange();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);captureRange();return;}
-  const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){individualTextEdit?.element.focus();document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);return;}
+  const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){const el=individualTextEdit?.element;if(el){el.focus();document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);}return;}
   if(e.target.closest('[data-it-save]'))individualTextEdit?.finish(true);
   if(e.target.closest('[data-it-cancel]'))individualTextEdit?.finish(false);
   if(e.target.closest('[data-it-delete]'))individualTextEdit?.remove();
   if(e.target.closest('[data-it-add-symbol]'))addDestinationSymbol();
  });
- bar.addEventListener('change',e=>{
-  if(!individualTextEdit)return;
-  if(e.target.matches('[data-it-size]')){applySelectedStyle('fontSize',e.target.value);}
-  if(e.target.matches('[data-it-font]')){applySelectedStyle('fontFamily',e.target.value);}
-  if(e.target.matches('[data-it-color]')){applySelectedStyle('color',e.target.value);}
- });
+ bar.addEventListener('change',e=>{if(!individualTextEdit)return;if(e.target.matches('[data-it-size]'))applyStyle('fontSize',e.target.value);if(e.target.matches('[data-it-font]'))applyStyle('fontFamily',e.target.value);if(e.target.matches('[data-it-color]'))applyStyle('color',e.target.value);});
  return bar;
 }
 async function addDestinationSymbol(){
