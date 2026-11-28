@@ -403,15 +403,57 @@
     document.addEventListener('pointerup', up);
     document.addEventListener('pointercancel', up);
   }
+  function startResize(box, e) {
+    e.preventDefault(); e.stopPropagation();
+    const id = box.dataset.customCanvasId;
+    const b = customInlineEditor.blocks.find(x => String(x.id) === String(id));
+    if (!b) return;
+    customInlineEditor.selectedId = id; customInlineUpdateSelectionUI();
+    const anchor = box.parentElement;
+    const ar = anchor.getBoundingClientRect(), br = box.getBoundingClientRect();
+    const startX = e.clientX, startY = e.clientY, startW = br.width, startH = br.height;
+    const minW = 90, minH = 60;
+    const move = ev => {
+      const width = Math.max(minW, startW + ev.clientX - startX);
+      const height = Math.max(minH, startH + ev.clientY - startY);
+      box.style.width = Math.min(anchor.clientWidth, width) + 'px';
+      if (!b.image_url) box.style.height = height + 'px';
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+      const width = Math.max(minW, box.getBoundingClientRect().width);
+      const height = Math.max(minH, box.getBoundingClientRect().height);
+      b.placement = { ...(b.placement || {}), mode: 'canvas',
+        width: clamp(width / Math.max(1, anchor.clientWidth) * 100, 10, 100),
+        height: clamp(height, 60, 1600) };
+      customInlineMarkDirty(); customInlineRender();
+      customInlineEditor.selectedId = id; customInlineUpdateSelectionUI();
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up, { once: true });
+    document.addEventListener('pointercancel', up, { once: true });
+  }
   function addHandles(box) {
-    if (box.querySelector('.custom-drag-handle')) return;
-    const drag = document.createElement('span'); drag.className = 'custom-drag-handle'; drag.contentEditable = 'false'; drag.title = 'Déplacer le bloc'; drag.textContent = '✥';
-    const del = document.createElement('span'); del.className = 'custom-delete-handle'; del.contentEditable = 'false'; del.title = 'Supprimer ce bloc'; del.textContent = '✕';
-    drag.addEventListener('pointerdown', e => startDrag(box, e));
-    drag.addEventListener('click', e => e.stopPropagation());
-    del.addEventListener('pointerdown', e => e.stopPropagation());
-    del.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); customInlineEditor.selectedId = box.dataset.customCanvasId; customInlineDeleteSelected(); });
-    box.appendChild(drag); box.appendChild(del);
+    if (!box.querySelector('.custom-drag-handle')) {
+      const drag = document.createElement('span'); drag.className = 'custom-drag-handle'; drag.contentEditable = 'false'; drag.title = 'Déplacer le bloc'; drag.textContent = '✥';
+      drag.addEventListener('pointerdown', e => startDrag(box, e));
+      drag.addEventListener('click', e => e.stopPropagation());
+      box.appendChild(drag);
+    }
+    if (!box.querySelector('.custom-delete-handle')) {
+      const del = document.createElement('span'); del.className = 'custom-delete-handle'; del.contentEditable = 'false'; del.title = 'Supprimer ce bloc'; del.textContent = '✕';
+      del.addEventListener('pointerdown', e => e.stopPropagation());
+      del.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); customInlineEditor.selectedId = box.dataset.customCanvasId; customInlineDeleteSelected(); });
+      box.appendChild(del);
+    }
+    if (!box.querySelector('.custom-resize-handle')) {
+      const resize = document.createElement('span'); resize.className = 'custom-resize-handle'; resize.contentEditable = 'false'; resize.title = 'Redimensionner le bloc'; resize.setAttribute('aria-label', 'Redimensionner le bloc'); resize.textContent = '↘';
+      resize.addEventListener('pointerdown', e => startResize(box, e));
+      resize.addEventListener('click', e => e.stopPropagation());
+      box.appendChild(resize);
+    }
     const ar = box.parentElement && box.parentElement.getBoundingClientRect();
     if (ar && box.getBoundingClientRect().top - ar.top < 30) box.classList.add('handles-in');
   }
@@ -440,10 +482,12 @@
 
   const css = document.createElement('style');
   css.textContent = [
-    '.custom-drag-handle,.custom-delete-handle{position:absolute;top:-30px;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}',
+    '.custom-drag-handle,.custom-delete-handle,.custom-resize-handle{position:absolute;z-index:25;width:30px;height:28px;display:none;align-items:center;justify-content:center;font:700 15px Arial,sans-serif;touch-action:none;user-select:none}',
+    '.custom-drag-handle,.custom-delete-handle{top:-30px}',
     '.custom-drag-handle{left:0;background:#d5a64c;color:#173f36;cursor:grab;border-radius:8px 0 0 8px}',
     '.custom-delete-handle{right:0;background:#b83a3a;color:#fff;cursor:pointer;border-radius:0 8px 8px 0}',
-    'body.custom-inline-editing .custom-site-block-canvas:hover>.custom-drag-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-delete-handle,body.custom-inline-editing .custom-block-selected>.custom-drag-handle,body.custom-inline-editing .custom-block-selected>.custom-delete-handle{display:flex}',
+    '.custom-resize-handle{right:0;bottom:0;background:#2878b8;color:#fff;cursor:nwse-resize;border-radius:7px 0 0 0}',
+    'body.custom-inline-editing .custom-site-block-canvas:hover>.custom-drag-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-delete-handle,body.custom-inline-editing .custom-site-block-canvas:hover>.custom-resize-handle,body.custom-inline-editing .custom-block-selected>.custom-drag-handle,body.custom-inline-editing .custom-block-selected>.custom-delete-handle,body.custom-inline-editing .custom-block-selected>.custom-resize-handle{display:flex}',
     '.custom-site-block-canvas.handles-in>.custom-drag-handle,.custom-site-block-canvas.handles-in>.custom-delete-handle{top:0}',
     '.custom-site-block-canvas.custom-image-only .custom-site-block-image{height:calc(100% - 40px)}',
     /* aucun cadre autour des blocs ; seul le survol / la sélection en montre un, comme les autres éléments modifiables */
