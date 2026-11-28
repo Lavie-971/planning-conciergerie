@@ -643,7 +643,7 @@ body.custom-inline-editing #customInlineToolbar[hidden]{display:none!important;v
 .custom-inline-toolbar input[type=color]{width:30px;height:30px;padding:2px;border:0;background:#fff;border-radius:5px}
 .custom-inline-toolbar strong{padding:0 7px}.custom-inline-toolbar .save{background:#d7b36d;color:#173f36;font-weight:700}
 .custom-inline-toolbar [data-inline-status]{font-size:11px;min-width:100px}
-body.custom-inline-editing .custom-site-block-canvas{outline:1px dashed #d5a64c;cursor:move}
+body.custom-inline-editing .custom-site-block-canvas{outline:none!important;cursor:move}
 body.custom-inline-editing .custom-site-block-canvas.custom-block-selected,body.custom-inline-editing [data-custom-block-id].custom-block-selected,body.custom-inline-editing [data-custom-selected="true"]{outline:3px solid #d5a64c!important;outline-offset:3px!important;box-shadow:0 0 0 5px #d5a64c88!important;border-radius:4px!important;position:relative!important;z-index:20!important}
 .custom-resize-handle{display:none;position:absolute;right:0;bottom:0;width:18px;height:18px;background:#d5a64c;border:2px solid white;border-radius:4px;cursor:nwse-resize;z-index:20;touch-action:none}body.custom-inline-editing .custom-site-block-canvas.custom-block-selected>.custom-resize-handle{display:block}
 .custom-block-editable-text{min-height:32px;outline:none;cursor:text;position:relative}.custom-block-editable-text:empty:before,.custom-block-editable-text>p:only-child:has(>br:only-child):before{content:attr(data-placeholder);color:#718078;font-style:italic;pointer-events:none}
@@ -1487,6 +1487,24 @@ function customInlineConvertLegacyBlockToCanvas(id,element,rectOverride=null){
 function customInlineInstallPersistentSelection(){
  if(document.body.dataset.customPersistentSelectionReady==='1')return;
  document.body.dataset.customPersistentSelectionReady='1';
+ const outsideTarget=e=>{
+  const target=e.target instanceof Element?e.target:null;
+  return target&&!target.closest('#customInlineToolbar')&&!target.closest('.custom-site-block-canvas,[data-custom-block-id]');
+ };
+ const clearSelection=e=>{
+  if(!document.body.classList.contains('custom-inline-editing')||!outsideTarget(e)||customInlineEditor.selectedId==null)return;
+  if(document.body.dataset.customSelectionSaving==='1')return;
+  document.body.dataset.customSelectionSaving='1';
+  const finish=ok=>{
+   document.body.dataset.customSelectionSaving='0';
+   if(ok){
+    customInlineEditor.selectedId=null;
+    customInlineUpdateSelectionUI();
+   }
+  };
+  if(customInlineEditor.dirty)Promise.resolve(customInlineSave()).then(finish).catch(()=>finish(false));
+  else finish(true);
+ };
  const selectBox=(e,stop)=>{
   if(!document.body.classList.contains('custom-inline-editing'))return;
   const target=e.target instanceof Element?e.target:null;if(!target)return;
@@ -1503,25 +1521,9 @@ function customInlineInstallPersistentSelection(){
   const text=target.closest('[data-custom-text]');
   if(text&&e.type==='click'){text.contentEditable='true';text.focus();}
  };
- // Le pointerdown assure la sélection immédiatement, y compris sur écran tactile.
- document.addEventListener('pointerdown',e=>selectBox(e,false),true);
- // Le clic gère la conversion des anciennes cases et empêche les liens internes de quitter l’aperçu.
- document.addEventListener('click',e=>{
-  if(document.body.classList.contains('custom-inline-editing')){
-   const target=e.target instanceof Element?e.target:null;
-   if(target&&!target.closest('#customInlineToolbar')&&!target.closest('.custom-site-block-canvas,[data-custom-block-id]')&&customInlineEditor.selectedId!=null){
-    if(document.body.dataset.customSelectionSaving==='1')return;
-    document.body.dataset.customSelectionSaving='1';
-    const finish=ok=>{
-     document.body.dataset.customSelectionSaving='0';
-     if(ok){customInlineEditor.selectedId=null;customInlineUpdateSelectionUI();}
-    };
-    if(customInlineEditor.dirty)Promise.resolve(customInlineSave()).then(finish).catch(()=>finish(false));
-    else finish(true);
-   }
-  }
-  selectBox(e,true);
- },true);
+ // Le clic en dehors est traité dès l'appui, sans dépendre de la génération du clic.
+ document.addEventListener('pointerdown',e=>{clearSelection(e);selectBox(e,false);},true);
+ document.addEventListener('click',e=>{clearSelection(e);selectBox(e,true);},true);
 }
 function customInlineAttachInteractions(){
  customInlineInstallPersistentSelection();
@@ -1585,7 +1587,7 @@ function customInlineUpdateSelectionUI(){
    box.style.setProperty('z-index','20','important');
   }else{
    box.removeAttribute('data-custom-selected');
-   ['outline','outline-offset','box-shadow','border-radius','z-index'].forEach(property=>box.style.removeProperty(property));
+   ['outline','outline-offset','box-shadow','border-radius','z-index'].forEach(property=>box.style.removeProperty(property));box.style.setProperty('outline','none','important');box.style.setProperty('box-shadow','none','important');
   }
  });
 }
