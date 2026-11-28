@@ -112,6 +112,7 @@
     const px = parseFloat(cs.fontSize) || 16, opts = [...sizeSel.options].map(o => parseInt(o.value, 10));
     sizeSel.value = opts.reduce((best, n) => Math.abs(n - px) < Math.abs(best - px) ? n : best, opts[0]) + 'px';
     const f = matchFont(cs.fontFamily); if (f) fontSel.value = f;
+    styleFontChoices(bar);
     const hx = toHex(cs.color); if (/^#[0-9a-f]{6}$/.test(hx)) col.value = hx;
     const al = cs.textAlign, alSel = bar.querySelector('[data-inline-align]');
     if (alSel) alSel.value = al === 'center' ? 'Center' : (al === 'right' || al === 'end') ? 'Right' : 'Left';
@@ -120,6 +121,12 @@
       bar.querySelector('[data-inline-command="' + c + '"]')?.classList.toggle('on', !!on);
     });
   }
+
+  document.addEventListener('change', e => {
+    if (!e.target.matches('#customInlineToolbar [data-inline-font]')) return;
+    const font = FONTS.find(f => f.toLowerCase() === e.target.value.toLowerCase());
+    if (font) e.target.style.setProperty('font-family', '"' + font + '"');
+  }, true);
 
   function activeEditor() {
     const sel = window.customInlineSelectedText && customInlineSelectedText();
@@ -228,6 +235,17 @@
     const safeId = CSS.escape(id);
     return document.querySelector('.custom-site-block-canvas[data-custom-canvas-id="' + safeId + '"], [data-custom-block-id="' + safeId + '"]');
   };
+  function styleFontChoices(bar) {
+    const select = bar.querySelector('[data-inline-font]');
+    if (!select) return;
+    [...select.options].forEach(option => {
+      const font = FONTS.find(f => f.toLowerCase() === option.value.toLowerCase());
+      if (font) option.style.setProperty('font-family', '"' + font + '"');
+    });
+    const selected = FONTS.find(f => f.toLowerCase() === select.value.toLowerCase());
+    if (selected) select.style.setProperty('font-family', '"' + selected + '"');
+  }
+
   function positionBar(bar, box) {
     // La barre d'édition reste toujours en haut de l'écran, centrée,
     // quelle que soit la position de la case en cours de création.
