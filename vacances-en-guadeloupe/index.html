@@ -1213,6 +1213,22 @@ function renderCustomSiteBlocks(site){
  const targets={hero:'.hero',intro:'.intro',listings:'.listings',destination:'.experience',contact:'.contact',footer:'footer'},groups=new Map();
  blocks.forEach(block=>{const title=String(block.title||'').trim(),body=String(block.text||'').trim(),image=siteImageUrl(block.image_url||''),href=safeCustomBlockUrl(block.link_url||'');if(!title&&!body&&!image&&!href&&block.placement?.mode!=='canvas')return;const p=block.placement||{},target=targets[p.target]?p.target:'intro';if(p.mode==='canvas'){const anchor=document.querySelector(targets[target]);if(!anchor)return;anchor.style.position='relative';const box=document.createElement('article');box.className='custom-site-block custom-site-block-canvas';box.dataset.customCanvasId=block.id;box.style.left=Math.max(0,Math.min(100,Number(p.x)||0))+'%';box.style.top=Math.max(0,Math.min(100,Number(p.y)||0))+'%';box.style.width=Math.max(10,Math.min(100,Number(p.width)||40))+'%';box.style.height=Math.max(60,Math.min(1600,Number(p.height)||180))+'px';box.style.position='absolute';box.style.boxSizing='border-box';box.style.margin='0';box.style.zIndex='4';box.style.overflow='auto';const imageHtml=image?'<img class="custom-site-block-image" src="'+esc(image)+'" alt="Image ajoutée" loading="lazy">':'';const textHtml='<div class="custom-site-block-copy custom-block-editable-text" data-custom-text="'+esc(block.id)+'" contenteditable="true" data-placeholder="Cliquez ici pour écrire votre texte">'+(block.text_html?sanitizeCustomTextHtml(block.text_html):(body?'<p>'+esc(body).replace(/\n/g,'<br>')+'</p>':'<p><br></p>'))+'</div>';const linkHtml=href?'<div class="custom-site-block-copy"><a class="custom-site-block-link" href="'+esc(href)+'"'+(/^https?:\/\//i.test(href)?' target="_blank" rel="noopener noreferrer"':'')+'>'+esc(block.link_label||href)+' →</a></div>':'';box.innerHTML=imageHtml+textHtml+linkHtml;anchor.appendChild(box);if(document.body.classList.contains('custom-inline-editing'))customInlineAttachInteractions();return;}const position=p.position==='before'?'before':'after',key=target+':'+position;if(!groups.has(key))groups.set(key,[]);groups.get(key).push({block,title,body,image,href});});
  groups.forEach((items,key)=>{const [target,position]=key.split(':'),anchor=document.querySelector(targets[target]);if(!anchor)return;const wrapper=document.createElement('section');wrapper.className='custom-site-blocks custom-site-blocks-placement';wrapper.innerHTML=items.map(({block,title,body,image,href})=>{const imageHtml=image?'<img class="custom-site-block-image" src="'+esc(image)+'" alt="'+esc(title||'Illustration')+'" loading="lazy">':'';const textHtml=body.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean).map(p=>'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>').join('');const copy=title||body||href?'<div class="custom-site-block-copy">'+(title?'<h2>'+esc(title)+'</h2>':'')+textHtml+(href?'<a class="custom-site-block-link" href="'+esc(href)+'"'+(/^https?:\/\//i.test(href)?' target="_blank" rel="noopener noreferrer"':'')+'>'+esc(block.link_label||'En savoir plus')+' →</a>':'')+'</div>':'';return '<article class="custom-site-block" data-custom-block-id="'+esc(block.id||'')+'">' + imageHtml+copy+'</article>';}).join('');anchor.insertAdjacentElement(position==='before'?'beforebegin':'afterend',wrapper);});
+ // En aperçu privé, chaque bloc reçoit aussi son propre gestionnaire de clic.
+ // Cela évite de dépendre uniquement de la délégation globale d’événements.
+ if(new URLSearchParams(location.search).get('preview')==='1'){
+  host.querySelectorAll('[data-custom-block-id],.custom-site-block-canvas').forEach(element=>{
+   if(element.dataset.directEditReady==='1')return;
+   element.dataset.directEditReady='1';
+   element.style.cursor='pointer';
+   element.addEventListener('click',event=>{
+    if(document.body.classList.contains('custom-inline-editing'))return;
+    const id=element.dataset.customCanvasId||element.dataset.customBlockId;
+    if(!id)return;
+    event.preventDefault();event.stopPropagation();
+    openExistingCustomBlockInEditor(id,element);
+   },true);
+  });
+ }
 }
 let customCanvasSelecting=false,customCanvasStart=null,customCanvasOverlay=null,customCanvasSelectionHandled=false;
 function openExistingCustomBlockInEditor(id,element){
