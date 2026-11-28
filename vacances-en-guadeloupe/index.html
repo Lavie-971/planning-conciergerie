@@ -1682,7 +1682,8 @@ function customInlineUpdateSelectionUI(){
    box.style.setProperty('outline-offset','3px','important');
    box.style.setProperty('box-shadow','0 0 0 5px #d5a64c88','important');
    box.style.setProperty('border-radius','4px','important');
-   box.style.setProperty('position','relative','important');
+   // Conserver position:absolute du bloc : le passer en relative le déplace dans le flux
+   // de la page au moment même où on le sélectionne.
    box.style.setProperty('z-index','20','important');
   }else{
    box.removeAttribute('data-custom-selected');
