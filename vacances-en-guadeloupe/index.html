@@ -1113,8 +1113,53 @@ function setupImageEditors(){
      card.addEventListener('drop',e=>{e.preventDefault();const from=Number(e.dataTransfer.getData('text/plain')),to=Number(card.dataset.photoCard),next=values();if(!Number.isInteger(from)||from<0||from>=next.length||from===to)return;const [moved]=next.splice(from,1);next.splice(to,0,moved);setValues(next);render();});
     });
     previews.querySelectorAll('[data-move-photo]').forEach(btn=>btn.addEventListener('click',()=>{const next=values(),i=Number(btn.dataset.photoIndex),j=i+Number(btn.dataset.movePhoto);if(j<0||j>=next.length)return;[next[i],next[j]]=[next[j],next[i]];setValues(next);render();}));
-   // Sur écran tactile, le glisser-déposer HTML natif ne fonctionne pas.
-   // Une poignée dédiée utilise Pointer Events sans bloquer le défilement de la page.
+   // Sur téléphone : appui long directement sur la photo, puis glisser.
+   // La zone de l'image seule désactive le geste de défilement pendant le déplacement ;
+   // le reste de la carte conserve le défilement normal de la page.
+   previews.querySelectorAll('[data-photo-card] img').forEach(img=>{
+    img.style.touchAction='none';
+    img.style.cursor='grab';
+    let holdTimer=null,dragPointer=null,dragStarted=false,sourceCard=null;
+    const clearTouchDrag=()=>{
+     if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+     previews.querySelectorAll('.photo-dragging,.photo-drop-target').forEach(el=>el.classList.remove('photo-dragging','photo-drop-target'));
+     dragPointer=null;dragStarted=false;sourceCard=null;
+    };
+    img.addEventListener('pointerdown',e=>{
+     if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
+     if(e.button!==undefined&&e.button!==0)return;
+     sourceCard=img.closest('[data-photo-card]');dragPointer=e.pointerId;
+     holdTimer=setTimeout(()=>{
+      if(!sourceCard)return;
+      dragStarted=true;sourceCard.classList.add('photo-dragging');
+      try{img.setPointerCapture(e.pointerId);}catch(_){}
+     },320);
+    });
+    img.addEventListener('pointermove',e=>{
+     if(dragPointer!==e.pointerId)return;
+     if(!dragStarted&&holdTimer){if(Math.abs(e.movementX)+Math.abs(e.movementY)>12){clearTimeout(holdTimer);holdTimer=null;}return;}
+     if(!dragStarted)return;
+     e.preventDefault();
+     previews.querySelectorAll('.photo-drop-target').forEach(el=>el.classList.remove('photo-drop-target'));
+     const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-photo-card]');
+     if(target&&target!==sourceCard)target.classList.add('photo-drop-target');
+    });
+    const finishTouchDrag=e=>{
+     if(dragPointer!==e.pointerId)return;
+     if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+     if(dragStarted&&sourceCard){
+      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-photo-card]');
+      const from=Number(sourceCard.dataset.photoCard),to=target?Number(target.dataset.photoCard):-1,next=values();
+      if(Number.isInteger(from)&&Number.isInteger(to)&&from>=0&&to>=0&&from<next.length&&to<next.length&&from!==to){
+       const [moved]=next.splice(from,1);next.splice(to,0,moved);setValues(next);render();
+      }
+     }
+     clearTouchDrag();
+    };
+    img.addEventListener('pointerup',finishTouchDrag);
+    img.addEventListener('pointercancel',clearTouchDrag);
+    img.addEventListener('lostpointercapture',()=>{if(dragStarted)clearTouchDrag();});
+   });
    previews.querySelectorAll('[data-remove-image]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const url=btn.dataset.removeImage,overlay=document.createElement('div');overlay.className='photo-delete-confirm-overlay';overlay.innerHTML='<div class="photo-delete-confirm-box" role="dialog" aria-modal="true" aria-labelledby="photoDeleteTitle"><h3 id="photoDeleteTitle">Supprimer cette photo ?</h3><p>Cette photo sera retirée de la sélection.</p><div class="photo-delete-confirm-actions"><button type="button" data-cancel-delete>Annuler</button><button type="button" data-confirm-delete>Supprimer</button></div></div>';const close=()=>overlay.remove();overlay.addEventListener('click',ev=>{if(ev.target===overlay)close();});overlay.querySelector('[data-cancel-delete]').addEventListener('click',close);overlay.querySelector('[data-confirm-delete]').addEventListener('click',()=>{setValues(values().filter(x=>x!==url));close();render();});document.body.appendChild(overlay);overlay.querySelector('[data-cancel-delete]').focus();}));
    previews.querySelectorAll('[data-enhance-photo]').forEach(btn=>btn.addEventListener('click',async()=>{const i=Number(btn.dataset.enhancePhoto),next=values();btn.disabled=true;btn.textContent='Traitement…';try{const file=await gentlyEnhanceSiteImage(next[i]),replacement=await uploadSiteImage(file);next[i]=replacement;setValues(next);render();}catch(err){btn.disabled=false;btn.textContent='Réessayer';zone.querySelector('span').textContent='Amélioration impossible : '+err.message;}}));
   };
