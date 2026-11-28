@@ -461,6 +461,20 @@
     return r;
   };
 
+  // Les anciennes cases ne passent pas toujours par le cycle d'attachement
+  // des nouveaux canvas. Ajouter leurs poignées à chaque mise à jour de sélection.
+  const baseUpdateSelection = window.customInlineUpdateSelectionUI;
+  window.customInlineUpdateSelectionUI = function () {
+    const selected = customInlineEditor && customInlineEditor.selectedId != null
+      ? String(customInlineEditor.selectedId) : '';
+    document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box => {
+      addHandles(box);
+      const id = String(box.dataset.customCanvasId || box.dataset.customBlockId || '');
+      box.classList.toggle('custom-block-selected', !!selected && id === selected);
+    });
+    return baseUpdateSelection.apply(this, arguments);
+  };
+
   const baseSave = window.customInlineSave;
   window.customInlineSave = async function () {
     // Une sauvegarde déclenchée par le clic extérieur peut se terminer après
