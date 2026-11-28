@@ -2135,6 +2135,6 @@ document.addEventListener('click',e=>{
 });
 let ownerBootPromise=null;function finishOwnerRestore(){if(ownerBootPromise)return ownerBootPromise;ownerBootPromise=restoreOwnerSession().then(()=>{ownerSessionReady=true;route();}).catch(e=>{ownerAccessMessage=String(e?.message||'Impossible de vérifier votre connexion Planning Conciergerie.');ownerSessionReady=true;route();});return ownerBootPromise;}function isOwnerEntry(){const params=new URLSearchParams(location.search);return /^#admin(?:\/|$)/i.test(location.hash||'')||params.get('espace')==='proprietaire';}function navigateSiteRoute(){if(isOwnerEntry()||new URLSearchParams(location.search).get('preview')==='1'){if(ownerSessionReady)route();else finishOwnerRestore();}else route();}window.addEventListener('hashchange',navigateSiteRoute);window.addEventListener('popstate',navigateSiteRoute);if(isOwnerEntry()||new URLSearchParams(location.search).get('preview')==='1'){finishOwnerRestore();}else{ownerSessionReady=true;route();}
 </script>
-<script src="editeur-blocs-fix.js?v=20261128-8"></script>
+<script src="editeur-blocs-fix.js?v=20261128-9"></script>
 
 </body></html>
