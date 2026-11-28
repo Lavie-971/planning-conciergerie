@@ -1481,6 +1481,7 @@ function installCustomCanvasSelection(){
   const r=anchor.getBoundingClientRect(),left=Math.min(start.x,e.clientX),top=Math.min(start.y,e.clientY);
   const block={id:crypto.randomUUID(),type:'mixed',title:'',text:'',text_html:'<p><br></p>',image_url:'',link_url:'',link_label:'En savoir plus',placement:{mode:'canvas',target:start.target,x:Math.max(0,Math.min(100,(left-r.left)/Math.max(1,r.width)*100)),y:Math.max(0,Math.min(100,(top-r.top)/Math.max(1,r.height)*100)),width:Math.max(10,Math.min(100,w/Math.max(1,r.width)*100)),height:Math.max(60,h)}};
   customCanvasSelecting=false;document.body.classList.remove('custom-canvas-selecting');
+  document.body.dataset.customSkipSelectionClear='1';
   const pencil=$('customInsertPencil');if(pencil){pencil.textContent='＋';pencil.title='Dessiner un rectangle sur la page';}
   openCustomBlocksManager(block);
  },true);
@@ -1570,6 +1571,11 @@ function customInlineInstallPersistentSelection(){
  };
  let saving=false;
  const clearSelection=e=>{
+  if(e.type==='click'&&document.body.dataset.customSkipSelectionClear==='1'){
+   delete document.body.dataset.customSkipSelectionClear;
+   e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+   return;
+  }
   if(!document.body.classList.contains('custom-inline-editing')||!isOutside(e)||customInlineEditor.selectedId==null)return;
   // Retirer d'abord la sélection visuelle. L'enregistrement ne doit jamais bloquer
   // la fermeture de la barre si la requête réseau est lente ou échoue.
