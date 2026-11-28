@@ -1717,8 +1717,15 @@ function customInlineExit(){if(customInlineEditor.dirty&&!confirm('Des modificat
 function openCustomBlocksManager(initialBlock){
  customInlineEditor.blocks=Array.isArray(currentSite?.site_texts?.custom_blocks)?JSON.parse(JSON.stringify(currentSite.site_texts.custom_blocks)):[];
  customInlineEditor.blocks=customInlineEditor.blocks.map(b=>({...b,id:b.id||crypto.randomUUID(),type:'mixed'}));
- if(initialBlock){initialBlock.type='mixed';customInlineEditor.blocks.push(initialBlock);customInlineEditor.selectedId=initialBlock.id;}
+ if(initialBlock){initialBlock.type='mixed';customInlineEditor.blocks.push(initialBlock);customInlineEditor.selectedId=String(initialBlock.id);customInlineEditor.dirty=true;}
  document.body.classList.add('custom-inline-editing');customInlineToolbar();customInlineRender();
+ if(initialBlock){
+  // Réappliquer la sélection après le rendu pour rendre le cadre et la barre visibles.
+  customInlineEditor.selectedId=String(initialBlock.id);
+  customInlineUpdateSelectionUI();
+  requestAnimationFrame(()=>customInlineFocusText(initialBlock.id));
+  customInlineMarkDirty();
+ }
 }
 function setupCustomBlocksManager(initialBlock=null){openCustomBlocksManager(initialBlock);}
 
