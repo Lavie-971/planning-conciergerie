@@ -836,7 +836,7 @@ function enableIndividualTextEditing(site){
  if(document.body.dataset.previewModuleHoverReady!=='1'){
   document.body.dataset.previewModuleHoverReady='1';
   let hoveredModule=null,selectedModule=null;
-  const moduleFor=target=>target.closest('[data-site-edit-key],[data-site-symbol-key],[data-preview-photo]');
+  const moduleFor=target=>{const editable=target.closest('[data-site-edit-key],[data-site-symbol-key],[data-preview-photo]');if(!editable)return null;if(editable.hasAttribute('data-preview-photo'))return editable.dataset.previewPhoto==='hero'?editable:editable.closest('.experience')||editable;return editable;};
   document.addEventListener('pointerover',e=>{const next=moduleFor(e.target);if(!next||next===hoveredModule||next.contains(e.relatedTarget))return;hoveredModule?.classList.remove('preview-module-hover');hoveredModule=next;if(hoveredModule!==selectedModule)hoveredModule.classList.add('preview-module-hover');});
   document.addEventListener('pointerout',e=>{if(!hoveredModule||hoveredModule.contains(e.relatedTarget))return;if(hoveredModule!==selectedModule)hoveredModule.classList.remove('preview-module-hover');hoveredModule=null;});
   document.addEventListener('click',e=>{if(e.target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog,#legacyElementTools'))return;const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');showLegacyElementTools(selectedModule);}else hideLegacyElementTools();},{capture:true});
