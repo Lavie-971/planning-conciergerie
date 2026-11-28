@@ -954,7 +954,10 @@ async function loadPublic(){
   }
   rows.forEach(row=>{row.photo_urls=(row.photo_urls||[]).flatMap(photo=>String(photo||'').split(/\\n|\n/).map(value=>value.trim()).filter(Boolean));});
   setSiteIdentity(site);
+  if(preview){currentSite=site;activePreviewSite=site;}
   renderCustomSiteBlocks(site);
+  // Installer l’édition des blocs dès leur rendu, indépendamment du chargement des logements.
+  if(preview)installCustomExistingBlockEditor();
   const reviewFields=detailId?'listing_id,rating,comment,display_name,created_at':'listing_id,rating';
   const reviewRows=rows.length?await api('public_guest_reviews?select='+reviewFields+'&listing_id=in.('+rows.map(row=>encodeURIComponent(row.id)).join(',')+')'):[];
   const reviewsFor=id=>reviewRows.filter(r=>r.listing_id===id);
@@ -1210,20 +1213,18 @@ function renderCustomSiteBlocks(site){
 let customCanvasSelecting=false,customCanvasStart=null,customCanvasOverlay=null,customCanvasSelectionHandled=false;
 function openExistingCustomBlockInEditor(id,element){
  if(!currentSite||!id)return;
- // Garantir que chaque ancien bloc possède le même identifiant dans le site et dans l’éditeur.
  if(!currentSite.site_texts)currentSite.site_texts={};
  if(!Array.isArray(currentSite.site_texts.custom_blocks))currentSite.site_texts.custom_blocks=[];
  currentSite.site_texts.custom_blocks.forEach(block=>{if(block&&!block.id)block.id=crypto.randomUUID();});
  const source=currentSite.site_texts.custom_blocks.find(block=>String(block.id)===String(id));
- if(!source)return;
+ if(!source){showPreviewPhotoNotice('Cette case n’a pas pu être identifiée. Rechargez l’aperçu puis réessayez.');return;}
  const rect=element?.getBoundingClientRect?.()||null;
  openCustomBlocksManager();
  const editable=customInlineEditor.blocks.find(block=>String(block.id)===String(id));
- if(!editable)return;
- if(editable.placement?.mode==='canvas'){
-  customInlineEditor.selectedId=id;customInlineRender();customInlineFocusText(id);return;
- }
- customInlineConvertLegacyBlockToCanvas(id,null,rect);
+ if(!editable){showPreviewPhotoNotice('Impossible de charger cette case dans l’éditeur.');return;}
+ customInlineEditor.selectedId=id;
+ if(editable.placement?.mode!=='canvas')customInlineConvertLegacyBlockToCanvas(id,null,rect);
+ else{customInlineRender();customInlineFocusText(id);customInlineUpdateSelectionUI();}
 }
 function installCustomExistingBlockEditor(){
  if(document.body.dataset.customExistingBlockEditorReady==='1')return;
