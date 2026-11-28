@@ -1506,7 +1506,22 @@ function customInlineInstallPersistentSelection(){
  // Le pointerdown assure la sélection immédiatement, y compris sur écran tactile.
  document.addEventListener('pointerdown',e=>selectBox(e,false),true);
  // Le clic gère la conversion des anciennes cases et empêche les liens internes de quitter l’aperçu.
- document.addEventListener('click',e=>selectBox(e,true),true);
+ document.addEventListener('click',e=>{
+  if(document.body.classList.contains('custom-inline-editing')){
+   const target=e.target instanceof Element?e.target:null;
+   if(target&&!target.closest('#customInlineToolbar')&&!target.closest('.custom-site-block-canvas,[data-custom-block-id]')&&customInlineEditor.selectedId!=null){
+    if(document.body.dataset.customSelectionSaving==='1')return;
+    document.body.dataset.customSelectionSaving='1';
+    const finish=ok=>{
+     document.body.dataset.customSelectionSaving='0';
+     if(ok){customInlineEditor.selectedId=null;customInlineUpdateSelectionUI();}
+    };
+    if(customInlineEditor.dirty)Promise.resolve(customInlineSave()).then(finish).catch(()=>finish(false));
+    else finish(true);
+   }
+  }
+  selectBox(e,true);
+ },true);
 }
 function customInlineAttachInteractions(){
  customInlineInstallPersistentSelection();
@@ -1554,8 +1569,8 @@ async function customInlineDeleteSelected(){
 function customInlineUpdateSelectionUI(){
  if(document.body.classList.contains('custom-inline-editing')&&!$('customInlineToolbar'))customInlineToolbar();
  const bar=$('customInlineToolbar');
- if(bar){bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';}
  const selectedId=customInlineEditor.selectedId==null?'':String(customInlineEditor.selectedId);
+ if(bar){const visible=!!selectedId;bar.hidden=!visible;bar.style.display=visible?'flex':'none';bar.style.visibility=visible?'visible':'hidden';bar.style.opacity=visible?'1':'0';}
  document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box=>{
   const id=String(box.dataset.customCanvasId||box.dataset.customBlockId||'');
   const selected=!!selectedId&&id===selectedId;
@@ -1610,8 +1625,8 @@ async function customInlineSave(){
   const saved=await api('public_owner_sites?select=site_texts&user_id=eq.'+encodeURIComponent(currentUser.id)+'&site_slug=eq.'+encodeURIComponent(currentSite.site_slug));
   const stable=value=>JSON.stringify(value,(key,val)=>val&&typeof val==='object'&&!Array.isArray(val)?Object.keys(val).sort().reduce((out,k)=>(out[k]=val[k],out),{}):val);
   if(!saved[0]||stable(saved[0].site_texts?.custom_blocks||[])!==stable(cleaned))throw new Error('La base n’a pas renvoyé les blocs enregistrés. Vérifiez les droits de modification du site.');
-  currentSite.site_texts=saved[0].site_texts;if(activePreviewSite)activePreviewSite.site_texts=saved[0].site_texts;customInlineEditor.blocks=cleaned;customInlineEditor.dirty=false;$('customInlineToolbar').querySelector('[data-inline-status]').textContent='Enregistré ✓';customInlineRender();
- }catch(err){$('customInlineToolbar').querySelector('[data-inline-status]').textContent='Erreur : '+err.message;}
+  currentSite.site_texts=saved[0].site_texts;if(activePreviewSite)activePreviewSite.site_texts=saved[0].site_texts;customInlineEditor.blocks=cleaned;customInlineEditor.dirty=false;const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Enregistré ✓';customInlineRender();return true;
+ }catch(err){const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Erreur : '+err.message;return false;}
 }
 function customInlineExit(){if(customInlineEditor.dirty&&!confirm('Des modifications ne sont pas enregistrées. Quitter sans les conserver ?'))return;$('customInlineToolbar')?.remove();document.body.classList.remove('custom-inline-editing');customInlineEditor={blocks:[],status:null,selectedId:null,dirty:false};renderCustomSiteBlocks(currentSite);}
 function openCustomBlocksManager(initialBlock){
