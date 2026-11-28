@@ -999,7 +999,7 @@ function setSiteIdentity(site){
  if(perks){
   perks.querySelectorAll('[data-site-symbol-key]').forEach(el=>{const key=el.dataset.siteSymbolKey;if(t[key+'_hidden'])el.style.display='none';else{el.style.display='';el.textContent=t[key]||'✦';}});
   perks.querySelectorAll('[data-site-symbol-key^="destination_symbol_extra_"]').forEach(el=>el.closest('.perk')?.remove());
-  Object.keys(t).filter(k=>k.startsWith('destination_symbol_extra_')&&!k.endsWith('_hidden')&&!t[k+'_hidden']).sort((a,b)=>Number(a.slice(24))-Number(b.slice(24))).forEach(key=>{
+  Object.keys(t).filter(k=>k.startsWith('destination_symbol_extra_')&&!k.endsWith('_hidden')&&!t[k+'_hidden']).sort((a,b)=>Number(a.slice(25))-Number(b.slice(25))).forEach(key=>{
    const item=document.createElement('div');item.className='perk';
    const symbol=document.createElement('i');symbol.dataset.siteSymbolKey=key;symbol.dataset.siteSymbolLabel='Symbole destination';symbol.title='Cliquer pour modifier ce symbole';symbol.textContent=t[key]||'✦';item.appendChild(symbol);perks.appendChild(item);
   });
