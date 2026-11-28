@@ -1621,7 +1621,9 @@ function customInlineInstallPersistentSelection(){
   }
   if(stop){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
  };
- window.addEventListener('pointerdown',e=>{clearSelection(e);selectBox(e,false);},true);
+ // Le pointerdown sert uniquement à repérer une case. La désélection et la sauvegarde
+ // ne se font qu'au clic extérieur terminé : éviter un rerendu pendant la séquence du clic.
+ window.addEventListener('pointerdown',e=>{selectBox(e,false);},true);
  window.addEventListener('click',e=>{clearSelection(e);selectBox(e,true);},true);
 }
 function customInlineAttachInteractions(){
