@@ -841,45 +841,8 @@ function enableIndividualTextEditing(site){
   document.addEventListener('pointerout',e=>{if(!hoveredModule||hoveredModule.contains(e.relatedTarget))return;if(hoveredModule!==selectedModule)hoveredModule.classList.remove('preview-module-hover');hoveredModule=null;});
   document.addEventListener('click',e=>{if(e.target.closest('#individualTextToolbar,#previewPhotoPicker,#previewReturnOwner,.preview-edit-dialog,#legacyElementTools'))return;const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');showLegacyElementTools(selectedModule);}else hideLegacyElementTools();},{capture:true});
  }
- function hideLegacyElementTools(){const bar=document.getElementById('legacyElementTools');if(bar)bar.hidden=true;}
- function showLegacyElementTools(el){
-  if(!el||!document.body.classList.contains('private-preview-editing'))return;
-  let bar=document.getElementById('legacyElementTools');
-  if(!bar){bar=document.createElement('div');bar.id='legacyElementTools';bar.style.cssText='position:fixed;z-index:32010;top:76px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:8px;background:#173f36;border-radius:10px;box-shadow:0 5px 22px #0005;max-width:calc(100vw - 20px)';
-   [['↑','up'],['↓','down'],['←','left'],['→','right'],['−','smaller'],['＋','larger'],['✕','delete']].forEach(([label,action])=>{const b=document.createElement('button');b.type='button';b.dataset.legacyAction=action;b.textContent=label;b.title=({up:'Déplacer vers le haut',down:'Déplacer vers le bas',left:'Déplacer à gauche',right:'Déplacer à droite',smaller:'Réduire',larger:'Agrandir',delete:'Supprimer cet élément'})[action];b.style.cssText='min-width:36px;height:36px;border:1px solid #ffffff55;border-radius:7px;background:#fff;color:#173f36;font-weight:800;font-size:17px;cursor:pointer';bar.appendChild(b);});
-   const hint=document.createElement('span');hint.textContent='Déplacer · Taille · Supprimer';hint.style.cssText='color:#fff;font:600 11px Arial;padding:0 5px';bar.appendChild(hint);document.body.appendChild(bar);
-  }
-  bar.hidden=false;bar.dataset.targetKey=el.dataset.siteEditKey||el.dataset.siteSymbolKey||('photo:'+el.dataset.previewPhoto);
- }
- if(!document.body.dataset.legacyElementToolsReady){
-  document.body.dataset.legacyElementToolsReady='1';
-  document.addEventListener('click',async e=>{
-   const b=e.target.closest('#legacyElementTools [data-legacy-action]');if(!b)return;
-   e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-   const key=b.parentElement.dataset.targetKey,el=document.querySelector('[data-site-edit-key="'+CSS.escape(key)+'"],[data-site-symbol-key="'+CSS.escape(key)+'"],[data-preview-photo="'+CSS.escape(key.replace(/^photo:/,''))+'"]');
-   if(!el)return;
-   const site=activePreviewSite;if(!site||!currentUser?.id)return;
-   const layouts={...(site.site_texts?.__preview_layouts||{})},old=layouts[key]||{x:0,y:0,scale:1};
-   if(b.dataset.legacyAction==='delete'){
-    if(!confirm('Supprimer cet élément de la page ?'))return;
-    try{
-     if(key==='photo:hero'){await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{hero_photo_url:null,updated_at:new Date().toISOString()});site.hero_photo_url=null;el.style.backgroundImage='';}
-     else if(key==='photo:presentation'){const texts={...(site.site_texts||{}),presentation_photo_url:null};await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});site.site_texts=texts;el.style.backgroundImage='';}
-     else {const texts={...(site.site_texts||{}),[key+'_hidden']:true};delete texts[key];delete texts[key+'_html'];await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});site.site_texts=texts;el.textContent='';el.style.display='none';}
-     el.classList.remove('preview-module-selected');hideLegacyElementTools();showPreviewPhotoNotice('Élément supprimé et enregistré.');
-    }catch(err){alert('Impossible de supprimer cet élément : '+err.message);}return;
-   }
-   const action=b.dataset.legacyAction,step=action==='up'?{x:0,y:-10}:action==='down'?{x:0,y:10}:action==='left'?{x:-10,y:0}:action==='right'?{x:10,y:0}:null;
-   if(step){old.x+=step.x;old.y+=step.y;}else old.scale=Math.max(.5,Math.min(1.8,old.scale+(action==='larger'?.05:-.05)));
-   layouts[key]=old;el.style.transform='translate('+old.x+'px,'+old.y+'px) scale('+old.scale+')';el.style.transformOrigin='center center';
-   try{const texts={...(site.site_texts||{}),__preview_layouts:layouts};await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});site.site_texts=texts;}
-   catch(err){alert('Impossible d’enregistrer la position ou la taille : '+err.message);}
-  },true);
- }
  const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],contactLink:['contact_link','Contact — bouton et lien'],footerTagline:['footer_tagline','Pied de page']};
  document.body.classList.add('private-preview-editing');
- const layouts=site.site_texts?.__preview_layouts||{};
- document.querySelectorAll('[data-site-edit-key],[data-site-symbol-key],[data-preview-photo]').forEach(el=>{const key=el.dataset.siteEditKey||el.dataset.siteSymbolKey||('photo:'+el.dataset.previewPhoto),v=layouts[key];if(v){el.style.transform='translate('+(Number(v.x)||0)+'px,'+(Number(v.y)||0)+'px) scale('+(Number(v.scale)||1)+')';el.style.transformOrigin='center center';}});
  // Fermer aussi l’éditeur des anciens textes/boutons lorsqu’on clique réellement hors de la zone.
  if(document.body.dataset.individualEditorOutsideReady!=='1'){
   document.body.dataset.individualEditorOutsideReady='1';
