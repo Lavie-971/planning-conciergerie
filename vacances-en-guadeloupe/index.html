@@ -635,6 +635,7 @@ body.custom-canvas-selecting #publicApp{cursor:crosshair!important;}
 
 /* Édition directe des rectangles sur la page privée */
 .custom-inline-toolbar[hidden]{display:none!important}
+body.custom-inline-editing #customInlineToolbar:not([hidden]){display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
 body.custom-inline-editing #customInlineToolbar{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
 .custom-inline-toolbar{position:fixed;z-index:30000;top:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:calc(100vw - 20px);padding:9px 12px;background:#173f36;color:#fff;border-radius:12px;box-shadow:0 8px 30px #0004;font:13px Arial,sans-serif}
 .custom-inline-toolbar button,.custom-inline-toolbar select{border:1px solid #ffffff55;border-radius:6px;padding:7px 9px;background:#fff;color:#173f36;cursor:pointer;font:inherit}
@@ -1449,22 +1450,27 @@ function customInlineConvertLegacyBlockToCanvas(id,element,rectOverride=null){
  block.type='mixed';customInlineEditor.selectedId=block.id;customInlineEditor.dirty=true;customInlineRender();customInlineFocusText(block.id);customInlineMarkDirty();
  const status=$('customInlineToolbar')?.querySelector('[data-inline-status]');if(status)status.textContent='Bloc converti en éditeur complet — Enregistrez pour conserver les modifications.';
 }
+function customInlineInstallPersistentSelection(){
+ if(document.body.dataset.customPersistentSelectionReady==='1')return;
+ document.body.dataset.customPersistentSelectionReady='1';
+ document.addEventListener('click',e=>{
+  if(!document.body.classList.contains('custom-inline-editing'))return;
+  const target=e.target instanceof Element?e.target:null;if(!target)return;
+  const box=target.closest('.custom-site-block-canvas,[data-custom-block-id]');if(!box)return;
+  const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  if(!box.classList.contains('custom-site-block-canvas')){customInlineConvertLegacyBlockToCanvas(id,box);return;}
+  customInlineEditor.selectedId=String(id);customInlineUpdateSelectionUI();
+  const text=target.closest('[data-custom-text]');if(text){text.contentEditable='true';text.focus();}
+ },true);
+}
 function customInlineAttachInteractions(){
+ customInlineInstallPersistentSelection();
  // La sélection reste active et encadrée même après un clic ailleurs dans la page.
  // Elle ne change que lorsqu'une autre case est sélectionnée ou que l'éditeur est fermé.
  document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(box=>{
   if(box.dataset.inlineReady==='1')return;box.dataset.inlineReady='1';
-  box.addEventListener('click',e=>{
-   if(e.target.closest('.custom-resize-handle'))return;
-   const id=box.dataset.customCanvasId||box.dataset.customBlockId;if(!id)return;
-   if(!box.classList.contains('custom-site-block-canvas')){
-    e.preventDefault();customInlineConvertLegacyBlockToCanvas(id,box);return;
-   }
-   customInlineEditor.selectedId=id;
-   document.querySelectorAll('.custom-site-block-canvas,[data-custom-block-id]').forEach(x=>x.classList.toggle('custom-block-selected',x===box));
-   customInlineUpdateSelectionUI();
-   const txt=box.querySelector('[data-custom-text]');if(txt){txt.contentEditable='true';txt.focus();}
-  });
+  // La sélection est centralisée en capture pour toutes les cases, anciennes et nouvelles.
   if(!box.classList.contains('custom-site-block-canvas'))return;
   box.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('[data-custom-text],.custom-resize-handle'))return;e.preventDefault();const sx=e.clientX,sy=e.clientY,left=box.offsetLeft,top=box.offsetTop;box.setPointerCapture(e.pointerId);const move=ev=>{box.style.left=Math.max(0,left+ev.clientX-sx)+'px';box.style.top=Math.max(0,top+ev.clientY-sy)+'px';customInlineMarkDirty();};const up=()=>{box.removeEventListener('pointermove',move);box.removeEventListener('pointerup',up);customInlineSyncFromPage();};box.addEventListener('pointermove',move);box.addEventListener('pointerup',up);});
   const handle=document.createElement('span');handle.className='custom-resize-handle';handle.title='Tirer pour redimensionner';box.appendChild(handle);
@@ -1502,6 +1508,7 @@ async function customInlineDeleteSelected(){
  await customInlineSave();
 }
 function customInlineUpdateSelectionUI(){
+ if(document.body.classList.contains('custom-inline-editing')&&!$('customInlineToolbar'))customInlineToolbar();
  const bar=$('customInlineToolbar');
  if(bar){bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';}
  const selectedId=customInlineEditor.selectedId==null?'':String(customInlineEditor.selectedId);
