@@ -1410,6 +1410,7 @@ function customInlineUpdateSelectionUI(){
 function customInlineRender(){
  renderCustomSiteBlocks({...currentSite,site_texts:{...(currentSite?.site_texts||{}),custom_blocks:customInlineEditor.blocks}});
  customInlineAttachInteractions();
+ document.querySelectorAll('.custom-site-block-canvas').forEach(box=>{const b=customInlineEditor.blocks.find(x=>x.id===box.dataset.customCanvasId);if(!b||!b.link_url||b.image_url)return;const editor=box.querySelector('[data-custom-text]'),raw=String(editor?.innerText||'').trim();if(raw)return;const link=box.querySelector('.custom-site-block-link');if(!link)return;if(editor)editor.style.display='none';const linkWidth=Math.ceil(link.getBoundingClientRect().width),linkHeight=Math.ceil(link.getBoundingClientRect().height);box.style.width=Math.max(80,linkWidth+30)+'px';box.style.height=Math.max(60,linkHeight+30)+'px';});
  customInlineUpdateSelectionUI();
 }
 async function customInlineSave(){
