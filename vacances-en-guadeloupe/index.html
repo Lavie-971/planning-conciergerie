@@ -655,6 +655,18 @@ body.custom-inline-editing .custom-site-block-canvas.custom-block-selected{outli
 @media(max-width:700px){#publicApp .listing-search{padding:16px}#publicApp .listing-search-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#publicApp .listing-search-wide{grid-column:1/-1}}
 @media(max-width:430px){#publicApp .listing-search-grid{grid-template-columns:1fr}#publicApp .listing-search-wide{grid-column:auto}#publicApp .listing-search-heading{align-items:flex-start}}
 
+
+/* Recadrage des photos dans la fenêtre d'édition de l'aperçu privé */
+#previewEditModal .image-preview-list{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px;margin-top:12px}
+#previewEditModal .image-preview{position:relative;display:flex;flex-direction:column;gap:0;width:min(220px,100%);min-height:0;height:auto;overflow:visible;padding:0 0 10px;border:1px solid #dce5dc;border-radius:11px;background:#fff;box-shadow:0 2px 9px rgba(20,50,35,.08)}
+#previewEditModal .image-preview img{display:block;width:100%;height:130px;object-fit:cover;border-radius:10px 10px 0 0}
+#previewEditModal .image-preview .photo-cover{padding:7px 10px 2px;font-size:11px;font-weight:700;color:#315b45}
+#previewEditModal .image-preview .photo-tools{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;padding:7px}
+#previewEditModal .image-preview .photo-tools button{position:static;width:auto;height:auto;min-height:30px;padding:6px 9px;border:0;border-radius:6px;background:#edf4ee;color:#28543e;font-size:11px;line-height:1.2;box-shadow:none}
+#previewEditModal .image-preview button[data-remove-image]{position:absolute;top:7px;right:7px;z-index:2;display:flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#fff;color:#8e2e2e;font-size:19px;line-height:1;box-shadow:0 1px 5px #0003}
+#previewEditModal .photo-crop-controls{display:grid;gap:9px;width:100%;padding:8px 11px 4px;border-top:1px solid #e8eee8}
+#previewEditModal .photo-crop-controls label{display:grid;grid-template-columns:74px minmax(0,1fr);align-items:center;gap:8px;font-size:12px;font-weight:600;color:#405b4a}
+#previewEditModal .photo-crop-controls input[type=range]{display:block;width:100%;min-width:0;height:22px;margin:0;accent-color:#285b49;cursor:pointer}
 </style>
 </head>
 <body>
