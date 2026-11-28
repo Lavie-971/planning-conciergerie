@@ -840,7 +840,7 @@ function enableIndividualTextEditing(site){
   document.addEventListener('pointerout',e=>{if(!hoveredModule||hoveredModule.contains(e.relatedTarget))return;if(hoveredModule!==selectedModule)hoveredModule.classList.remove('preview-module-hover');hoveredModule=null;});
   document.addEventListener('click',e=>{const next=moduleFor(e.target);if(selectedModule&&selectedModule!==next)selectedModule.classList.remove('preview-module-selected');selectedModule=next;if(selectedModule){selectedModule.classList.add('preview-module-selected');selectedModule.classList.remove('preview-module-hover');}},{capture:true});
  }
- const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],footerTagline:['footer_tagline','Pied de page']};
+ const fields={navListings:['nav_listings','Menu — Nos logements'],navDestination:['nav_destination','Menu — La Guadeloupe'],navContact:['nav_contact','Menu — Nous contacter'],heroEyebrow:['hero_eyebrow','Accueil — petit titre'],heroTitle:['hero_title','Accueil — grand titre'],heroText:['hero_text','Accueil — texte'],heroCta:['hero_cta','Accueil — bouton principal'],heroSecondaryCta:['hero_secondary_cta','Accueil — bouton secondaire'],introEyebrow:['intro_eyebrow','Présentation — petit titre'],introTitle:['intro_title','Présentation — titre'],introText:['intro_text','Présentation — texte'],catalogEyebrow:['catalog_eyebrow','Logements — petit titre'],catalogTitle:['catalog_title','Logements — titre'],catalogText:['catalog_text','Logements — texte'],destinationEyebrow:['destination_eyebrow','Destination — petit titre'],destinationTitle:['destination_title','Destination — titre'],destinationText:['destination_text','Destination — texte'],destinationText2:['destination_text2','Destination — second texte'],perk1:['perk1','Destination — avantage 1'],perk2:['perk2','Destination — avantage 2'],perk3:['perk3','Destination — avantage 3'],perk4:['perk4','Destination — avantage 4'],contactEyebrow:['contact_eyebrow','Contact — petit titre'],contactTitle:['contact_title','Contact — titre'],contactText:['contact_text','Contact — texte'],contactLink:['contact_link','Contact — bouton et lien'],footerTagline:['footer_tagline','Pied de page']};
  document.body.classList.add('private-preview-editing');
  Object.entries(fields).forEach(([id,v])=>{const el=$(id);if(el){el.dataset.siteEditKey=v[0];el.dataset.siteEditLabel=v[1];el.title='Cliquer pour modifier ce texte';}});
 }
@@ -848,7 +848,7 @@ let individualTextEdit=null;
 function individualTextToolbar(){
  let bar=$('individualTextToolbar');if(bar)return bar;
  bar=document.createElement('div');bar.id='individualTextToolbar';bar.className='custom-inline-toolbar individual-text-toolbar';
- bar.innerHTML='<strong>Modifier le texte</strong><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
+ bar.innerHTML='<strong>Modifier le texte / bouton</strong><input type="url" data-it-href placeholder="Adresse du lien (https://… ou #section)" aria-label="Adresse du lien" style="min-width:210px;max-width:38vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
  document.body.appendChild(bar);
  bar.addEventListener('mousedown',e=>{if(e.target.closest('button,select,input'))e.preventDefault();});
  bar.addEventListener('click',e=>{
@@ -870,24 +870,26 @@ function openIndividualTextEditor(key,label,element){
  const site=activePreviewSite;if(!site||element.isContentEditable||individualTextEdit)return;
  const hidden=!!site.site_texts?.[key+'_hidden'];
  const originalHtml=hidden?'':element.innerHTML,originalText=hidden?'':element.textContent.trim();
+ const originalHref=element.matches('a')?element.getAttribute('href')||'':'';
  const module=element.closest('.hero,.intro,.listings,.experience,.contact,footer,header')||element;
  module.classList.add('preview-module-highlight');
  if(hidden)element.innerHTML='';
  element.contentEditable='true';element.setAttribute('role','textbox');element.setAttribute('aria-label','Modifier '+label);
  element.style.outline='2px solid #c49b55';element.style.background='#fff8e9';element.style.color='#173f36';
- const bar=individualTextToolbar();bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
+ const bar=individualTextToolbar();const hrefControl=bar.querySelector('[data-it-href]');if(hrefControl){hrefControl.hidden=!element.matches('a');hrefControl.value=originalHref;}bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
  const close=()=>{individualTextEdit=null;bar.hidden=true;bar.style.display='none';bar.style.visibility='hidden';bar.style.opacity='0';element.contentEditable='false';element.removeAttribute('role');element.style.outline='';element.style.background='';element.style.color='';module.classList.remove('preview-module-highlight');};
  const finish=async save=>{
   if(!individualTextEdit||individualTextEdit.element!==element)return;
-  if(!save){close();element.innerHTML=hidden?'':originalHtml;return;}
+  if(!save){close();element.innerHTML=hidden?'':originalHtml;if(element.matches('a'))element.setAttribute('href',originalHref);return;}
   const html=sanitizeCustomTextHtml(element.innerHTML),next=element.textContent.trim();
   if(!next){close();element.innerHTML=hidden?'':originalHtml;return;}
   if(next===originalText&&html===sanitizeCustomTextHtml(originalHtml)&&!hidden){close();element.innerHTML=originalHtml;return;}
   element.style.opacity='.55';
   try{
    const texts={...(site.site_texts||{}),[key]:next,[key+'_html']:html,[key+'_hidden']:false};
+   if(element.matches('a')){const nextHref=bar.querySelector('[data-it-href]')?.value.trim()||'';if(nextHref&&!/^(https?:\/\/|mailto:|tel:|#)/i.test(nextHref))throw new Error('Adresse de lien invalide. Utilisez https://, mailto:, tel: ou #section.');if(nextHref)texts[key+'_url']=nextHref;else delete texts[key+'_url'];element.setAttribute('href',nextHref||originalHref);}
    await api('public_owner_sites?user_id=eq.'+encodeURIComponent(currentUser.id),'PATCH',{site_texts:texts,updated_at:new Date().toISOString()});
-   site.site_texts=texts;close();element.innerHTML=html;element.title='Texte enregistré — cliquer pour modifier';
+   site.site_texts=texts;close();element.innerHTML=html;if(element.matches('a'))element.setAttribute('href',texts[key+'_url']||originalHref);element.title='Texte enregistré — cliquer pour modifier';
   }catch(err){element.innerHTML=originalHtml;close();alert('Impossible d’enregistrer ce texte : '+err.message);}
   finally{element.style.opacity='';}
  };
@@ -962,6 +964,7 @@ function setSiteIdentity(site){
  put('destinationText2','destination_text2','Installez-vous dans votre logement et partez explorer les trésors de l\'archipel, à votre rythme.');
  put('contactEyebrow','contact_eyebrow','Parlons de vos vacances');put('contactTitle','contact_title','Votre prochaine escapade commence ici');
  put('contactText','contact_text','Une question sur un logement ou envie de préparer votre séjour ? Contactez-nous, nous serons ravis de vous accompagner.');
+ const contactLink=$('contactLink');if(contactLink&&t.contact_link_url)contactLink.href=t.contact_link_url;
  put('footerTagline','footer_tagline','Des vacances au rythme des îles.');
  $('siteTagline').textContent=site.tagline||'Votre séjour en Guadeloupe';
  put('catalogTitle','catalog_title','Les logements de '+site.site_name);
