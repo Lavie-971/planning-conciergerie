@@ -1616,7 +1616,7 @@ function customInlineAttachInteractions(){
   if(box.dataset.inlineReady==='1')return;box.dataset.inlineReady='1';
   // La sélection est centralisée en capture pour toutes les cases, anciennes et nouvelles.
   if(!box.classList.contains('custom-site-block-canvas'))return;
-  box.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('[data-custom-text],.custom-resize-handle'))return;e.preventDefault();const sx=e.clientX,sy=e.clientY,left=box.offsetLeft,top=box.offsetTop;box.setPointerCapture(e.pointerId);const move=ev=>{box.style.left=Math.max(0,left+ev.clientX-sx)+'px';box.style.top=Math.max(0,top+ev.clientY-sy)+'px';customInlineMarkDirty();};const up=()=>{box.removeEventListener('pointermove',move);box.removeEventListener('pointerup',up);customInlineSyncFromPage();};box.addEventListener('pointermove',move);box.addEventListener('pointerup',up);});
+  // Un clic sur la case sert uniquement à la sélectionner. Le déplacement est réservé à sa poignée ✥ dans editeur-blocs-fix.js.
   const handle=document.createElement('span');handle.className='custom-resize-handle';handle.title='Tirer pour redimensionner';box.appendChild(handle);
   handle.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const x=e.clientX,y=e.clientY,w=box.offsetWidth,h=box.offsetHeight;handle.setPointerCapture(e.pointerId);const move=ev=>{box.style.width=Math.max(80,w+ev.clientX-x)+'px';box.style.height=Math.max(60,h+ev.clientY-y)+'px';customInlineMarkDirty();};const up=()=>{handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',up);customInlineSyncFromPage();};handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',up);});
  });
