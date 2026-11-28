@@ -869,19 +869,9 @@ let individualTextEdit=null;
 function individualTextToolbar(){
  let bar=$('individualTextToolbar');if(bar)return bar;
  bar=document.createElement('div');bar.id='individualTextToolbar';bar.className='custom-inline-toolbar individual-text-toolbar';
- bar.innerHTML='<strong data-it-title>Modifier : texte</strong><textarea data-it-text rows="1" aria-label="Texte à modifier" placeholder="Texte à modifier" style="width:min(300px,38vw);min-height:34px;max-height:90px;resize:vertical;padding:7px;border:1px solid #ccd5cf;border-radius:6px;font:13px Arial,sans-serif"></textarea><button type="button" data-it-add-symbol title="Ajouter un symbole dans la partie destination">＋ Ajouter un symbole</button><input type="url" data-it-href placeholder="Adresse du lien (https://… ou #section)" aria-label="Adresse du lien" style="min-width:210px;max-width:38vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
+ bar.innerHTML='<strong>Modifier le texte / symbole</strong><button type="button" data-it-add-symbol title="Ajouter un symbole dans la partie destination">＋ Ajouter un symbole</button><input type="url" data-it-href placeholder="Adresse du lien (https://… ou #section)" aria-label="Adresse du lien" style="min-width:210px;max-width:38vw;padding:7px;border:1px solid #ccd5cf;border-radius:6px"><button type="button" data-it-command="bold" title="Gras"><b>G</b></button><button type="button" data-it-command="italic" title="Italique"><i>I</i></button><button type="button" data-it-command="underline" title="Souligné"><u>U</u></button><select data-it-size title="Taille"><option value="12px">12</option><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option><option value="40px">40</option></select><select data-it-font title="Police"><option>Arial</option><option>Georgia</option><option>Verdana</option><option>Tahoma</option><option>Times New Roman</option><option>Courier New</option></select><input type="color" data-it-color title="Couleur" value="#173f36"><button type="button" data-it-align="left" title="Gauche">≡</button><button type="button" data-it-align="center" title="Centrer">☰</button><button type="button" data-it-align="right" title="Droite">≡</button><button type="button" data-it-delete title="Masquer ce texte">Supprimer</button><button type="button" data-it-cancel>Annuler</button><button type="button" data-it-save class="save">Enregistrer</button>';
  document.body.appendChild(bar);
  bar.addEventListener('mousedown',e=>{if(e.target.closest('button,select,input'))e.preventDefault();});
- bar.addEventListener('input',e=>{
-  if(!individualTextEdit||!e.target.matches('[data-it-text]'))return;
-  const el=individualTextEdit.element,value=e.target.value;
-  if(el.matches('a')){const node=Array.from(el.childNodes).find(n=>n.nodeType===3);if(node)node.nodeValue=value;else el.insertBefore(document.createTextNode(value),el.firstChild);}
-  else el.textContent=value;
- });
-
- bar.addEventListener('input',e=>{
-  if(e.target===individualTextEdit?.element){const field=bar.querySelector('[data-it-text]');if(field)field.value=individualTextEdit.element.textContent;}
- });
  bar.addEventListener('click',e=>{
   const cmd=e.target.closest('[data-it-command]')?.dataset.itCommand;if(cmd){document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false);return;}
   const align=e.target.closest('[data-it-align]')?.dataset.itAlign;if(align){document.execCommand('styleWithCSS',false,true);document.execCommand('justify'+align,false);return;}
@@ -927,9 +917,7 @@ function openIndividualTextEditor(key,label,element){
  element.classList.add('preview-text-edit-active');
  element.style.outline='3px solid #2878b8';element.style.outlineOffset='5px';element.style.background='#fff8e9';element.style.color='#173f36';
  const bar=individualTextToolbar();
- const titleControl=bar.querySelector('[data-it-title]'),textControl=bar.querySelector('[data-it-text]'),addSymbolControl=bar.querySelector('[data-it-add-symbol]'),hrefControl=bar.querySelector('[data-it-href]');
- if(titleControl)titleControl.textContent='Modifier : '+label;
- if(textControl)textControl.value=element.textContent;
+ const addSymbolControl=bar.querySelector('[data-it-add-symbol]'),hrefControl=bar.querySelector('[data-it-href]');
  if(addSymbolControl)addSymbolControl.hidden=!(String(key).startsWith('perk')||String(key).startsWith('destination_symbol'));
  if(hrefControl){hrefControl.hidden=!element.matches('a');hrefControl.value=originalHref;}
  bar.hidden=false;bar.style.display='flex';bar.style.visibility='visible';bar.style.opacity='1';
