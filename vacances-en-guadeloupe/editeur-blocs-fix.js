@@ -237,11 +237,19 @@
   }
   function refreshUI() {
     const bar = document.getElementById('customInlineToolbar'); if (!bar) return;
+    const selected = !!(customInlineEditor && customInlineEditor.selectedId);
     const box = getBox();
-    bar.hidden = !box;
-    if (box) positionBar(bar, box);
+    // À la création, le bloc peut être en cours de rendu : ne pas masquer
+    // la barre tant qu'un identifiant de bloc reste sélectionné.
+    bar.hidden = !selected;
+    if (selected) {
+      bar.style.display = 'flex';
+      bar.style.visibility = 'visible';
+      bar.style.opacity = '1';
+      positionBar(bar, box);
+    }
     const pill = document.getElementById('customSavePill');
-    if (pill) pill.hidden = !(customInlineEditor.dirty && !box);
+    if (pill) pill.hidden = !(customInlineEditor.dirty && !selected);
   }
   let raf = 0;
   const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(refreshUI); };
